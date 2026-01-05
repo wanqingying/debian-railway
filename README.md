@@ -5,7 +5,7 @@
 
 Want to try out Debian or want to have a mini version of Debian available at all times? Then feel free to give this project a try:
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/template/YOUR_TEMPLATE_ID?referralCode=YOUR_CODE)
+[![Deploy on Railway]([![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/O5JpUW?referralCode=zkQBwB&utm_medium=integration&utm_source=template&utm_campaign=generic))
 
 ## Description
 
