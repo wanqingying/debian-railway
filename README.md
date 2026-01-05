@@ -30,13 +30,3 @@ This project uses the official [Debian Bookworm](https://hub.docker.com/_/debian
 2. Set your USERNAME and PASSWORD in the environment variables
 3. Wait for deployment to complete
 4. Access your Debian terminal via the provided Railway URL
-
-## Default Packages
-
-The following packages are pre-installed:
-- `wget`
-- `curl`
-- `git`
-- `python3`
-- `python3-pip`
-- `neofetch`
