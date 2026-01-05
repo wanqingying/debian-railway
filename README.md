@@ -31,26 +31,12 @@ This project uses the official [Debian Bookworm](https://hub.docker.com/_/debian
 3. Wait for deployment to complete
 4. Access your Debian terminal via the provided Railway URL
 
-## Usage
-
-After deployment, you can:
-- Install any packages using `apt install`
-- Run scripts and programs
-- Use it as a development environment
-- Access it from anywhere via web browser
-
 ## Default Packages
 
 The following packages are pre-installed:
-- `wget` - File downloader
-- `curl` - URL transfer tool
-- `git` - Version control system
-- `python3` - Python programming language
-- `python3-pip` - Python package installer
-- `neofetch` - System information tool
-
-## License
-
-This project uses open-source software:
-- [Debian](https://www.debian.org/) - Licensed under Debian Free Software Guidelines
-- [ttyd](https://github.com/tsl0922/ttyd) - MIT License
+- `wget`
+- `curl`
+- `git`
+- `python3`
+- `python3-pip`
+- `neofetch`
