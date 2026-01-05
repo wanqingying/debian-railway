@@ -14,7 +14,6 @@ This project uses the official [Debian Bookworm](https://hub.docker.com/_/debian
 ### Features
 - 🐧 Official Debian Bookworm Slim base
 - 🔒 Password-protected web terminal
-- 📦 Pre-installed with Python 3, Git, Curl, Wget
 - 💻 Neofetch display on login
 
 ## Environment Variables
