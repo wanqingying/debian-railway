@@ -23,10 +23,3 @@ This project uses the official [Debian Bookworm](https://hub.docker.com/_/debian
 - **PASSWORD:** The password which will be used to login to the web shell.
 
 **NOTE:** It is strongly advised to provide the USERNAME and PASSWORD environment variables before deploying the project.
-
-## Installation
-
-1. Click the "Deploy on Railway" button above
-2. Set your USERNAME and PASSWORD in the environment variables
-3. Wait for deployment to complete
-4. Access your Debian terminal via the provided Railway URL
