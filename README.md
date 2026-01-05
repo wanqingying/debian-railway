@@ -25,13 +25,13 @@ This project uses the official [Debian Bookworm](https://hub.docker.com/_/debian
 
 **NOTE:** It is strongly advised to provide the USERNAME and PASSWORD environment variables before deploying the project.
 
-# Deploy
+## Deploy
 
-Click the deploy button at the top of this README to get started.
+Click the deploy button above to deploy this template to Railway. The deployment process is automatic and takes just a few minutes.
 
-# Host
+## Host
 
-This service will be accessible via the Railway-provided domain after deployment.
+This service will be accessible via the Railway-provided domain after deployment. You can also configure a custom domain in Railway settings.
 
 ## Why Deploy
 
