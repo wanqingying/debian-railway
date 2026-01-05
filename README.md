@@ -25,7 +25,11 @@ This project uses the official [Debian Bookworm](https://hub.docker.com/_/debian
 
 **NOTE:** It is strongly advised to provide the USERNAME and PASSWORD environment variables before deploying the project.
 
-## Host
+# Deploy
+
+Click the deploy button at the top of this README to get started.
+
+# Host
 
 This service will be accessible via the Railway-provided domain after deployment.
 
