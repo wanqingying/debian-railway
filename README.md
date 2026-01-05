@@ -14,16 +14,13 @@ This project uses the official [Debian Bookworm](https://hub.docker.com/_/debian
 ### Features
 - 🐧 Official Debian Bookworm Slim base
 - 🔒 Password-protected web terminal
-- 🎨 Custom username display
 - 📦 Pre-installed with Python 3, Git, Curl, Wget
-- 🎯 Auto-starts in `/root` directory
 - 💻 Neofetch display on login
-- ⚡ Anti-sleep mechanism to keep container active
 
 ## Environment Variables
 
 - **PORT:** The port on which the ttyd program will listen on.
-- **USERNAME:** The username which will be displayed in the terminal prompt.
+- **USERNAME:** The username which will be used to login to the web shell.
 - **PASSWORD:** The password which will be used to login to the web shell.
 
 **NOTE:** It is strongly advised to provide the USERNAME and PASSWORD environment variables before deploying the project.
@@ -52,3 +49,9 @@ The following packages are pre-installed:
 - `python3` - Python programming language
 - `python3-pip` - Python package installer
 - `neofetch` - System information tool
+
+## License
+
+This project uses open-source software:
+- [Debian](https://www.debian.org/) - Licensed under Debian Free Software Guidelines
+- [ttyd](https://github.com/tsl0922/ttyd) - MIT License
