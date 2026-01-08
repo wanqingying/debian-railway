@@ -13,8 +13,6 @@ RUN echo "neofetch" >> /root/.bashrc && \
 
 EXPOSE $PORT
 
-RUN echo $CREDENTIAL > /tmp/debug
-
 CMD ["/bin/bash", "-c", "\
     echo \"export PS1='\\[\\033[01;31m\\]$USERNAME@\\h\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ '\" >> /root/.bashrc && \
     /bin/ttyd -p $PORT -c $USERNAME:$PASSWORD /bin/bash"]
