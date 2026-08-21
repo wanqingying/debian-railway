@@ -39,6 +39,24 @@ if [ -n "${GIT_USER_NAME:-}" ] || [ -n "${GIT_USER_EMAIL:-}" ]; then
         git config --global user.email "${GIT_USER_EMAIL}"
 fi
 
+# ---- GitLab auth: PAT from GITLAB_TOKEN, stored for HTTPS clone/push ----
+# Uses GitLab's standard credential format https://oauth2:<PAT>@<host>. The
+# credential file and helper config live in the persistent volume, so git
+# operations authenticate without interaction. Credential helper overrides any
+# baked store helper so the volume token wins.
+if [ -n "${GITLAB_TOKEN:-}" ]; then
+    GITLAB_HOST="${GITLAB_HOST:-gitlab.com}"
+    mkdir -p "$XDG_CONFIG_HOME/git"
+    CRED_FILE="$XDG_CONFIG_HOME/git/credentials"
+    OLD_UMASK="$(umask)"
+    umask 077
+    echo "https://oauth2:${GITLAB_TOKEN}@${GITLAB_HOST}" > "$CRED_FILE"
+    umask "$OLD_UMASK"
+    chmod 600 "$CRED_FILE"
+    GIT_CONFIG_GLOBAL="$XDG_CONFIG_HOME/git/config" \
+        git config --global credential.helper "store --file=$CRED_FILE"
+fi
+
 # ---- SSH port: prefer SSH_PORT, else $PORT (Railway's public port) ----
 SSH_PORT="${SSH_PORT:-${PORT:-22}}"
 sed -i "s/^#\?Port .*/Port ${SSH_PORT}/" /etc/ssh/sshd_config
