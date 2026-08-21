@@ -34,9 +34,9 @@ fi
 if [ -n "${GIT_USER_NAME:-}" ] || [ -n "${GIT_USER_EMAIL:-}" ]; then
     mkdir -p "$XDG_CONFIG_HOME/git"
     GIT_CONFIG_GLOBAL="$XDG_CONFIG_HOME/git/config" \
-        git config user.name "${GIT_USER_NAME}"
+        git config --global user.name "${GIT_USER_NAME}"
     GIT_CONFIG_GLOBAL="$XDG_CONFIG_HOME/git/config" \
-        git config user.email "${GIT_USER_EMAIL}"
+        git config --global user.email "${GIT_USER_EMAIL}"
 fi
 
 # ---- SSH port: prefer SSH_PORT, else $PORT (Railway's public port) ----
