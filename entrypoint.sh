@@ -39,18 +39,17 @@ if [ -n "${GIT_USER_NAME:-}" ] || [ -n "${GIT_USER_EMAIL:-}" ]; then
         git config --global user.email "${GIT_USER_EMAIL}"
 fi
 
-# ---- GitLab auth: PAT from GITLAB_TOKEN, stored for HTTPS clone/push ----
-# Uses GitLab's standard credential format https://oauth2:<PAT>@<host>. The
-# credential file and helper config live in the persistent volume, so git
-# operations authenticate without interaction. Credential helper overrides any
-# baked store helper so the volume token wins.
-if [ -n "${GITLAB_TOKEN:-}" ]; then
-    GITLAB_HOST="${GITLAB_HOST:-gitlab.com}"
+# ---- GitHub auth: PAT from GITHUB_TOKEN, stored for HTTPS clone/push ----
+# GitHub accepts any username with the PAT as password; 'oauth2' is the most
+# generic. The credential file and helper config live in the persistent
+# volume, so git operations authenticate without interaction.
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+    GITHUB_HOST="${GITHUB_HOST:-github.com}"
     mkdir -p "$XDG_CONFIG_HOME/git"
     CRED_FILE="$XDG_CONFIG_HOME/git/credentials"
     OLD_UMASK="$(umask)"
     umask 077
-    echo "https://oauth2:${GITLAB_TOKEN}@${GITLAB_HOST}" > "$CRED_FILE"
+    echo "https://oauth2:${GITHUB_TOKEN}@${GITHUB_HOST}" > "$CRED_FILE"
     umask "$OLD_UMASK"
     chmod 600 "$CRED_FILE"
     GIT_CONFIG_GLOBAL="$XDG_CONFIG_HOME/git/config" \
