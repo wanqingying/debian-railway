@@ -35,8 +35,8 @@ RUN mkdir -p /run/sshd && \
 ENV NODE_ENV=development \
     PATH="/usr/local/bin:${PATH}"
 
-# ---- Install opencode (default AI coding agent) ----
-RUN npm i -g opencode-ai && npm cache clean --force
+# ---- Install opencode (default AI coding agent) + codegraph (MCP code intelligence) ----
+RUN npm i -g opencode-ai @colbymchenry/codegraph && npm cache clean --force
 
 # ---- Bake non-sensitive opencode config (copied from host global config) ----
 # Sensitive credentials (auth.json / account.json / opencode.db) are NOT baked;

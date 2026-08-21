@@ -34,7 +34,6 @@
     "codegraph": {
       "type": "local",
       "command": [
-        "npx",
         "codegraph",
         "serve",
         "--mcp"
