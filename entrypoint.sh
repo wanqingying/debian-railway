@@ -28,6 +28,17 @@ if [ -d /opt/opencode-config ] && [ -n "$XDG_CONFIG_HOME" ]; then
     mkdir -p "$XDG_CONFIG_HOME/cortexkit"
 fi
 
+# ---- Git identity: configured into the persistent volume's XDG git config ----
+# git reads $XDG_CONFIG_HOME/git/config (XDG spec) before ~/.gitconfig; the file
+# lives on the /workspace volume so identity survives restarts.
+if [ -n "${GIT_USER_NAME:-}" ] || [ -n "${GIT_USER_EMAIL:-}" ]; then
+    mkdir -p "$XDG_CONFIG_HOME/git"
+    GIT_CONFIG_GLOBAL="$XDG_CONFIG_HOME/git/config" \
+        git config user.name "${GIT_USER_NAME}"
+    GIT_CONFIG_GLOBAL="$XDG_CONFIG_HOME/git/config" \
+        git config user.email "${GIT_USER_EMAIL}"
+fi
+
 # ---- SSH port: prefer SSH_PORT, else $PORT (Railway's public port) ----
 SSH_PORT="${SSH_PORT:-${PORT:-22}}"
 sed -i "s/^#\?Port .*/Port ${SSH_PORT}/" /etc/ssh/sshd_config
