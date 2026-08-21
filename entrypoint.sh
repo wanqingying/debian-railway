@@ -8,21 +8,20 @@ cd /workspace
 # ---- Ensure the persistent state/config dirs exist on the volume ----
 mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
-# ---- First-start config bootstrap: copy baked config into the persistent volume ----
-# Only copies files that don't already exist so user edits on the volume survive restarts.
+# ---- Config bootstrap: copy baked config into the persistent volume ----
+# The baked config is the source of truth; files whose content differs from the
+# baked version are overwritten so image updates (e.g. env-var refs) propagate.
 if [ -d /opt/opencode-config ] && [ -n "$XDG_CONFIG_HOME" ]; then
     mkdir -p "$XDG_CONFIG_HOME"
-    # Copy every baked file/dir that is not already present on the volume
+    # Sync every baked file/dir onto the volume (overwrite when content differs)
     find /opt/opencode-config -mindepth 1 | while read -r src; do
         rel="${src#/opt/opencode-config/}"
         dst="$XDG_CONFIG_HOME/$rel"
-        if [ ! -e "$dst" ]; then
-            if [ -d "$src" ]; then
-                mkdir -p "$dst"
-            else
-                mkdir -p "$(dirname "$dst")"
-                cp -p "$src" "$dst"
-            fi
+        if [ -d "$src" ]; then
+            mkdir -p "$dst"
+        elif [ ! -e "$dst" ] || ! cmp -s "$src" "$dst"; then
+            mkdir -p "$(dirname "$dst")"
+            cp -p "$src" "$dst"
         fi
     done
     # magic-context config lives under $XDG_CONFIG_HOME/cortexkit/ (plugin reads it there)
