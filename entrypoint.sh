@@ -54,6 +54,11 @@ if [ -n "$TTYD_PORT" ]; then
     /bin/ttyd -p "$TTYD_PORT" -c "${USERNAME:-root}:${PASSWORD}" /bin/bash &
 fi
 
+# ---- App-environment bootstrap: idempotent dev-toolchain install (ffmpeg/uv/pnpm/doppler) ----
+if [ -x /scripts/install-tools.sh ]; then
+    /scripts/install-tools.sh
+fi
+
 # ---- opencode: headless server (basic auth via OPENCODE_SERVER_*). Prefer OPENCODE_PORT else 4096 ----
 OPENCODE_PORT="${OPENCODE_PORT:-4096}"
 if command -v opencode >/dev/null 2>&1; then

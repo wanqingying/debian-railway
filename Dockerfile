@@ -54,6 +54,10 @@ ENV OPENCODE_SERVER_USERNAME=opencode \
 # ---- Working dir on the mounted volume ----
 WORKDIR /workspace
 
+# ---- App-environment bootstrap script (idempotent toolchain install, run at start) ----
+COPY scripts/install-tools.sh /scripts/install-tools.sh
+RUN chmod +x /scripts/install-tools.sh
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
