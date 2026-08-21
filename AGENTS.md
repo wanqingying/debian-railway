@@ -27,7 +27,7 @@ No build/test/lint toolchain — the Dockerfile + entrypoint script are the whol
 
 - **`entrypoint.sh`** is the container's `CMD` (Dockerfile:62). It bootstraps the `/workspace` volume from baked config, sets the SSH port, injects `SSH_PUBLIC_KEY`, applies `PASSWORD`, starts `sshd`, conditionally starts ttyd, then starts `opencode serve` in the background. It keeps the container alive with `exec tail -f /dev/null`.
 - **Persistence** is via the mounted Railway volume `/workspace`. `XDG_DATA_HOME=/workspace/.opencode/data` and `XDG_CONFIG_HOME=/workspace/.opencode/config` redirect **both opencode and magic-context** state (sessions db, auth, memories) to the volume so they survive restarts. `/root` is ephemeral.
-- **Config bootstrap**: non-sensitive config is baked into the image at `/opt/opencode-config/` (copied from host global config). On first start, `entrypoint.sh` copies it into `$XDG_CONFIG_HOME` — only files that don't already exist, so user edits on the volume survive.
+- **Config bootstrap**: non-sensitive config is baked into the image at `/opt/opencode-config/` (copied from host global config). On start, `entrypoint.sh` syncs it into `$XDG_CONFIG_HOME`, **overwriting volume files whose content differs** (the baked config is the source of truth) — so image config updates propagate on redeploy.
 - **opencode serve** runs with basic auth: user `opencode`, password `qingying` (override with `OPENCODE_SERVER_USERNAME`/`OPENCODE_SERVER_PASSWORD`), port `OPENCODE_PORT` (default 4096).
 
 ## Runtime env vars
