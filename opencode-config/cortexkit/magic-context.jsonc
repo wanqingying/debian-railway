@@ -39,7 +39,7 @@
     "provider": "openai-compatible",
     "model": "text-embedding-3-small",
     "endpoint": "https://api.vveai.com/v1",
-    "api_key": "sk-RgwMTeZCZGuFfcAo24Ce950a5e714152Aa859a3e965b1832"
+    "api_key": "{env:EMBEDDING_API_KEY}"
   },
   "memory": {
     "enabled": true,
