@@ -3,3 +3,5 @@
 .gitignore
 assets
 *.md
+!opencode-config/**/*.md
+!opencode-config/assets/**

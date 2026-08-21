@@ -35,9 +35,28 @@ RUN mkdir -p /run/sshd && \
 ENV NODE_ENV=development \
     PATH="/usr/local/bin:${PATH}"
 
+# ---- Install opencode (default AI coding agent) ----
+RUN npm i -g opencode-ai && npm cache clean --force
+
+# ---- Bake non-sensitive opencode config (copied from host global config) ----
+# Sensitive credentials (auth.json / account.json / opencode.db) are NOT baked;
+# they are injected at runtime via env vars (OPENCODE_* / provider keys).
+COPY opencode-config /opt/opencode-config
+
+# ---- Persistence: redirect opencode + magic-context state to the /workspace volume ----
+ENV XDG_DATA_HOME=/workspace/.opencode/data \
+    XDG_CONFIG_HOME=/workspace/.opencode/config
+
+# ---- opencode headless server: basic auth (user opencode, password overridable) ----
+ENV OPENCODE_SERVER_USERNAME=opencode \
+    OPENCODE_SERVER_PASSWORD=qingying
+
+# ---- Working dir on the mounted volume ----
+WORKDIR /workspace
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE $PORT
+EXPOSE $PORT 4096
 
 CMD ["/entrypoint.sh"]
