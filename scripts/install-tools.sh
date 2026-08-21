@@ -13,12 +13,13 @@
 #   Python 3.12       -> uv-managed            (repo requires >=3.12; system python3 is 3.11)
 #   pnpm              -> corepack, pinned 11.22.0
 #   Doppler CLI       -> official apt installer (v3.76.5), auto-authenticated via DOPPLER_TOKEN
+#   Neon CLI          -> npm (neonctl), authenticated natively via NEON_API_KEY env var
 #
 # NOT HANDLED HERE (per-developer, interactive — keep out of the startup script)
 #   - Doppler token:  set DOPPLER_TOKEN env var -> auto-configured below (no interactive login)
-#   - Neon auth:      auto via scripts/setup.sh      (or export NEON_API_KEY for headless)
-#   - Repo bootstrap:scripts/setup.sh               (env-pull + dev branch + uv sync + pnpm install + migrate)
-#   - Server start:   ./dev all                     (app :3000 / graph :2025, per-worktree ports)
+#   - Neon key:       set NEON_API_KEY env var   -> used natively by the CLI (no login step)
+#   - Repo bootstrap:scripts/setup.sh            (env-pull + dev branch + uv sync + pnpm install + migrate)
+#   - Server start:   ./dev all                  (app :3000 / graph :2025, per-worktree ports)
 #
 # Expected runtime versions (verified on the current dev container):
 #   Node v24.19.0 · Debian 12 (bookworm) · uv 0.12.5 · Python 3.12.14 · pnpm 11.22.0 · Doppler 3.76.5
@@ -93,6 +94,19 @@ if [ -n "${DOPPLER_TOKEN:-}" ]; then
   echo "$DOPPLER_TOKEN" | doppler configure set token --scope / >/dev/null
 fi
 
+# ── 5. Neon CLI ─────────────────────────────────────────────────────────────────
+# neonctl (alias `neon`) — Serverless Postgres project/branch/db management.
+# The CLI authenticates natively via the NEON_API_KEY env var (no configure step
+# needed, unlike doppler): credential order is --api-key > NEON_API_KEY >
+# credentials.json (from `neon auth`) > interactive web.
+log "Neon CLI"
+if ! command -v neon >/dev/null 2>&1; then
+  npm install -g neon >/dev/null 2>&1
+fi
+if [ -n "${NEON_API_KEY:-}" ]; then
+  log "neon: NEON_API_KEY present (used natively by the CLI, no login needed)"
+fi
+
 # ── repair the persisted venv against this boot's interpreter ────────────────────
 # core/.venv lives in the persistent workspace and survives redeploys, but its pyvenv.cfg may point
 # at a python path that no longer exists. `uv sync` recreates/repairs it (idempotent; a no-op when
@@ -104,13 +118,14 @@ fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────────
 log "verifying toolchain"
-for tool in uv python3.12 pnpm doppler; do
+for tool in uv python3.12 pnpm doppler neon; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after install"
 done
 printf 'uv        %s\n' "$(uv --version)"
 printf 'python    %s\n' "$(uv run --project "$REPO_ROOT/core" python --version 2>/dev/null || uv python find 3.12)"
 printf 'pnpm      %s\n' "$(pnpm --version)"
 printf 'doppler   %s\n' "$(doppler --version)"
+printf 'neon      %s\n' "$(neon --version 2>/dev/null || echo installed)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
 printf 'lsof      %s\n' "$(lsof --version 2>&1 | head -1)"
 
@@ -119,8 +134,11 @@ cat <<EOF
 ✓ toolchain ready.
 
 Next, one-time per developer (interactive):
-  doppler login                       # browser; or export DOPPLER_TOKEN for headless
   scripts/setup.sh                    # env-pull + dev branch + uv sync + pnpm install + migrate
+
+Auth is automatic when env vars are set:
+  DOPPLER_TOKEN                       # doppler run / secrets (configured at start)
+  NEON_API_KEY                        # neon CLI (used natively, no login needed)
 
 Then start the stack:
   ./dev all
