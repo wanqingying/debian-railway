@@ -4,13 +4,35 @@
 
 - 🐧 Debian Bookworm Slim
 - 🔒 SSH 访问（VS Code Remote-SSH 主入口）+ ttyd 网页终端（可选兜底）
+- 🤖 **opencode** AI 编程助手（headless server，开机自启）
 - 📦 Node.js 24 + build-essential + git + python3
 - 💻 neofetch
 
 ## 功能
 
 - **SSH + Remote-SSH**：在 VS Code 装 `Remote - SSH` 扩展，连接到 Railway 暴露的端口即获得完整 IDE 体验（IntelliSense / 端口转发 / 多终端）。
+- **opencode**：默认安装并后台运行 `opencode serve`，提供 HTTP API / 网页客户端，带 basic auth。
 - **ttyd 网页终端（可选）**：作为无客户端时的兜底，在独立端口提供网页 shell。
+- **持久化**：opencode 的配置、会话、数据库、账号及 magic-context 记忆全部落到挂载卷 `/workspace/.opencode`，重启后保留。
+
+## opencode 访问
+
+`opencode serve` 监听 `4096`（可 `OPENCODE_PORT` 覆盖），HTTP basic auth：
+
+- 用户：`opencode`（`OPENCODE_SERVER_USERNAME` 覆盖）
+- 密码：`qingying`（`OPENCODE_SERVER_PASSWORD` 覆盖）
+
+Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访问 opencode，需在 **Service → Settings → Networking → TCP proxy** 额外添加一个公开端口，映射到容器端口 `4096`，然后用 `https://<该域名>.up.railway.app` 访问。
+
+### 配置来源
+
+`opencode-config/` 存放从本机全局配置复制的**非敏感**配置（`opencode.jsonc`、`AGENTS.md`、`tui.jsonc`、`skills/`、`cortexkit/magic-context.jsonc` 等），构建时打包进镜像，首次启动复制到挂载卷 `$XDG_CONFIG_HOME`（`/workspace/.opencode/config`）。
+
+> ⚠️ **敏感凭据不打包**：API key（`auth.json` / `account.json`）和会话数据库（`opencode.db`）不进入镜像或仓库。容器里需通过环境变量（provider key）或 `opencode auth login` 提供凭据。
+
+## 文档
+
+- **Railway CLI 完整参考**：[docs/railway-cli.md](docs/railway-cli.md) — 整理自 [Railway 官方 CLI 文档](https://docs.railway.com/cli)，覆盖安装、认证、全局选项及全部命令的详细用法（版本 5.41.2）。
 
 ## Railway 配置
 
@@ -23,15 +45,21 @@
 | `PASSWORD`     | 否   | —         | root 登录密码（密钥之外的第二通道兜底） |
 | `USERNAME`     | 否   | `root`    | ttyd 网页终端的登录用户名 |
 | `TTYD_PORT`    | 否   | —         | 设置后启动 ttyd 网页终端，监听该端口 |
+| `OPENCODE_PORT` | 否   | `4096`    | opencode serve 监听端口 |
+| `OPENCODE_SERVER_USERNAME` | 否 | `opencode` | opencode HTTP basic auth 用户名 |
+| `OPENCODE_SERVER_PASSWORD` | 否 | `qingying` | opencode HTTP basic auth 密码 |
 
 > 说明：`SSH_PUBLIC_KEY` 通过 entrypoint 每次启动注入，即使 Railway 没有挂持久卷也能保证密钥存在。强烈建议设置，否则只能用密码登录。
+
+> 说明：`XDG_DATA_HOME`/`XDG_CONFIG_HOME` 固定指向 `/workspace/.opencode/*`，将 opencode 与 magic-context 状态持久化到挂载卷。请为项目挂载 **Railway Volume** 到 `/workspace`。
 
 ### 端口
 
 Railway 一个 service 默认只暴露一个公开端口（`$PORT`）。本项目：
 
 - **SSH（主入口）** 监听 `$PORT` —— 直接使用 Railway 默认公开端口即可。
-- **ttyd（可选）** 监听 `$TTYD_PORT` —— 若需要网页终端，在 Railway 服务 `Settings → Networking` 中**额外添加一个公开端口**，会获得第二个域名。
+- **opencode** 监听 `$OPENCODE_PORT`（默认 `4096`）—— 需在 `Settings → Networking` 额外添加一个公开端口（TCP proxy）映射到 `4096`。
+- **ttyd（可选）** 监听 `$TTYD_PORT` —— 若需要网页终端，同样额外添加公开端口。
 
 ### 连接 VS Code
 
@@ -56,8 +84,11 @@ Host debian-dev
 
 ```bash
 docker build -t debian-dev .
-docker run --rm -p 22:22 \
+docker run --rm -p 22:22 -p 4096:4096 \
+  -v /tmp/ws:/workspace \
   -e SSH_PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)" \
   -e PORT=22 \
   debian-dev
 ```
+
+> `-v /tmp/ws:/workspace` 模拟 Railway 挂载卷，使 opencode 状态在容器重启间持久化。
