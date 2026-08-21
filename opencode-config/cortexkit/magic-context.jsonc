@@ -1,0 +1,63 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cortexkit/opencode-magic-context/master/assets/magic-context.schema.json",
+  "enabled": true,
+  "cache_ttl": {
+    "default": "5m"
+  },
+  "history_budget_percentage": 0.1,
+  "temporal_awareness": true,
+  "historian": {
+    "model": "opencode-go/deepseek-v4-flash"
+  },
+  "dreamer": {
+    "model": "opencode-go/deepseek-v4-flash",
+    "tasks": {
+      "map-memories": {
+        "schedule": "0 2 * * *"
+      },
+      "verify": {
+        "schedule": "0 3 * * *"
+      },
+      "curate": {
+        "schedule": "0 4 * * 0"
+      },
+      "classify-memories": {
+        "schedule": "0 6 * * *"
+      },
+      "retrospective": {
+        "schedule": "0 5 * * *"
+      },
+      "evaluate-smart-notes": {
+        "schedule": "0 3 * * *"
+      },
+      "verify-broad": {
+        "schedule": "0 4 * * 0"
+      }
+    }
+  },
+  "embedding": {
+    "provider": "openai-compatible",
+    "model": "text-embedding-3-small",
+    "endpoint": "https://api.vveai.com/v1",
+    "api_key": "sk-RgwMTeZCZGuFfcAo24Ce950a5e714152Aa859a3e965b1832"
+  },
+  "memory": {
+    "enabled": true,
+    "injection_budget_tokens": 4000,
+    "auto_promote": true,
+    "auto_search": {
+      "enabled": true,
+      "score_threshold": 0.6,
+      "min_prompt_chars": 20
+    },
+    "git_commit_indexing": {
+      "enabled": true,
+      "since_days": 365,
+      "max_commits": 2000
+    }
+  },
+  "sidekick": {
+    "model": "opencode-go/deepseek-v4-flash",
+    "timeout_ms": 30000
+  }
+}
