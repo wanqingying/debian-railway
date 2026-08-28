@@ -33,7 +33,7 @@ No build/test/lint toolchain — the Dockerfile + entrypoint script are the whol
 
 ## Runtime env vars
 
-`PORT` (SSH), `SSH_PORT`, `SSH_PUBLIC_KEY`, `PASSWORD`, `USERNAME` (ttyd), `TTYD_PORT`, `OPENCODE_PORT` (default 4096), `OPENCODE_SERVER_USERNAME` (default `opencode`), `OPENCODE_SERVER_PASSWORD` (default `qingying`). Edits must keep these names consistent.
+`PORT` (SSH), `SSH_PORT`, `SSH_PUBLIC_KEY`, `PASSWORD`, `USERNAME` (ttyd), `TTYD_PORT`, `OPENCODE_PORT` (default 4096), `OPENCODE_SERVER_USERNAME` (default `opencode`), `OPENCODE_SERVER_PASSWORD` (default `qingying`). Also injected at start: `GIT_USER_NAME`/`GIT_USER_EMAIL` (git identity), `GITHUB_TOKEN`/`GITHUB_HOST` (git credential store), `DOPPLER_TOKEN` (doppler auto-auth), `NEON_API_KEY` (neon CLI), `EMBEDDING_API_KEY` (magic-context embeddings). Edits must keep these names consistent.
 
 ## Dockerfile gotchas
 
