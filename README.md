@@ -38,26 +38,43 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 ### 环境变量
 
-| 变量           | 必填 | 默认      | 说明 |
-| -------------- | ---- | --------- | ---- |
-| `PORT`         | 是   | —         | Railway 自动注入的公开端口，SSH 监听该端口 |
-| `SSH_PUBLIC_KEY` | 推荐 | —         | 你的 SSH 公钥，写入 `/root/.ssh/authorized_keys`，实现免密登录；重启不丢 |
-| `PASSWORD`     | 否   | —         | root 登录密码（密钥之外的第二通道兜底） |
-| `USERNAME`     | 否   | `root`    | ttyd 网页终端的登录用户名 |
-| `TTYD_PORT`    | 否   | —         | 设置后启动 ttyd 网页终端，监听该端口 |
-| `OPENCODE_PORT` | 否   | `4096`    | opencode serve 监听端口 |
+| 变量 | 必填 | 默认值 | 说明 |
+| ---- | ---- | ---- | ---- |
+| `PORT` | 是 | — | Railway 自动注入的公开端口，SSH 监听该端口 |
+| `SSH_PORT` | 否 | `$PORT` | SSH 监听端口，显式设置时优先于 `PORT` |
+| `SSH_PUBLIC_KEY` | 推荐 | — | SSH 公钥，写入 `/root/.ssh/authorized_keys`，实现免密登录；重启不丢 |
+| `PASSWORD` | 否 | — | root 登录密码（密钥之外的第二通道兜底） |
+| `USERNAME` | 否 | `root` | ttyd 网页终端的登录用户名 |
+| `TTYD_PORT` | 否 | — | 设置后启动 ttyd 网页终端，监听该端口 |
+| `OPENCODE_PORT` | 否 | `4096` | opencode serve 监听端口 |
 | `OPENCODE_SERVER_USERNAME` | 否 | `opencode` | opencode HTTP basic auth 用户名 |
 | `OPENCODE_SERVER_PASSWORD` | 否 | `qingying` | opencode HTTP basic auth 密码 |
+| `GIT_USER_NAME` | 否 | — | git 全局身份（`git commit` 署名用），启动时写入卷上 git config |
+| `GIT_USER_EMAIL` | 否 | — | git 全局邮箱（`git commit` 署名用），启动时写入卷上 git config |
+| `GITHUB_TOKEN` | 否 | — | GitHub PAT，写入卷上 git credential store，HTTPS clone/push 免交互 |
+| `GITHUB_HOST` | 否 | `github.com` | 配合 `GITHUB_TOKEN` 使用（如企业版 GitHub 自定义域名） |
+| `DOPPLER_TOKEN` | 否 | — | Doppler Service/Personal token，启动时自动 `doppler configure set` |
+| `NEON_API_KEY` | 否 | — | Neon CLI（neonctl）原生认证，无需登录步骤 |
+| `EMBEDDING_API_KEY` | 否 | — | magic-context embedding（text-embedding-3-small）API key |
+| `ANTHROPIC_API_KEY` | 推荐 | — | opencode 调用默认模型（claude-sonnet-4-5）用；也可在容器内 `opencode auth login` 替代 |
 
 > 说明：`SSH_PUBLIC_KEY` 通过 entrypoint 每次启动注入，即使 Railway 没有挂持久卷也能保证密钥存在。强烈建议设置，否则只能用密码登录。
 
 > 说明：`XDG_DATA_HOME`/`XDG_CONFIG_HOME` 固定指向 `/workspace/.opencode/*`，将 opencode 与 magic-context 状态持久化到挂载卷。请为项目挂载 **Railway Volume** 到 `/workspace`。
 
+### 环境变量注入方式与原则
+
+所有需要**从外部注入**的变量（上表）都通过 **Railway → Service → Variables** 配置，entrypoint/install-tools 在启动时读取并落盘。关键原则：
+
+- **敏感凭据不进镜像也不进仓库**：token/key（`GITHUB_TOKEN`、`DOPPLER_TOKEN`、`NEON_API_KEY`、`EMBEDDING_API_KEY`、LLM key）只在 Railway 变量里，运行时注入。`auth.json`/`account.json`/`opencode.db` 被 `opencode-config/` 与 `.railwayignore` 排除。
+- **仅用「当前生效」变量**：如 `SSH_PORT` 未设则回退 `PORT`；`OPENCODE_PORT` 未设则 4096；`DOPPLER_TOKEN`/`NEON_API_KEY` 未设则跳过对应 CLI 配置（登录后可手动补）。
+- **Railway 自动注入的变量无需你设置**：`PORT`（公开端口）、`RAILWAY_TCP_*`（代理端口）、`RAILWAY_ENVIRONMENT`、`RAILWAY_SERVICE_NAME` 等由平台自动提供。
+
 ### 端口
 
 Railway 一个 service 默认只暴露一个公开端口（`$PORT`）。本项目：
 
-- **SSH（主入口）** 监听 `$PORT` —— 直接使用 Railway 默认公开端口即可。
+- **SSH（主入口）** 监听 `$PORT`（或 `SSH_PORT`）—— 直接使用 Railway 默认公开端口即可。客户端 `~/.ssh/config` 的 `Port` 必须填 Railway 的**公开端口**，若它不是 `22` 请相应修改。
 - **opencode** 监听 `$OPENCODE_PORT`（默认 `4096`）—— 需在 `Settings → Networking` 额外添加一个公开端口（TCP proxy）映射到 `4096`。
 - **ttyd（可选）** 监听 `$TTYD_PORT` —— 若需要网页终端，同样额外添加公开端口。
 
