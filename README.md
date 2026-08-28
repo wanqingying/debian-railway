@@ -80,6 +80,45 @@ Host debian-dev
 
 > 注意：Railway 公开域名走 TCP 代理，SSH 可直连；但容器每次部署/重启文件系统是临时的，代码和包请挂 **Railway Volume** 持久化，或使用 git。
 
+## Railway CLI 登录与部署
+
+> 容器 root 文件系统每次重启会被清空，因此 **railway CLI 和登录会话都不持久**，每次需重新安装并登录。
+
+### 1. 安装 CLI
+
+```bash
+npm i -g --allow-scripts=@railway/cli @railway/cli
+```
+
+> `@railway/cli` 有 postinstall 脚本，需加 `--allow-scripts=@railway/cli`。
+
+### 2. 登录
+
+容器内没有浏览器，用 device-code 流程：
+
+```bash
+railway login --browserless
+```
+
+它会打印一个 URL 和 8 位配对码，在任意设备浏览器打开并输入即可。**注意**：CLI 会阻塞等待授权回调，必须放到后台跑，否则易被误杀：
+
+```bash
+nohup railway login --browserless > /tmp/railway-login.log 2>&1 &
+# 查看 /tmp/railway-login.log 里的 URL + 配对码，授权完成后日志出现 "Signed in as ..."
+```
+
+验证：`railway whoami` / `railway status`（项目须已链接；`status` 显示项目、环境、service、volume）。
+
+### 3. 部署
+
+```bash
+railway up -d      # -d 分离模式：上传后即返回，不阻塞构建
+railway deployment list     # 查看构建/部署状态（BUILDING → DEPLOYING → SUCCESS）
+railway logs --deployment   # 跟踪当前部署日志
+```
+
+> 项目 token 方式（`RAILWAY_TOKEN=xxx railway up`）是 CI 用的替代路径；交互式开发时 `login --browserless` 更可靠。
+
 ## 本地构建/测试
 
 ```bash
