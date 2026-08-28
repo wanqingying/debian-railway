@@ -126,6 +126,23 @@ nohup railway login --browserless > /tmp/railway-login.log 2>&1 &
 
 验证：`railway whoami` / `railway status`（项目须已链接；`status` 显示项目、环境、service、volume）。
 
+### 2b. Token 登录（免浏览器，适合自动/CI）
+
+CLI 通过环境变量读取 token，**注意区分变量名**（接错会报 `Unauthorized` / `Invalid RAILWAY_TOKEN`）：
+
+| 变量 | 类型 | 适用 |
+| ---- | ---- | ---- |
+| `RAILWAY_API_TOKEN` | 账户级（账户设置 > Tokens 生成） | `whoami`、`up`、多项目管理 |
+| `RAILWAY_TOKEN` | 项目级（Dashboard 按项目生成） | 单项目内 `up`/`redeploy`/`logs` |
+
+```bash
+RAILWAY_API_TOKEN="$RW_TOKEN" railway whoami     # 验证 token 有效（返回 Logged in as ...）
+RAILWAY_API_TOKEN="$RW_TOKEN" railway up -d      # 部署
+RAILWAY_TOKEN=<project-token> railway up -d      # 项目级 token
+```
+
+> 容器环境里已有的 `RW_TOKEN` 是账户级 token：直接用 `RAILWAY_API_TOKEN="$RW_TOKEN"` 即可，无需交互登录。CLI 不会读取名为 `RW_TOKEN` 的变量本身。
+
 ### 3. 部署
 
 ```bash
