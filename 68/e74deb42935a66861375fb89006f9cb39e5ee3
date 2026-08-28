@@ -1,0 +1,14 @@
+opencode-config/AGENTS.md
+  h_fac5cbaf5b28cf 62-64,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "68e74deb42935a66861375fb89006f9cb39e5ee3",
+  "prompts": {},
+  "humans": {
+    "h_fac5cbaf5b28cf": {
+      "author": "qywan@trip.com <qywan@trip.com>"
+    }
+  }
+}
