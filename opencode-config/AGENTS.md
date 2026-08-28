@@ -59,7 +59,9 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
-## 重要提示
+# 重要提示
+
+- codegraph工具使用语法树构建了调用图，能够极大帮助理解代码的调用链路，是分析代码逻辑的首选
 
 ### mcp工具 codegraph_explore
 
@@ -85,7 +87,7 @@ Commands:
   help [command]                 显示指定命令的帮助
 ```
 
-## 5. 输出风格（友好、可执行、精简）
+# 5. 输出风格（友好、可执行、精简）
 
 目标：让回复适合快速阅读和执行。以下为**参考**，不必生硬照搬——规则冲突时以任务本身为准。系统提示已强制"简洁、少开场白、少客套"，此处只补其未覆盖的：让回复**可执行**。
 
