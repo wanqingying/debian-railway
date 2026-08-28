@@ -107,6 +107,15 @@ if [ -n "${NEON_API_KEY:-}" ]; then
   log "neon: NEON_API_KEY present (used natively by the CLI, no login needed)"
 fi
 
+# ── Railway CLI ───────────────────────────────────────────────────────────────
+# @railway/cli ships a postinstall script, so npm 11 (allow-scripts) needs the
+# --allow-scripts flag. Installed per boot because /usr/local (npm global) is
+# wiped on redeploy. Auth is via `railway login --browserless` or RAILWAY_API_TOKEN.
+log "Railway CLI"
+if ! command -v railway >/dev/null 2>&1; then
+  npm install -g --allow-scripts=@railway/cli @railway/cli >/dev/null 2>&1
+fi
+
 # ── repair the persisted venv against this boot's interpreter ────────────────────
 # core/.venv lives in the persistent workspace and survives redeploys, but its pyvenv.cfg may point
 # at a python path that no longer exists. `uv sync` recreates/repairs it (idempotent; a no-op when
@@ -118,7 +127,7 @@ fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────────
 log "verifying toolchain"
-for tool in uv python3.12 pnpm doppler neon; do
+for tool in uv python3.12 pnpm doppler neon railway; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after install"
 done
 printf 'uv        %s\n' "$(uv --version)"
@@ -126,6 +135,7 @@ printf 'python    %s\n' "$(uv run --project "$REPO_ROOT/core" python --version 2
 printf 'pnpm      %s\n' "$(pnpm --version)"
 printf 'doppler   %s\n' "$(doppler --version)"
 printf 'neon      %s\n' "$(neon --version 2>/dev/null || echo installed)"
+printf 'railway   %s\n' "$(railway --version 2>/dev/null || echo installed)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
 printf 'lsof      %s\n' "$(lsof -v 2>&1 | grep -oE 'revision: [0-9.]+' | head -1)"
 
