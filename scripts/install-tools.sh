@@ -127,7 +127,7 @@ printf 'pnpm      %s\n' "$(pnpm --version)"
 printf 'doppler   %s\n' "$(doppler --version)"
 printf 'neon      %s\n' "$(neon --version 2>/dev/null || echo installed)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
-printf 'lsof      %s\n' "$(lsof --version 2>&1 | head -1)"
+printf 'lsof      %s\n' "$(lsof -v 2>&1 | grep -oE 'revision: [0-9.]+' | head -1)"
 
 cat <<EOF
 
