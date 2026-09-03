@@ -56,7 +56,8 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 | `DOPPLER_TOKEN` | 否 | — | Doppler Service/Personal token，启动时自动 `doppler configure set` |
 | `NEON_API_KEY` | 否 | — | Neon CLI（neonctl）原生认证，无需登录步骤 |
 | `EMBEDDING_API_KEY` | 否 | — | magic-context embedding（text-embedding-3-small）API key |
-| `ANTHROPIC_API_KEY` | 推荐 | — | opencode 调用默认模型（claude-sonnet-4-5）用；也可在容器内 `opencode auth login` 替代 |
+| `COMMANDCODE_API_KEY` | 推荐 | — | Command Code Provider API key（GOAT/Pro/Max 套餐额度），opencode 默认模型走此 provider（deepseek-v4-flash）；也可在容器内 `/connect` 交互式填入 |
+| `ANTHROPIC_API_KEY` | 否 | — | 如需调用 Claude 系列模型时设置；也可在容器内 `opencode auth login` 替代 |
 
 > 说明：`SSH_PUBLIC_KEY` 通过 entrypoint 每次启动注入，即使 Railway 没有挂持久卷也能保证密钥存在。强烈建议设置，否则只能用密码登录。
 
