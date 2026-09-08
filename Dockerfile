@@ -64,8 +64,8 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Ports: $PORT (SSH, Railway public) · 4096 (opencode, managed by openchamber on
-# 127.0.0.1 — expose via the openchamber proxy instead) · 3000 (openchamber web
+# 127.0.0.1 — expose via the openchamber proxy instead) · 3001 (openchamber web
 # UI, map as the second Railway public TCP port)
-EXPOSE $PORT 3000 4096
+EXPOSE $PORT 3001 4096
 
 CMD ["/entrypoint.sh"]

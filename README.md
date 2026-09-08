@@ -17,14 +17,14 @@
 
 ## OpenChamber / opencode 访问
 
-**OpenChamber**（`openchamber serve`）监听 `3000`（可 `OPENCHAMBER_PORT` 覆盖），默认绑定 `0.0.0.0`，UI 密码取 `OPENCHAMBER_UI_PASSWORD`（缺省回退 `OPENCODE_SERVER_PASSWORD`，默认 `qingying`）。
+**OpenChamber**（`openchamber serve`）监听 `3001`（可 `OPENCHAMBER_PORT` 覆盖），默认绑定 `0.0.0.0`，UI 密码取 `OPENCHAMBER_UI_PASSWORD`（缺省回退 `OPENCODE_SERVER_PASSWORD`，默认 `qingying`）。
 
 **opencode** 由 OpenChamber 自动托管启动（监听 `OPENCODE_PORT`，默认 `4096`，绑定 `127.0.0.1`），HTTP basic auth：
 
 - 用户：`opencode`（`OPENCODE_SERVER_USERNAME` 覆盖）
 - 密码：`qingying`（`OPENCODE_SERVER_PASSWORD` 覆盖）
 
-Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访问 OpenChamber，需在 **Service → Settings → Networking → TCP proxy** 额外添加一个公开端口，映射到容器端口 `3000`，然后用 `https://<该域名>.up.railway.app` 访问 Web UI。opencode（4096）由 OpenChamber 内部代理访问，无需单独暴露。
+Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访问 OpenChamber，需在 **Service → Settings → Networking → TCP proxy** 额外添加一个公开端口，映射到容器端口 `3001`，然后用 `https://<该域名>.up.railway.app` 访问 Web UI。opencode（4096）由 OpenChamber 内部代理访问，无需单独暴露。
 
 ### 配置来源
 
@@ -51,7 +51,7 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 | `OPENCODE_PORT` | 否 | `4096` | opencode serve 监听端口（由 OpenChamber 托管启动） |
 | `OPENCODE_SERVER_USERNAME` | 否 | `opencode` | opencode HTTP basic auth 用户名 |
 | `OPENCODE_SERVER_PASSWORD` | 否 | `qingying` | opencode HTTP basic auth 密码 |
-| `OPENCHAMBER_PORT` | 否 | `3000` | OpenChamber Web UI 监听端口 |
+| `OPENCHAMBER_PORT` | 否 | `3001` | OpenChamber Web UI 监听端口 |
 | `OPENCHAMBER_UI_PASSWORD` | 否 | `$OPENCODE_SERVER_PASSWORD` | OpenChamber Web UI 密码（缺省回退 opencode 密码） |
 | `GIT_USER_NAME` | 否 | — | git 全局身份（`git commit` 署名用），启动时写入卷上 git config |
 | `GIT_USER_EMAIL` | 否 | — | git 全局邮箱（`git commit` 署名用），启动时写入卷上 git config |
@@ -80,7 +80,7 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 Railway 一个 service 默认只暴露一个公开端口（`$PORT`）。本项目：
 
 - **SSH（主入口）** 监听 `$PORT`（或 `SSH_PORT`）—— 直接使用 Railway 默认公开端口即可。客户端 `~/.ssh/config` 的 `Port` 必须填 Railway 的**公开端口**，若它不是 `22` 请相应修改。
-- **OpenChamber** 监听 `OPENCHAMBER_PORT`（默认 `3000`）—— 需在 `Settings → Networking` 额外添加一个公开端口（TCP proxy）映射到 `3000`，访问 Web UI。
+- **OpenChamber** 监听 `OPENCHAMBER_PORT`（默认 `3001`）—— 需在 `Settings → Networking` 额外添加一个公开端口（TCP proxy）映射到 `3001`，访问 Web UI。
 - **opencode** 由 OpenChamber 托管启动，监听 `OPENCODE_PORT`（默认 `4096`），绑定 `127.0.0.1`，经 OpenChamber 内部代理访问，无需单独暴露公网端口。
 - **ttyd（可选）** 监听 `$TTYD_PORT` —— 若需要网页终端，同样额外添加公开端口。
 
@@ -163,7 +163,7 @@ railway logs --deployment   # 跟踪当前部署日志
 
 ```bash
 docker build -t debian-dev .
-docker run --rm -p 22:22 -p 3000:3000 -p 4096:4096 \
+docker run --rm -p 22:22 -p 3001:3001 -p 4096:4096 \
   -v /tmp/ws:/workspace \
   -e SSH_PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)" \
   -e PORT=22 \

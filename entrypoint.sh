@@ -93,7 +93,7 @@ fi
 # longer started separately here. It reads the standard OPENCODE_SERVER_*
 # envs for that server's basic auth. Run in foreground mode so the process is a
 # plain child of this shell (managed by nohup like the old opencode serve).
-OPENCHAMBER_PORT="${OPENCHAMBER_PORT:-3000}"
+OPENCHAMBER_PORT="${OPENCHAMBER_PORT:-3001}"
 if command -v openchamber >/dev/null 2>&1; then
     # openchamber reads OPENCODE_PORT to decide where its managed opencode
     # server listens; without it the port is allocated dynamically, so pin it
