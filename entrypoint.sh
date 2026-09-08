@@ -95,6 +95,10 @@ fi
 # plain child of this shell (managed by nohup like the old opencode serve).
 OPENCHAMBER_PORT="${OPENCHAMBER_PORT:-3000}"
 if command -v openchamber >/dev/null 2>&1; then
+    # openchamber reads OPENCODE_PORT to decide where its managed opencode
+    # server listens; without it the port is allocated dynamically, so pin it
+    # here to keep the documented default (4096) stable across restarts.
+    export OPENCODE_PORT="${OPENCODE_PORT:-4096}"
     OC_UI_PASSWORD="${OPENCHAMBER_UI_PASSWORD:-${OPENCODE_SERVER_PASSWORD:-}}"
     OC_ARGS=(serve --foreground --port "$OPENCHAMBER_PORT" --host 0.0.0.0)
     [ -n "$OC_UI_PASSWORD" ] && OC_ARGS+=(--ui-password "$OC_UI_PASSWORD")
