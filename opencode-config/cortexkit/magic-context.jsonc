@@ -7,10 +7,10 @@
   "history_budget_percentage": 0.1,
   "temporal_awareness": true,
   "historian": {
-    "model": "opencode-go/deepseek-v4-flash"
+    "opencode": {"model":"opencode-go/deepseek-v4-flash"},"pi": {"model":"opencode-go/deepseek-v4-flash"}
   },
   "dreamer": {
-    "model": "opencode-go/deepseek-v4-flash",
+    
     "tasks": {
       "map-memories": {
         "schedule": "0 2 * * *"
@@ -33,7 +33,7 @@
       "verify-broad": {
         "schedule": "0 4 * * 0"
       }
-    }
+    },"opencode": {"model":"opencode-go/deepseek-v4-flash"},"pi": {"model":"opencode-go/deepseek-v4-flash"}
   },
   "embedding": {
     "provider": "openai-compatible",
