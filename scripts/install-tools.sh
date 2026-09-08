@@ -14,6 +14,8 @@
 #   pnpm              -> corepack, pinned 11.22.0
 #   Doppler CLI       -> official apt installer (v3.76.5), auto-authenticated via DOPPLER_TOKEN
 #   Neon CLI          -> npm (neonctl), authenticated natively via NEON_API_KEY env var
+#   Railway CLI      -> npm (@railway/cli), auth via RAILWAY_API_TOKEN / browserless login
+#   OpenChamber      -> npm (@openchamber/web), web UI that manages its own OpenCode server
 #
 # NOT HANDLED HERE (per-developer, interactive — keep out of the startup script)
 #   - Doppler token:  set DOPPLER_TOKEN env var -> auto-configured below (no interactive login)
@@ -116,6 +118,18 @@ if ! command -v railway >/dev/null 2>&1; then
   npm install -g --allow-scripts=@railway/cli @railway/cli >/dev/null 2>&1
 fi
 
+# ── OpenChamber (web UI for OpenCode) ─────────────────────────────────────────
+# @openchamber/web has no postinstall script; plain npm i -g works. Requires
+# Node >=22 (image ships Node 24). It manages its own embedded OpenCode server
+# (spawns `opencode serve` on $OPENCODE_PORT) and reads the standard
+# OPENCODE_SERVER_USERNAME/PASSWORD envs for that server's auth, so the
+# existing opencode config carries over unchanged. Installed per boot because
+# /usr/local (npm global) is wiped on redeploy.
+log "OpenChamber"
+if ! command -v openchamber >/dev/null 2>&1; then
+  npm install -g @openchamber/web >/dev/null 2>&1
+fi
+
 # ── repair the persisted venv against this boot's interpreter ────────────────────
 # core/.venv lives in the persistent workspace and survives redeploys, but its pyvenv.cfg may point
 # at a python path that no longer exists. `uv sync` recreates/repairs it (idempotent; a no-op when
@@ -127,7 +141,7 @@ fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────────
 log "verifying toolchain"
-for tool in uv python3.12 pnpm doppler neon railway; do
+for tool in uv python3.12 pnpm doppler neon railway openchamber; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after install"
 done
 printf 'uv        %s\n' "$(uv --version)"
@@ -136,6 +150,7 @@ printf 'pnpm      %s\n' "$(pnpm --version)"
 printf 'doppler   %s\n' "$(doppler --version)"
 printf 'neon      %s\n' "$(neon --version 2>/dev/null || echo installed)"
 printf 'railway   %s\n' "$(railway --version 2>/dev/null || echo installed)"
+printf 'openchamber %s\n' "$(openchamber --version 2>/dev/null || echo installed)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
 printf 'lsof      %s\n' "$(lsof -v 2>&1 | grep -oE 'revision: [0-9.]+' | head -1)"
 

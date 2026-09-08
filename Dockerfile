@@ -35,7 +35,9 @@ RUN mkdir -p /run/sshd && \
 ENV NODE_ENV=development \
     PATH="/usr/local/bin:${PATH}"
 
-# ---- Install opencode (default AI coding agent) + codegraph (MCP code intelligence) ----
+# opencode + codegraph are installed here (baked) so the AI stack is present in
+# the image; opencode serve is NOT started directly — openchamber manages its
+# own embedded opencode server at runtime (see entrypoint.sh).
 RUN npm i -g opencode-ai @colbymchenry/codegraph && npm cache clean --force
 
 # ---- Bake non-sensitive opencode config (copied from host global config) ----
@@ -61,6 +63,9 @@ RUN chmod +x /scripts/install-tools.sh
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE $PORT 4096
+# Ports: $PORT (SSH, Railway public) · 4096 (opencode, managed by openchamber on
+# 127.0.0.1 — expose via the openchamber proxy instead) · 3000 (openchamber web
+# UI, map as the second Railway public TCP port)
+EXPOSE $PORT 3000 4096
 
 CMD ["/entrypoint.sh"]

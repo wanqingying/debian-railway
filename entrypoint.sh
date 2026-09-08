@@ -87,11 +87,19 @@ if [ -x /scripts/install-tools.sh ]; then
     /scripts/install-tools.sh
 fi
 
-# ---- opencode: headless server (basic auth via OPENCODE_SERVER_*). Prefer OPENCODE_PORT else 4096 ----
-OPENCODE_PORT="${OPENCODE_PORT:-4096}"
-if command -v opencode >/dev/null 2>&1; then
-    nohup opencode serve --port "$OPENCODE_PORT" --hostname 0.0.0.0 \
-        >"$XDG_DATA_HOME/opencode-serve.log" 2>&1 &
+# ---- OpenChamber: web UI that spawns/manages its own OpenCode server ----
+# openchamber starts the embedded `opencode serve` itself (on $OPENCODE_PORT,
+# bound to $OPENCHAMBER_OPENCODE_HOSTNAME, default 127.0.0.1), so opencode is no
+# longer started separately here. It reads the standard OPENCODE_SERVER_*
+# envs for that server's basic auth. Run in foreground mode so the process is a
+# plain child of this shell (managed by nohup like the old opencode serve).
+OPENCHAMBER_PORT="${OPENCHAMBER_PORT:-3000}"
+if command -v openchamber >/dev/null 2>&1; then
+    OC_UI_PASSWORD="${OPENCHAMBER_UI_PASSWORD:-${OPENCODE_SERVER_PASSWORD:-}}"
+    OC_ARGS=(serve --foreground --port "$OPENCHAMBER_PORT" --host 0.0.0.0)
+    [ -n "$OC_UI_PASSWORD" ] && OC_ARGS+=(--ui-password "$OC_UI_PASSWORD")
+    nohup openchamber "${OC_ARGS[@]}" \
+        >"$XDG_DATA_HOME/openchamber.log" 2>&1 &
 fi
 
 # ---- Keep the container alive ----
