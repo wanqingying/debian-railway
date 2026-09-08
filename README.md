@@ -4,25 +4,27 @@
 
 - 🐧 Debian Bookworm Slim
 - 🔒 SSH 访问（VS Code Remote-SSH 主入口）+ ttyd 网页终端（可选兜底）
-- 🤖 **opencode** AI 编程助手（headless server，开机自启）
+- 🤖 **opencode** AI 编程助手 + **OpenChamber** Web UI（自动托管 opencode，开机自启）
 - 📦 Node.js 24 + build-essential + git + python3
 - 💻 neofetch
 
 ## 功能
 
 - **SSH + Remote-SSH**：在 VS Code 装 `Remote - SSH` 扩展，连接到 Railway 暴露的端口即获得完整 IDE 体验（IntelliSense / 端口转发 / 多终端）。
-- **opencode**：默认安装并后台运行 `opencode serve`，提供 HTTP API / 网页客户端，带 basic auth。
+- **OpenChamber（Web UI）**：运行 `openchamber serve`，**自动托管并启动内置的 `opencode serve`**（不再单独启动 opencode），提供网页聊天、会话管理、diff review、远程访问等完整工作台。带 basic auth（opencode 侧）与 UI 密码。
 - **ttyd 网页终端（可选）**：作为无客户端时的兜底，在独立端口提供网页 shell。
 - **持久化**：opencode 的配置、会话、数据库、账号及 magic-context 记忆全部落到挂载卷 `/workspace/.opencode`，重启后保留。
 
-## opencode 访问
+## OpenChamber / opencode 访问
 
-`opencode serve` 监听 `4096`（可 `OPENCODE_PORT` 覆盖），HTTP basic auth：
+**OpenChamber**（`openchamber serve`）监听 `3000`（可 `OPENCHAMBER_PORT` 覆盖），默认绑定 `0.0.0.0`，UI 密码取 `OPENCHAMBER_UI_PASSWORD`（缺省回退 `OPENCODE_SERVER_PASSWORD`，默认 `qingying`）。
+
+**opencode** 由 OpenChamber 自动托管启动（监听 `OPENCODE_PORT`，默认 `4096`，绑定 `127.0.0.1`），HTTP basic auth：
 
 - 用户：`opencode`（`OPENCODE_SERVER_USERNAME` 覆盖）
 - 密码：`qingying`（`OPENCODE_SERVER_PASSWORD` 覆盖）
 
-Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访问 opencode，需在 **Service → Settings → Networking → TCP proxy** 额外添加一个公开端口，映射到容器端口 `4096`，然后用 `https://<该域名>.up.railway.app` 访问。
+Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访问 OpenChamber，需在 **Service → Settings → Networking → TCP proxy** 额外添加一个公开端口，映射到容器端口 `3000`，然后用 `https://<该域名>.up.railway.app` 访问 Web UI。opencode（4096）由 OpenChamber 内部代理访问，无需单独暴露。
 
 ### 配置来源
 
@@ -46,9 +48,11 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 | `PASSWORD` | 否 | — | root 登录密码（密钥之外的第二通道兜底） |
 | `USERNAME` | 否 | `root` | ttyd 网页终端的登录用户名 |
 | `TTYD_PORT` | 否 | — | 设置后启动 ttyd 网页终端，监听该端口 |
-| `OPENCODE_PORT` | 否 | `4096` | opencode serve 监听端口 |
+| `OPENCODE_PORT` | 否 | `4096` | opencode serve 监听端口（由 OpenChamber 托管启动） |
 | `OPENCODE_SERVER_USERNAME` | 否 | `opencode` | opencode HTTP basic auth 用户名 |
 | `OPENCODE_SERVER_PASSWORD` | 否 | `qingying` | opencode HTTP basic auth 密码 |
+| `OPENCHAMBER_PORT` | 否 | `3000` | OpenChamber Web UI 监听端口 |
+| `OPENCHAMBER_UI_PASSWORD` | 否 | `$OPENCODE_SERVER_PASSWORD` | OpenChamber Web UI 密码（缺省回退 opencode 密码） |
 | `GIT_USER_NAME` | 否 | — | git 全局身份（`git commit` 署名用），启动时写入卷上 git config |
 | `GIT_USER_EMAIL` | 否 | — | git 全局邮箱（`git commit` 署名用），启动时写入卷上 git config |
 | `GITHUB_TOKEN` | 否 | — | GitHub PAT，写入卷上 git credential store，HTTPS clone/push 免交互 |
@@ -76,7 +80,8 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 Railway 一个 service 默认只暴露一个公开端口（`$PORT`）。本项目：
 
 - **SSH（主入口）** 监听 `$PORT`（或 `SSH_PORT`）—— 直接使用 Railway 默认公开端口即可。客户端 `~/.ssh/config` 的 `Port` 必须填 Railway 的**公开端口**，若它不是 `22` 请相应修改。
-- **opencode** 监听 `$OPENCODE_PORT`（默认 `4096`）—— 需在 `Settings → Networking` 额外添加一个公开端口（TCP proxy）映射到 `4096`。
+- **OpenChamber** 监听 `OPENCHAMBER_PORT`（默认 `3000`）—— 需在 `Settings → Networking` 额外添加一个公开端口（TCP proxy）映射到 `3000`，访问 Web UI。
+- **opencode** 由 OpenChamber 托管启动，监听 `OPENCODE_PORT`（默认 `4096`），绑定 `127.0.0.1`，经 OpenChamber 内部代理访问，无需单独暴露公网端口。
 - **ttyd（可选）** 监听 `$TTYD_PORT` —— 若需要网页终端，同样额外添加公开端口。
 
 ### 连接 VS Code
@@ -158,7 +163,7 @@ railway logs --deployment   # 跟踪当前部署日志
 
 ```bash
 docker build -t debian-dev .
-docker run --rm -p 22:22 -p 4096:4096 \
+docker run --rm -p 22:22 -p 3000:3000 -p 4096:4096 \
   -v /tmp/ws:/workspace \
   -e SSH_PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)" \
   -e PORT=22 \

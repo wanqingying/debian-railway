@@ -3,6 +3,14 @@
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+## 0. Language: English Only
+
+**All code comments and documentation content MUST be written in English** (所有代码注释和文档内容都使用英文).
+
+- Code comments: English only.
+- Documentation (README, docs, commit messages, PR descriptions): English.
+- Keep existing content in its current language unless explicitly asked to translate it.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
