@@ -20,8 +20,10 @@
 | `Pout` | 输出单价（$/1M token），通常 ≈ 4~5 × Pin |
 | `Cr` | 缓存读单价 |
 | `Cw` | 缓存写单价 |
-| `h` | 输入侧缓存命中率 = `cache_read / (cache_read + cache_write + fresh_input)`，默认 **0.96** |
-| `k` | 输出 token ÷ 输入 token，agent 多轮场景 ≈ 0.05~0.15，默认 0.1 |
+| `h` | 输入侧缓存命中率 = `cache_read / (cache_read + cache_write + fresh_input)`，默认 **0.98** |
+| `k` | 输出 token ÷ **总输入** token（含缓存读），agent 场景 ≈ **0.004**（典型请求：50K 缓存读 + 800 新增 + 200 输出）|
+
+> `h` 与 `k` 描述**工作负载**（你怎么用），不是模型属性：长上下文多轮 agent 取上述默认；短问答的 `k` 会高得多。可用 `--from-sessions` 从真实会话实测（见 3.3）。
 
 ## 1.2 公式
 
@@ -33,11 +35,17 @@ P(1M in) = h · Cr + (1 − h) · Cw + k · Pout
 
 其中输入部分：`h` 的命中量按 `Cr` 计，`(1−h)` 的新写量按 `Cw` 计。这就是脚本 `scripts/model-cost.py` 使用的形式，`Cr`/`Cw` 优先取模型的**实际缓存价**（见流水线）。
 
-当没有实际缓存价、退回经验系数时（Anthropic 式）：`Cr = 0.1·Pin`、`Cw = 1.25·Pin`，代入 `h=0.96`：
+> **`k` 的分母是总输入（含缓存读），不是新增输入。** agent 长会话里每轮重读整个上下文，缓存读占绝对多数，输出相对总量很小——Command Code 的"典型请求"为 50K 缓存读 + 800 新增输入 + 200 输出，故 `k = 200/(50000+800) ≈ 0.004`。若误把 `k` 当成"输出÷新增输入"（那种口径约 0.05~0.15），输出项会被高估 25 倍，月度用量估算随之偏小近一个数量级。
+
+当没有实际缓存价、退回经验系数时：`Cr = 0.1·Pin`，`Cw` 按缓存模式取（h=0.98）：
+
+| 缓存模式 | `Cw` | 输入系数 `Cw·(1−h) + 0.1·h` |
+| --- | --- | --- |
+| **自动缓存**（默认，多数：DeepSeek/OpenAI/Google/开源托管）| `1.0·Pin` | **0.118·Pin** |
+| 显式缓存（Anthropic `cache_control`）| `1.25·Pin` | 0.123·Pin |
 
 ```
-P(1M in) = Pin · [1.25·(1−h) + 0.1·h] + k·Pout
-         = 0.146·Pin + k·Pout          ($/1M 输入 token)
+P(1M in) = 0.118·Pin + k·Pout          ($/1M 输入 token，自动缓存默认)
 ```
 
 每"混合 token"均价（输出摊进输入，便于不同 k 对比）：
@@ -62,21 +70,22 @@ P̄ = P(1M in) / (1 + k)
 | h | 输入系数 `1.25(1−h)+0.1h`（Anthropic 式）|
 | --- | --- |
 | 90% | 0.215 |
-| **96%** | **0.146** |
-| 98% | 0.123 |
+| 96% | 0.146 |
+| **98%** | **0.123** |
+| 99% | 0.112 |
 
-> h 每 +6 个百分点 ≈ 输入成本再降约 1/3。**缓存工程（保持前缀稳定、控制每轮新增量）比选模型更能决定账单。** k 越大（thinking / 长输出）真实成本越高。
+> h 每 +6 个百分点 ≈ 输入成本再降约 1/4。**缓存工程（保持前缀稳定、控制每轮新增量）比选模型更能决定账单。** k 越大（thinking / 长输出）真实成本越高。
 
-## 1.5 公式自检（示意输入）
+## 1.5 公式自检（示意输入，h=0.98、k=0.004，自动缓存 Cw=Pin）
 
-| 模型 | Pin | Pout | 无缓存成本 | h=96% 成本 | 节省 |
+| 模型 | Pin | Pout | 无缓存成本 | h=98% 成本 | 节省 |
 | --- | --- | --- | --- | --- | --- |
-| gpt-5.6-luna | $0.20 | $1.20 | $0.32 | **$0.149** | 53% |
-| Claude Sonnet 4.6 | $3 | $15 | $4.5 | **$1.94** | 57% |
-| gpt-5.6-sol | $4 | $20 | $6 | **$2.58** | 57% |
-| DeepSeek V4 Flash | $0.28 | $0.43 | $0.31 | **$0.084** | 73% |
+| gpt-5.6-luna | $0.20 | $1.20 | $0.205 | **$0.0284** | 86% |
+| Claude Sonnet 4.6 | $3 | $15 | $3.06 | **$0.414** | 86% |
+| gpt-5.6-sol | $4 | $20 | $4.08 | **$0.552** | 86% |
+| DeepSeek V4.1 Flash | $0.15 | $0.60 | $0.152 | **$0.0083** | 95% |
 
-无缓存成本 = `1M × (Pin + k·Pout)`；h=96% 把输入侧压到 14.6%。
+无缓存成本 = `Pin + k·Pout`（每 1M 输入全按新价，即 h=0）；h=98% 把输入侧压到 11.8%。前三行按自动缓存经验系数；DeepSeek 末行用实际缓存读 $0.003，故节省更多。
 
 ---
 
@@ -141,17 +150,36 @@ while remaining:
 - `xlow`：综合价相对**当前展示集最低价**的倍数（如 `2.2x`）
 - `dlow`：分数相对**当前展示集最低分**的差距（如 `+154`）
 
+## 2.7 性价比值（value）——仅作短名单启发式
+
+2.0 说明「质量/价格」不是严格的排序量纲，因此**曲线选型用 Pareto/ICER**（2.2–2.5）。但当需要一个**大批量短名单**（如生成工具菜单）时，可按性价比值取一个粗筛：
+
+```
+value = score / price        # score 为质量分（CC intelligence 或 Arena 分）
+```
+
+它单调等价于"每美元质量"，仅用于**取前 N% 的候选集合**，不用于精细排名。`model-cost.py` 提供：
+
+```bash
+--sort value          # 按 value 降序列表
+--top-percent 50      # 只保留前 50%（配合 --sort value）
+```
+
+注意 `price=0`（免费模型）会得到无限 value，应单独保留而非参与除法。
+
 ---
 
 # 三、数据流水线
 
 ```
-① 拉价格目录    fetch-model-prices.py  → docs/models-prices.json
-② 拉榜单匹配    arena-cost.py          → scripts/models-arena-<category>.json
-③ 算 Pareto/ICER model-cost.py         → 终端输出 Top-N + 拐点
+① 拉价格目录    fetch-model-prices.py    → docs/models-prices.json
+② 拉榜单匹配    arena-cost.py            → scripts/models-arena-<category>.json
+③ 算 Pareto/ICER model-cost.py          → 终端输出 Top-N + 拐点
+④ 拉 GOAT 目录  fetch-goat-models.py     → scripts/models-goat-catalog.json
+⑤ 生成配置      gen-commandcode-config.py → opencode.jsonc 的模型列表
 ```
 
-三个脚本都自包含：无参数直接跑即自动下载缺失数据、合并、计算。下载缓存在 `/tmp/opencode`，`--refresh` 强制重拉。
+五个脚本都自包含：无参数直接跑即自动下载缺失数据、合并、计算。下载缓存在 `/tmp/opencode`，`--refresh` 强制重拉。
 
 ## 3.1 获取模型列表与价格（models.dev）
 
@@ -217,23 +245,49 @@ python3 scripts/model-cost.py --file scripts/models-arena-overall.json --top 10
 python3 scripts/model-cost.py --all                    # 全部，按选择顺序
 python3 scripts/model-cost.py --exclude Contributor    # 排除 Contributor 模型
 python3 scripts/model-cost.py --min-win 0.6 --ref 1450 # 可选质量门槛
-python3 scripts/model-cost.py --h 0.9 --k 0.15         # 调缓存命中率/输出比
+python3 scripts/model-cost.py --h 0.9 --k 0.01         # 调缓存命中率/输出比
+python3 scripts/model-cost.py --from-sessions          # 用真实会话实测 h/k
 ```
 
 | 参数 | 默认 | 说明 |
 | --- | --- | --- |
-| `--h` | 0.96 | 缓存命中率 |
-| `--k` | 0.1 | 输出/输入 token 比 |
+| `--h` | 0.98 | 缓存命中率 |
+| `--k` | 0.004 | 输出/总输入 token 比（输入含缓存读）|
+| `--from-sessions` | 关 | 从 opencode 会话库实测 `h`/`k`，覆盖 `--h`/`--k` |
+| `--sessions-db PATH` | 自动探测 | 会话库路径 |
+| `--sessions-model SUBSTR` | 全部 | 只统计 model 字段匹配 SUBSTR 的会话 |
 | `--ref` | 1350 | 胜率参照的基线分（配合 `--min-win`）|
 | `--scale` | 400 | 胜率换算的 Elo 尺度 |
 | `--min-win` | 0（关）| 质量门槛：胜率低于此值的模型先剔除 |
 | `--top N` | 3 | 短名单大小 |
 | `--exclude SUBSTR` | — | 按名称排除，可重复（不区分大小写）|
+| `--sort price\|value` | — | 按综合价 / 性价比值列出全部模型 |
+| `--top-percent PCT` | — | 配合 `--sort value`，只保留前 PCT% |
 | `--budget` | — | 月额度，输出产能 `capM`（百万输入 token）|
 | `--all` | — | 按选择顺序列出全部模型（含被支配）|
 | `--file` | `models-arena-overall.json` | 输入模型 JSON（存在时）|
 
 计算步骤：综合价 → Pareto 前沿 → ICER → 拐点 → Top-N 短名单。输出含 `xlow` 与 `dlow`。
+
+### 实测 h / k（--from-sessions）
+
+`h` 和 `k` 描述的是**工作负载**，不是模型，所以最好用你自己的会话数据实测。opencode 把每个会话的 token 统计存在 SQLite 的 `session` 表（`tokens_input`=新增输入、`tokens_cache_read`、`tokens_cache_write`、`tokens_output`），脚本据此计算：
+
+```
+total_input = tokens_input + tokens_cache_read + tokens_cache_write
+h = tokens_cache_read / total_input
+k = tokens_output     / total_input
+```
+
+```bash
+python3 scripts/model-cost.py --from-sessions
+python3 scripts/model-cost.py --from-sessions --sessions-model deepseek
+python3 scripts/model-cost.py --from-sessions --sessions-db /path/opencode.db
+```
+
+会话库路径默认按 `$XDG_DATA_HOME/opencode/opencode.db` → `~/.local/share/opencode/opencode.db` → `/workspace/.opencode/data/**/opencode.db` 依次探测。实测值（本仓库环境 67 个会话）为 **h≈0.977、k≈0.0017**，与默认值 0.98/0.004 同量级。
+
+> `tokens_input` 在库里是**新增（未命中缓存）输入**，与 CC 的"fresh prompt"一致。若某 provider 的计数口径不同（把缓存算进 input），实测 `h` 会被低估，此时用 `--sessions-model` 单独核对。
 
 ## 3.4 价格敏感场景怎么读结果
 
@@ -250,6 +304,16 @@ python3 scripts/model-cost.py --h 0.9 --k 0.15         # 调缓存命中率/输�
 ## 3.5 更新 opencode 的模型配置
 
 把选定的模型写进镜像的 opencode 配置（`opencode-config/opencode/opencode.jsonc`，`provider.commandcode.models`），让 opencode 能显示价格、成本估算与能力图标。
+
+**模型集合怎么选**（可由脚本自动完成）：对 GOAT 目录按 `value = score/price` 取前 50%（`--exclude Contributor` 排除数据换价模型），再补上 Command Code 尚未评分但重要的新模型，以及零成本免费模型。`scripts/gen-commandcode-config.py` 一步生成：
+
+```bash
+python3 scripts/gen-commandcode-config.py             # 打印选中的模型（dry run）
+python3 scripts/gen-commandcode-config.py --write     # 改写 opencode.jsonc 的 models 块
+python3 scripts/gen-commandcode-config.py --top-percent 30 --write
+```
+
+它只替换 `provider.commandcode.models` 这一段，文件其余部分保持不变；自动从 Command Code API 取真实 `id`、从 `docs/models-prices.json` 补 `reasoning/tool_call/modalities/limit/release_date`。
 
 **数据来源：**
 
@@ -308,6 +372,8 @@ opencode models | grep commandcode/
 | `scripts/fetch-model-prices.py` | 拉 models.dev + Requesty/OpenRouter/LiteLLM，合并补齐缓存价 → `docs/models-prices.json` |
 | `scripts/arena-cost.py` | 抓 Arena 榜单 + 匹配价格 → `scripts/models-arena-<category>.json`，并调用计算 |
 | `scripts/model-cost.py` | 成本公式 + Pareto/ICER/拐点 + Top-N 输出 |
+| `scripts/fetch-goat-models.py` | 抓 GOAT 计划页模型表 → `scripts/models-goat-catalog.json`（含价格/上下文/CC 智能分/速度）|
+| `scripts/gen-commandcode-config.py` | 按 `value=score/price` 前 N% 选出模型 → 改写 opencode.jsonc 的 `models` 块 |
 
 ## 数据来源
 
