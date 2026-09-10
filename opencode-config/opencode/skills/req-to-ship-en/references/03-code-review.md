@@ -1,8 +1,10 @@
-# Stage 4 — Code Review
+# Stage 3 — Code Review
 
 **Goal**: systematically review the implementation across three dimensions — functional correctness, technical/architectural soundness, and impact on existing functionality. Not complete until the review passes.
 
-**Core loop**: if the review finds the implementation incomplete or problematic → return to stage 3 to fix, until it passes. If the problem **originates in the requirements or design itself** (not the implementation), **rolling back** to stage 1 (requirements) or 2 (design) to correct is allowed, then continue — rolling back is the normal rhythm, not a failure.
+**Core loop**: if the review finds the implementation incomplete or problematic → return to stage 2 to fix, until it passes. If the problem **originates in the requirements or design itself** (not the implementation), **rolling back** to stage 1 to correct is allowed, then continue — rolling back is the normal rhythm, not a failure.
+
+**Depth scales with level** (see master file): L0 does the full three dimensions and may use parallel subagents; L1 is standard; L2 is a lightweight review without forcing all three dimensions.
 
 ## Steps
 
@@ -10,10 +12,11 @@
 - Against the detail design in `technical-design.md` and the progress tracking in `ops/implementation-tracking.md`:
   - Are all design items implemented?
   - Are the designed unit/e2e tests all written and passing?
-- If incomplete: return to stage 3, stating the gap.
+- If incomplete: return to stage 2, stating the gap.
+- L2 may skip the item-by-item check and just verify the change meets the requirement goal.
 
 ### 2. Complete → update the progress-tracking document
-- In `ops/implementation-tracking.md`, confirm all steps are complete and record the corresponding commit SHAs.
+- In `ops/implementation-tracking.md`, confirm all steps are complete and record the corresponding commit SHAs (L2 may be brief).
 
 ### 3. Read the requirements + technical design
 - Re-read `requirements.md` and `technical-design.md`; use them as the review baseline, not your impression.
@@ -22,7 +25,7 @@
 - `git diff` / `git log` to see the complete change set relative to the base branch.
 
 ### 5. Three-dimension review (may use subagents in parallel; use your judgment)
-The three dimensions are evaluated independently; you may delegate to subagents in parallel and consolidate:
+The three dimensions are evaluated independently; you may delegate to subagents in parallel and consolidate. **Review depth scales with level**: L0/L1 do all items; L2 just targets the main risks without forcing all of them.
 
 **a. Functional correctness & reasonableness**
 - System perspective: is the implementation reasonable, are there logic holes, was the best implementation path chosen?
@@ -50,8 +53,8 @@ The three dimensions are evaluated independently; you may delegate to subagents 
   - Issue list per dimension (severity, location, suggested fix)
   - Pass/fail conclusion
   - Autonomous decisions made during implementation but not covered by the design, with rationale (traceability of the "drive autonomously" tier)
-- If issues are found: return to stage 3 to fix, then review again; if the problem originates in requirements/design, roll back to stage 1/2.
-- **Human batch sign-off**: when UX/product-behavior changes are involved, or the review has disputed conclusions, package the sign-off points + change summary for the user, confirm once, then treat the review as passed.
+- If issues are found: return to stage 2 to fix, then review again; if the problem originates in requirements/design, roll back to stage 1.
+- **Human batch sign-off**: when UX/product-behavior changes are involved, or the review has disputed conclusions, package the sign-off points + change summary for the user, confirm once, then treat the review as passed; L0/L1 must not skip this, L2 may self-confirm.
 
 ## Cautions
 - Review against the requirements+design baseline, evaluated independently — don't flatter your own work.
