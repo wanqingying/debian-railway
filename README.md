@@ -13,7 +13,7 @@
 - **SSH + Remote-SSH**：在 VS Code 装 `Remote - SSH` 扩展，连接到 Railway 暴露的端口即获得完整 IDE 体验（IntelliSense / 端口转发 / 多终端）。
 - **OpenChamber（Web UI）**：运行 `openchamber serve`，**自动托管并启动内置的 `opencode serve`**（不再单独启动 opencode），提供网页聊天、会话管理、diff review、远程访问等完整工作台。带 basic auth（opencode 侧）与 UI 密码。
 - **ttyd 网页终端（可选）**：作为无客户端时的兜底，在独立端口提供网页 shell。
-- **持久化**：opencode 的配置、会话、数据库、账号及 magic-context 记忆全部落到挂载卷 `/workspace/.opencode`，重启后保留。
+- **持久化**：opencode 的配置、会话、数据库、账号及 magic-context 记忆，以及 OpenChamber 的设置/项目/主题，全部落到挂载卷 `/workspace/.opencode`，重启后保留。
 
 ## OpenChamber / opencode 访问
 
@@ -65,7 +65,7 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 > 说明：`SSH_PUBLIC_KEY` 通过 entrypoint 每次启动注入，即使 Railway 没有挂持久卷也能保证密钥存在。强烈建议设置，否则只能用密码登录。
 
-> 说明：`XDG_DATA_HOME`/`XDG_CONFIG_HOME` 固定指向 `/workspace/.opencode/*`，将 opencode 与 magic-context 状态持久化到挂载卷。请为项目挂载 **Railway Volume** 到 `/workspace`。
+> 说明：`XDG_DATA_HOME`/`XDG_CONFIG_HOME` 固定指向 `/workspace/.opencode/*`，将 opencode 与 magic-context 状态持久化到挂载卷；`OPENCHAMBER_DATA_DIR` 固定指向 `/workspace/.opencode/config/openchamber`，将 OpenChamber 自身的设置（`settings.json`/`preferences.json`）、项目配置、主题、托管 chats 同样持久化（OpenChamber 默认写在会被清空的 `/root/.config/openchamber`，且不读取 `XDG_CONFIG_HOME`）。entrypoint 会把 `~/.config/openchamber` 软链到该目录，使少数硬编码默认路径的辅助写入（托管进程记录、遥测 install id）也一并持久化。请为项目挂载 **Railway Volume** 到 `/workspace`。
 
 ### 环境变量注入方式与原则
 

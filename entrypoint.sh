@@ -8,6 +8,26 @@ cd /workspace
 # ---- Ensure the persistent state/config dirs exist on the volume ----
 mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
+# ---- OpenChamber data: pin to the volume ----
+# OpenChamber keeps settings, projects, themes, and managed chats under
+# ~/.config/openchamber by default (ephemeral /root) and does not follow
+# XDG_CONFIG_HOME, so point it onto the volume explicitly.
+export OPENCHAMBER_DATA_DIR="${OPENCHAMBER_DATA_DIR:-$XDG_CONFIG_HOME/openchamber}"
+mkdir -p "$OPENCHAMBER_DATA_DIR"
+
+# A few auxiliary writers (managed-process registry, telemetry install id in
+# package-manager.js) resolve ~/.config/openchamber directly and ignore
+# OPENCHAMBER_DATA_DIR. Point the default path at the same volume directory so
+# those files persist too and every writer agrees on one root. A real directory
+# left by an earlier run in this same container is folded in first (no-clobber,
+# the volume wins) so `ln` cannot nest the link inside it.
+mkdir -p "$HOME/.config"
+if [ -e "$HOME/.config/openchamber" ] && [ ! -L "$HOME/.config/openchamber" ]; then
+    cp -an "$HOME/.config/openchamber/." "$OPENCHAMBER_DATA_DIR/" 2>/dev/null || true
+    rm -rf "$HOME/.config/openchamber"
+fi
+ln -sfn "$OPENCHAMBER_DATA_DIR" "$HOME/.config/openchamber"
+
 # ---- Config bootstrap: copy baked config into the persistent volume ----
 # The baked config is the source of truth; files whose content differs from the
 # baked version are overwritten so image updates (e.g. env-var refs) propagate.
