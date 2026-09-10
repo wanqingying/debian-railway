@@ -247,6 +247,58 @@ python3 scripts/model-cost.py --h 0.9 --k 0.15         # 调缓存命中率/输�
 
 **唯一剩下的主观输入**是"愿意为拐点之上的质量付多少"，这是业务决策，工具不替你决定。
 
+## 3.5 更新 opencode 的模型配置
+
+把选定的模型写进镜像的 opencode 配置（`opencode-config/opencode/opencode.jsonc`，`provider.commandcode.models`），让 opencode 能显示价格、成本估算与能力图标。
+
+**数据来源：**
+
+| 字段 | 来源 |
+| --- | --- |
+| `cost.input` / `output` / `cache_read` / `cache_write` | GOAT 计划页 `https://commandcode.ai/docs/plans/goat` 的模型表（$/1M，低谷价；高峰 2 倍）|
+| `id` | Command Code Provider API 的 `models` 端点，或 `commandcode.ai/models/<slug>` |
+| `reasoning` / `tool_call` / `attachment` / `modalities` / `limit` / `release_date` | `docs/models-prices.json`（按归一化名匹配）|
+
+**每个模型条目：**
+
+```jsonc
+"deepseek-v4-1-flash": {              // 内部 key（provider 后的名字）
+  "name": "DeepSeek V4.1 Flash",      // 显示名
+  "id": "deepseek/deepseek-v4.1-flash",// 发给 API 的真实 model id
+  "release_date": "2026-09-10",
+  "reasoning": true,                  // 是否推理模型
+  "attachment": true,                 // 是否支持附件/图片输入
+  "tool_call": true,                  // 是否支持工具调用（不是 "tools"）
+  "modalities": { "input": ["text", "image"], "output": ["text"] },
+  "limit": { "context": 1000000, "output": 32768 },
+  "cost": { "input": 0.15, "output": 0.60, "cache_read": 0.003 }
+}
+```
+
+**注意事项：**
+
+- 字段名是 **`tool_call`**，不是 `tools`。写成 `tools` 会被静默忽略（opencode 不报错，但该模型被当作不支持工具调用）。这是配置里最容易搞错的一处。
+- `cost` 必填 `input` / `output`，`cache_read` / `cache_write` 可选（Command Code 未单列缓存写时不填）。
+- `limit` 必填 `context` / `output`。
+- 默认模型在文件顶部的 `"model"` 与 `"small_model"` 字段（格式 `commandcode/<key>`）。
+
+**改完后的验证与生效：**
+
+```bash
+# 1. JSONC 合法性（去掉纯注释行后解析）
+python3 -c "import json;l=[x for x in open('opencode-config/opencode/opencode.jsonc').read().splitlines() if not x.strip().startswith('//')];json.loads('\n'.join(l));print('ok')"
+
+# 2. 同步到运行卷（root FS 每次重启重置，烘焙配置才是持久源）
+cp opencode-config/opencode/opencode.jsonc /workspace/.opencode/config/opencode/opencode.jsonc
+
+# 3. 确认模型已加载
+opencode models | grep commandcode/
+
+# 4. 重启 opencode（配置不热重载）
+```
+
+> 镜像里 `/opt/opencode-config/` 是烘焙源，`entrypoint.sh` 启动时同步到 `$XDG_CONFIG_HOME/opencode/`。改仓库文件后需 commit + `railway up` 重新部署才会在线上生效；本地验证可直接 cp 到运行卷再重启。
+
 ---
 
 # 四、脚本速查
