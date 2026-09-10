@@ -1,1 +1,3 @@
 .cortexkit/
+__pycache__/
+*.pyc
