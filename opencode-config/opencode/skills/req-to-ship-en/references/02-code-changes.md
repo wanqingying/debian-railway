@@ -1,8 +1,10 @@
-# Stage 3 — Code Changes
+# Stage 2 — Code Changes
 
 **Goal**: implement the code changes on the correct requirement branch, based on the confirmed design.
 
-**Prerequisite**: the design review has passed and the user has confirmed.
+**Prerequisite**: stage 1's design review has passed and the user has confirmed the pending decisions (**L2 may be exempt**: proceed straight to implementation when the change is self-evident with no design trade-offs).
+
+**Depth scales with level** (see master file): L0 uses strict small commits + step-by-step progress tracking; L1 standard; L2 may be a single commit with minimal tracking.
 
 ## Steps
 
@@ -12,6 +14,7 @@
   - **Look at a few historical branch names for the naming convention**, follow the project's existing naming style.
   - Pick a branch name that **correctly and concisely describes the current requirement** (derived from the requirement document's feature name).
 - After switching/creating the branch: **run `codegraph sync`** to sync code changes.
+- L2 may reuse an existing branch per project convention; there's no need to open a separate branch for every small change.
 
 ### 2. Confirm git state is clean and synced with remote
 - `git status`: is the working tree clean?
@@ -19,11 +22,11 @@
 - After syncing: **run `codegraph sync`**.
 
 ### 3. Execute the code implementation
-- Implement item by item per the detail design in `technical-design.md`.
+- Implement item by item per the detail design in `technical-design.md` (for L2 with no design, implement per the requirements document).
 - Use `codegraph_explore` throughout implementation to keep an accurate understanding of the code logic.
 - Advance the unit-test/e2e tests designed at the design stage in parallel (not back-filled after implementation).
-- **Progress tracking**: tick off implementation steps one by one in `ops/implementation-tracking.md` and record commit SHAs (same commit as the code; run `git rev-parse HEAD` to record the baseline before committing).
-- Commit in small steps: one commit per logical unit; commit messages follow the project style.
+- **Progress tracking**: tick off implementation steps one by one in `ops/implementation-tracking.md` and record commit SHAs (same commit as the code; run `git rev-parse HEAD` to record the baseline before committing); for L2 keep it brief — a single line in `review.md` is enough.
+- Commit in small steps: one commit per logical unit; commit messages follow the project style (L2 may be a single commit).
 
 ### 4. Human collaboration during implementation (important)
 - **Drive autonomously**: implementation details, naming, error handling, etc., are handled at the "drive autonomously" tier — don't interrupt the user.
@@ -32,8 +35,8 @@
 - Technology selection / destructive operations / changes touching data permissions → add to the pending-decisions list, submit in a batch; don't execute unilaterally.
 
 ### 5. Stage-boundary reporting
-- When implementation completes or hits a blocker, report **progress + pending decisions as a package** to the user (what was done, test status, the decision list needing approval).
-- After the user decides, correct accordingly and proceed to stage 4 code review.
+- When implementation completes or hits a blocker, report **progress + pending decisions as a package** to the user (what was done, test status, the decision list needing approval); L2 may just be a one-liner.
+- After the user decides, correct accordingly and proceed to stage 3 code review.
 
 ## Cautions
 - Don't start writing code when not on the right branch, git state is dirty, or not synced with remote.
