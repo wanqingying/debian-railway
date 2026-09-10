@@ -139,8 +139,9 @@ def main():
                     help="drop models whose name contains SUBSTR (repeatable)")
     ap.add_argument("--no-run", action="store_true",
                     help="only write the JSON; do not run model-cost")
-    ap.add_argument("--h", type=float, default=0.96, help="cache hit rate")
-    ap.add_argument("--k", type=float, default=0.1, help="output/input ratio")
+    ap.add_argument("--h", type=float, default=0.98, help="cache hit rate")
+    ap.add_argument("--k", type=float, default=0.004,
+                    help="output/total-input ratio (input includes cache reads)")
     args, passthrough = ap.parse_known_args()
 
     url = ARENA_URL.format(category=args.category)
