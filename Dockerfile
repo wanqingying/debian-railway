@@ -45,9 +45,12 @@ RUN npm i -g opencode-ai @colbymchenry/codegraph && npm cache clean --force
 # they are injected at runtime via env vars (OPENCODE_* / provider keys).
 COPY opencode-config /opt/opencode-config
 
-# ---- Persistence: redirect opencode + magic-context state to the /workspace volume ----
+# ---- Persistence: redirect opencode, magic-context, and openchamber state to the /workspace volume ----
+# OpenChamber default is ~/.config/openchamber (under ephemeral /root) and it does
+# NOT follow XDG_CONFIG_HOME, so it needs its own pointer onto the volume.
 ENV XDG_DATA_HOME=/workspace/.opencode/data \
-    XDG_CONFIG_HOME=/workspace/.opencode/config
+    XDG_CONFIG_HOME=/workspace/.opencode/config \
+    OPENCHAMBER_DATA_DIR=/workspace/.opencode/config/openchamber
 
 # ---- opencode headless server: basic auth (user opencode, password overridable) ----
 ENV OPENCODE_SERVER_USERNAME=opencode \
