@@ -130,28 +130,21 @@ if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g @openchamber/web >/dev/null 2>&1
 fi
 
-# ── agent-browser (browser automation CLI for AI agents) ──────────────────────
-# Rust CLI that drives a browser over CDP. Used in CDP mode against a browser
-# on the user's own machine reached through a reverse SSH tunnel (no local
-# Chrome needed; `agent-browser install` is intentionally NOT run here). The
-# package ships a postinstall script that stages the native binary, so npm 11
-# (allow-scripts) needs --allow-scripts. Installed per boot because /usr/local
-# (npm global) is wiped on redeploy.
-log "agent-browser"
-if ! command -v agent-browser >/dev/null 2>&1; then
-  npm install -g --allow-scripts=agent-browser agent-browser >/dev/null 2>&1
-fi
-
-# ── Playwright MCP (browser automation over CDP) ──────────────────────────────
-# Microsoft's Playwright MCP server. Used via `--cdp-endpoint` against the same
-# reverse-SSH-tunnel browser as agent-browser (no local browser download:
-# `playwright install` is intentionally NOT run here). Unlike agent-browser it
-# applies a per-action/navigation timeout, so a page that blocks its renderer
-# fails fast instead of wedging the session. Installed per boot because
-# /usr/local (npm global) is wiped on redeploy.
-log "playwright-mcp"
+# ── Playwright (browser automation over CDP) ──────────────────────────────────
+# Microsoft's Playwright MCP server (opencode MCP tools) and Playwright CLI
+# (token-efficient CLI used through the playwright-cli skill, `open` attaches
+# via the baked cli.config.json). Both attach over CDP to a browser on the
+# user's own machine reached through a reverse SSH tunnel; no local browser is
+# downloaded (`playwright install` is intentionally NOT run). The MCP applies a
+# per-action/navigation timeout, so a page that blocks its renderer fails fast
+# instead of wedging the session. Installed per boot because /usr/local (npm
+# global) is wiped on redeploy.
+log "playwright"
 if ! command -v playwright-mcp >/dev/null 2>&1; then
   npm install -g @playwright/mcp >/dev/null 2>&1
+fi
+if ! command -v playwright-cli >/dev/null 2>&1; then
+  npm install -g @playwright/cli >/dev/null 2>&1
 fi
 
 # ── repair the persisted venv against this boot's interpreter ────────────────────
@@ -165,7 +158,7 @@ fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────────
 log "verifying toolchain"
-for tool in uv python3.12 pnpm doppler neon railway openchamber agent-browser playwright-mcp; do
+for tool in uv python3.12 pnpm doppler neon railway openchamber playwright-mcp playwright-cli; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after install"
 done
 printf 'uv        %s\n' "$(uv --version)"
@@ -175,8 +168,8 @@ printf 'doppler   %s\n' "$(doppler --version)"
 printf 'neon      %s\n' "$(neon --version 2>/dev/null || echo installed)"
 printf 'railway   %s\n' "$(railway --version 2>/dev/null || echo installed)"
 printf 'openchamber %s\n' "$(openchamber --version 2>/dev/null || echo installed)"
-printf 'agent-browser %s\n' "$(agent-browser --version 2>/dev/null || echo installed)"
 printf 'playwright-mcp %s\n' "$(playwright-mcp --version 2>/dev/null || echo installed)"
+printf 'playwright-cli %s\n' "$(playwright-cli --version 2>/dev/null || echo installed)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
 printf 'lsof      %s\n' "$(lsof -v 2>&1 | grep -oE 'revision: [0-9.]+' | head -1)"
 

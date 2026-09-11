@@ -668,16 +668,6 @@
       ],
       "enabled": true
     },
-    "agent-browser": {
-      "type": "local",
-      "command": [
-        "agent-browser",
-        "mcp",
-        "--tools",
-        "core"
-      ],
-      "enabled": true
-    },
     "playwright": {
       "type": "local",
       "command": [
