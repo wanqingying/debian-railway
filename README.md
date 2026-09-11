@@ -35,6 +35,7 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 ## 文档
 
 - **Railway CLI 完整参考**：[docs/railway-cli.md](docs/railway-cli.md) — 整理自 [Railway 官方 CLI 文档](https://docs.railway.com/cli)，覆盖安装、认证、全局选项及全部命令的详细用法（版本 5.41.2）。
+- **agent-browser 使用指南**：[opencode-config/opencode/docs/agent-browser-setup.md](opencode-config/opencode/docs/agent-browser-setup.md) — 通过 SSH 反向隧道让容器内的 AI 驱动你本机的真实浏览器（CDP），复用本机 IP 与登录态。
 
 ## Railway 配置
 

@@ -1,3 +1,4 @@
 .cortexkit/
+.openchamber/
 __pycache__/
 *.pyc

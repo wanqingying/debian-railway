@@ -667,6 +667,16 @@
         "--mcp"
       ],
       "enabled": true
+    },
+    "agent-browser": {
+      "type": "local",
+      "command": [
+        "agent-browser",
+        "mcp",
+        "--tools",
+        "core"
+      ],
+      "enabled": true
     }
   },
   "disabled_providers": []

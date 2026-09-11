@@ -107,6 +107,19 @@ if [ -x /scripts/install-tools.sh ]; then
     /scripts/install-tools.sh
 fi
 
+# ---- agent-browser: state on the volume + default to the CDP tunnel ----
+# agent-browser (browser automation CLI for AI agents) drives a browser over
+# CDP. This container has no local Chrome: it attaches to the browser on the
+# user's own machine through a reverse SSH tunnel (Win10: chrome.exe
+# --remote-debugging-port=9222, then `-R 9222:127.0.0.1:9222`). Pin daemon
+# sockets and screenshots to the volume so they survive redeploys, and default
+# the CDP target to the tunnel port so commands need no flags. Override
+# AGENT_BROWSER_CDP (or pass --cdp) to point elsewhere.
+export AGENT_BROWSER_CDP="${AGENT_BROWSER_CDP:-9222}"
+export AGENT_BROWSER_SOCKET_DIR="${AGENT_BROWSER_SOCKET_DIR:-$XDG_DATA_HOME/agent-browser/run}"
+export AGENT_BROWSER_SCREENSHOT_DIR="${AGENT_BROWSER_SCREENSHOT_DIR:-$XDG_DATA_HOME/agent-browser/screenshots}"
+mkdir -p "$AGENT_BROWSER_SOCKET_DIR" "$AGENT_BROWSER_SCREENSHOT_DIR"
+
 # ---- OpenChamber: web UI that spawns/manages its own OpenCode server ----
 # openchamber starts the embedded `opencode serve` itself (on $OPENCODE_PORT,
 # bound to $OPENCHAMBER_OPENCODE_HOSTNAME, default 127.0.0.1), so opencode is no
