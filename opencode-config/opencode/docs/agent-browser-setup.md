@@ -110,6 +110,38 @@ agent-browser screenshot page.png
 - **安全**：`--remote-debugging-port` 等于完全控制浏览器，只能经 SSH 隧道访问，切勿把 9222 直接暴露公网；用完关闭调试 Chrome。
 - **单实例**：同一 `--user-data-dir` 的 Chrome 是单实例，重复启动只会复用现有实例；需要两个独立账号时，用两个不同 `--user-data-dir` + 两个端口 + 两条隧道。
 
+## 六、重部署 / 重启后恢复
+
+Railway 每次重新部署（`railway up`、环境变量变更、手动重启）都会**重建容器**，导致：
+
+1. 容器 sshd 重启、**旧的 `-R 9222` 反向监听消失**（本机 `ssh` 进程随之退出）；
+2. **SSH host key 重新生成**，指纹变化；
+3. TCP proxy 入口（`tokaido.proxy.rlwy.net:11838`）通常**保持不变**，但需确认。
+
+恢复步骤：
+
+1. 在容器里确认监听是否存在（无输出即已断，需重建）：
+   ```bash
+   (timeout 3 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/9222') 2>/dev/null && echo OPEN || echo closed
+   ```
+2. 查询当前 TCP proxy 入口（端口/域名若有变，用新值）：
+   ```bash
+   railway tcp-proxy list
+   ```
+3. 在本机（Win10）**重建反向隧道**（新开窗口，保持不关）：
+   ```powershell
+   ssh -NT -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -R 9222:127.0.0.1:9222 -p 11838 root@tokaido.proxy.rlwy.net
+   ```
+   本机 `E:\chrome-debug` 的 Chrome 需保持运行；若已关闭，先用快捷方式重新启动。
+4. 验证：
+   ```bash
+   curl -s http://127.0.0.1:9222/json/version   # 返回 Chrome 版本 JSON 即恢复
+   ```
+
+避免每次手动重建：改用 `autossh -M 0 ...`，或在 VS Code Remote-SSH 的 `~/.ssh/config` 中对该 Host 加 `RemoteForward 9222 127.0.0.1:9222` 并配 `ServerAliveInterval`，让已有连接自动维持/恢复。
+
+> 容器侧无需任何操作：`agent-browser` 的安装与 env 由 `entrypoint.sh` / `scripts/install-tools.sh` 在每次启动时自动完成。
+
 ## 更新登录态
 
 在调试 Chrome（`E:\chrome-debug`）里重新登录即可，无需在容器侧做任何操作——CDP 直接复用该浏览器的实时 cookie。
