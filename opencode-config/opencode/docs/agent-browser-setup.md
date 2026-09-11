@@ -1,113 +1,115 @@
-# agent-browser 安装与使用指南
+# agent-browser 使用指南：通过 SSH 反向隧道驱动本机浏览器
 
-Goole 的 Vercel Labs 出品的浏览器自动化 CLI，通过 MCP 接入 OpenCode，让 AI 可以操作真实浏览器。
-38.5k stars, Rust 实现，原生性能。
+`agent-browser` 是 Vercel Labs 出品的浏览器自动化 CLI（Rust 实现，直接走 CDP，无 Playwright/Puppeteer 依赖）。本容器**不安装本地 Chrome**：它通过 **CDP** 驱动**用户本机**的真实浏览器，浏览器和登录态都留在用户自己的电脑上，容器只负责发指令。
 
-## 安装
+## 为什么这样接
 
-容器内全局安装：
+- 容器在 Railway（海外机房），没有显示器，直接在容器里跑 headless Chrome 会遇到机房 IP 风控、登录态迁移、无法人工接管（验证码/二次验证）等问题。
+- 复用本机浏览器 = 真实 IP + 已有登录态 + 有头可见 + 可人工接管。
+- 容器与本机之间用 **SSH 反向隧道**（复用已有的 SSH 主入口）把本机的 CDP 端口映射到容器的 `127.0.0.1:9222`，全程加密，两端都无需暴露到公网。
 
-```bash
-npm install -g agent-browser
-agent-browser install   # 下载 Chrome for Testing
+## 拓扑
+
+```
+Win10 Chrome (127.0.0.1:9222)  ──SSH 反向隧道──▶  容器 (127.0.0.1:9222)  ◀── agent-browser --cdp 9222
+        ▲
+   真实浏览器 / 登录态                                          Railway 容器（无 Chrome）
 ```
 
-## MCP 配置
+隧道由本机主动出站建立，两端都是 loopback，物理路径经 Railway 的 TCP proxy 中继。
 
-已写入 `/root/.config/opencode/opencode.jsonc`：
+## 一、本机（Windows）准备
 
-```json
-{
-  "mcp": {
-    "agent-browser": {
-      "type": "local",
-      "command": ["agent-browser", "mcp"],
-      "enabled": true
-    }
+### 1. 启动可调试的 Chrome
+
+用**独立 profile** 启动（Chrome 136+ 若用默认 profile 会直接忽略 `--remote-debugging-port`）：
+
+```powershell
+& "E:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 `
+  --user-data-dir="E:\chrome-debug"
+```
+
+验证端口已开：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:9222/json/version
+# 或浏览器打开 http://127.0.0.1:9222/json/version，看到 JSON 即成功
+```
+
+首次在这个调试 Chrome 里登录需要的网站即可；cookie 存在 `E:\chrome-debug`，长期有效。
+
+### 2. 建立反向 SSH 隧道
+
+```powershell
+ssh -NT -o StrictHostKeyChecking=accept-new `
+    -o ServerAliveInterval=15 -o ServerAliveCountMax=3 `
+    -o ExitOnForwardFailure=yes `
+    -R 9222:127.0.0.1:9222 -p <Railway公开端口> root@<Railway域名>
+```
+
+- `<Railway公开端口>` / `<Railway域名>` 用 `railway tcp-proxy list` 查（例如 `tokaido.proxy.rlwy.net:11838`）。这是裸 TCP 入口，不要用 HTTP 域名（`.up.railway.app` 是 HTTP 层，承载不了 SSH）。
+- `-N` 只做转发、不开 shell：连上后无输出、光标不返回是正常的，保持窗口开着即可。
+- 断线自动重连建议用 `autossh -M 0` 替换 `ssh`，或把 `RemoteForward 9222 127.0.0.1:9222` 写进 VS Code Remote-SSH 的 `~/.ssh/config`。
+
+## 二、容器侧（已内置）
+
+`scripts/install-tools.sh` 每次启动安装 `agent-browser`；`entrypoint.sh` 导出以下变量：
+
+| 变量 | 默认 | 作用 |
+| --- | --- | --- |
+| `AGENT_BROWSER_CDP` | `9222` | 默认 CDP 目标，命令无需带 `--cdp` |
+| `AGENT_BROWSER_SOCKET_DIR` | `$XDG_DATA_HOME/agent-browser/run` | daemon socket 落卷，跨重启保留 |
+| `AGENT_BROWSER_SCREENSHOT_DIR` | `$XDG_DATA_HOME/agent-browser/screenshots` | 截图输出目录 |
+
+可用 `AGENT_BROWSER_CDP=<port|ws-url>` 覆盖（连另一实例或远端服务）。
+
+## 三、验证与使用
+
+```bash
+# 连通性（返回 Chrome 版本 JSON 即隧道通）
+curl -s http://127.0.0.1:9222/json/version
+
+# 列出本机浏览器已打开的标签（证明 CDP 已通）
+agent-browser tab
+
+# 打开页面、快照、点击、截图
+agent-browser open https://example.com
+agent-browser snapshot -i
+agent-browser click @e3
+agent-browser screenshot page.png
+```
+
+- 快照返回无障碍树 + `@eN` ref；页面变化后 ref 失效，需重新 snapshot。
+- 多标签：`tab` / `tab new <url>` / `tab <id>` / `tab close <id>`。
+- 多实例并行：`agent-browser --session a --cdp 9222 ...`、`--session b --cdp 9223 ...`；多个会话共享同一浏览器时用 `--pin-tab` 隔离。
+- 抓文本优先 `agent-browser read`；页面已打开时直接 `snapshot`，不要反复 `open`。
+
+## 四、MCP 接入
+
+已内置在 `opencode-config/opencode/opencode.jsonc`：
+
+```jsonc
+"mcp": {
+  "agent-browser": {
+    "type": "local",
+    "command": ["agent-browser", "mcp", "--tools", "core"],
+    "enabled": true
   }
 }
 ```
 
-重启 OpenCode 后生效，会注册 20+ 浏览器工具。
+`--tools` 可选 profile：`core`（默认，29 工具）/ `network` / `state` / `debug` / `tabs` / `react` / `mobile` / `all`（64 工具）。MCP 工具名形如 `agent_browser_*`，与 CLI 共用同一 daemon/CDP。CLI + skill 已覆盖全部能力，MCP 主要面向不能执行 shell 的客户端。
 
-## 从 Windows Chrome 导出登录态到容器
+## 五、注意事项
 
-网络拓扑：**Windows 10 → WSL2 → Docker 容器**
+- **Chrome 版本**：136+ 必须用非默认 `--user-data-dir`，否则调试端口不生效。
+- **host key**：容器每次重新部署都会重生成 SSH host key；本机看到 `REMOTE HOST IDENTIFICATION HAS CHANGED` 时执行 `ssh-keygen -R "[host]:port"`，或加 `StrictHostKeyChecking=accept-new`。
+- **VPN/代理**：本机常驻 VPN 且为 TUN/全局模式时会影响长连接稳定性；建议加 `DOMAIN-SUFFIX,rlwy.net,DIRECT` 直连分流，并保留 keepalive/autossh。
+- **超时**：`open`/`click` 默认等待网络空闲，对持续有长轮询/心跳的站点（如 B 站）会一直等到命令超时上限；命令超时建议 ≤20s，抓内容用 `read`/`snapshot`。
+- **安全**：`--remote-debugging-port` 等于完全控制浏览器，只能经 SSH 隧道访问，切勿把 9222 直接暴露公网；用完关闭调试 Chrome。
+- **单实例**：同一 `--user-data-dir` 的 Chrome 是单实例，重复启动只会复用现有实例；需要两个独立账号时，用两个不同 `--user-data-dir` + 两个端口 + 两条隧道。
 
-### 1. Windows 上启动 Chrome 远程调试
+## 更新登录态
 
-关掉所有 Chrome，然后用新 profile 启动：
-
-```powershell
-taskkill /F /IM chrome.exe
-& "E:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="E:\chrome-remote-debug"
-```
-
-> `--user-data-dir` 必填。Chrome 136+ 安全策略禁止在有默认 profile 时暴露 CDP 端口，必须使用非默认目录。
-
-验证端口监听：
-
-```powershell
-netstat -ano | findstr :9222
-```
-
-在弹出的空白 Chrome 中登录需要的网站（GitHub、B站等）。
-
-### 2. 容器内连接 Windows Chrome 并导出登录态
-
-从容器内通过 `host.docker.internal`（Docker Desktop for Windows 提供的宿主机域名）连接 Chrome 的 CDP：
-
-```bash
-# 验证连通性
-curl -s http://host.docker.internal:9222/json/version --header "Host: localhost"
-
-# 导出登录态
-agent-browser --cdp ws://host.docker.internal:9222/devtools/browser/<ID> state save ./chrome-auth.json
-```
-
-> `<ID>` 从 `/json/version` 返回的 `webSocketDebuggerUrl` 中获取。
-> `--header "Host: localhost"` 是必需的，否则 Chrome CDP 拒绝非 localhost 的请求。
-
-### 3. 使用登录态
-
-```bash
-agent-browser --state /workspace/apps/screeps-ts/chrome-auth.json open https://www.bilibili.com
-```
-
-配合 session 自动持久化：
-
-```bash
-agent-browser --state /workspace/apps/screeps-ts/chrome-auth.json --session mysession --restore open https://www.bilibili.com
-```
-
-后续使用不需要再指定 `--state`，session 会自动保存和恢复状态。
-
-## 日常使用场景
-
-```bash
-# 打开网页获取快照
-agent-browser open https://example.com
-
-# 操作已认证的网站
-agent-browser --state ./chrome-auth.json open https://github.com/user/repo
-
-# 截图
-agent-browser --state ./chrome-auth.json screenshot ./screenshot.png
-
-# 执行 JavaScript
-agent-browser --state ./chrome-auth.json eval "document.title"
-```
-
-## 更新已保存的登录态
-
-当某个网站的登录过期后，在 Windows Chrome（之前启动的那个远程调试实例）重新登录，然后重新导出：
-
-```bash
-agent-browser --cdp ws://host.docker.internal:9222/devtools/browser/<ID> state save ./chrome-auth.json
-```
-
-## 限制
-
-- 容器内无 display server，只能 headless 模式运行（截图看结果，不可见窗口）
-- `host.docker.internal` 仅在 Docker Desktop for Windows 上可用
-- 远程调试的 Chrome 实例是独立 profile，与原 Chrome 的书签/插件/历史隔离
+在调试 Chrome（`E:\chrome-debug`）里重新登录即可，无需在容器侧做任何操作——CDP 直接复用该浏览器的实时 cookie。

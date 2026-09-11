@@ -130,6 +130,18 @@ if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g @openchamber/web >/dev/null 2>&1
 fi
 
+# ── agent-browser (browser automation CLI for AI agents) ──────────────────────
+# Rust CLI that drives a browser over CDP. Used in CDP mode against a browser
+# on the user's own machine reached through a reverse SSH tunnel (no local
+# Chrome needed; `agent-browser install` is intentionally NOT run here). The
+# package ships a postinstall script that stages the native binary, so npm 11
+# (allow-scripts) needs --allow-scripts. Installed per boot because /usr/local
+# (npm global) is wiped on redeploy.
+log "agent-browser"
+if ! command -v agent-browser >/dev/null 2>&1; then
+  npm install -g --allow-scripts=agent-browser agent-browser >/dev/null 2>&1
+fi
+
 # ── repair the persisted venv against this boot's interpreter ────────────────────
 # core/.venv lives in the persistent workspace and survives redeploys, but its pyvenv.cfg may point
 # at a python path that no longer exists. `uv sync` recreates/repairs it (idempotent; a no-op when
@@ -141,7 +153,7 @@ fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────────
 log "verifying toolchain"
-for tool in uv python3.12 pnpm doppler neon railway openchamber; do
+for tool in uv python3.12 pnpm doppler neon railway openchamber agent-browser; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after install"
 done
 printf 'uv        %s\n' "$(uv --version)"
@@ -151,6 +163,7 @@ printf 'doppler   %s\n' "$(doppler --version)"
 printf 'neon      %s\n' "$(neon --version 2>/dev/null || echo installed)"
 printf 'railway   %s\n' "$(railway --version 2>/dev/null || echo installed)"
 printf 'openchamber %s\n' "$(openchamber --version 2>/dev/null || echo installed)"
+printf 'agent-browser %s\n' "$(agent-browser --version 2>/dev/null || echo installed)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
 printf 'lsof      %s\n' "$(lsof -v 2>&1 | grep -oE 'revision: [0-9.]+' | head -1)"
 
