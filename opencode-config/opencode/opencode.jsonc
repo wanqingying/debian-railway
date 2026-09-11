@@ -679,7 +679,7 @@
         "--timeout-navigation",
         "20000"
       ],
-      "enabled": true
+      "enabled": false
     }
   },
   "disabled_providers": []

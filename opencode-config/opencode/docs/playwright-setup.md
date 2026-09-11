@@ -68,7 +68,7 @@ ssh -NT -o StrictHostKeyChecking=accept-new `
 
 ## 三、Playwright MCP 用法
 
-已注册在 `opencode-config/opencode/opencode.jsonc`：
+已注册在 `opencode-config/opencode/opencode.jsonc`，**默认 `enabled: false`**（MCP 的工具 schema 常驻每一轮上下文，且快照整树内联回传，比 CLI 明显费 token；日常操作优先用上面的 CLI）。需要持久状态、探索式/迭代推理时，把 `enabled` 改为 `true` 并重启 opencode：
 
 ```jsonc
 "mcp": {
@@ -78,7 +78,7 @@ ssh -NT -o StrictHostKeyChecking=accept-new `
                 "--cdp-endpoint", "http://127.0.0.1:9222",
                 "--timeout-action", "20000",
                 "--timeout-navigation", "20000"],
-    "enabled": true
+    "enabled": false
   }
 }
 ```
