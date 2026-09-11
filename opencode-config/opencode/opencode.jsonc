@@ -677,6 +677,19 @@
         "core"
       ],
       "enabled": true
+    },
+    "playwright": {
+      "type": "local",
+      "command": [
+        "playwright-mcp",
+        "--cdp-endpoint",
+        "http://127.0.0.1:9222",
+        "--timeout-action",
+        "20000",
+        "--timeout-navigation",
+        "20000"
+      ],
+      "enabled": true
     }
   },
   "disabled_providers": []

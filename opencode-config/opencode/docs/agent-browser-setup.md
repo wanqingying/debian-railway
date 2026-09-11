@@ -101,6 +101,28 @@ agent-browser screenshot page.png
 
 `--tools` 可选 profile：`core`（默认，29 工具）/ `network` / `state` / `debug` / `tabs` / `react` / `mobile` / `all`（64 工具）。MCP 工具名形如 `agent_browser_*`，与 CLI 共用同一 daemon/CDP。CLI + skill 已覆盖全部能力，MCP 主要面向不能执行 shell 的客户端。
 
+### Playwright MCP（备选，带单命令超时）
+
+`agent-browser` 的 daemon 串行处理命令，当某条页面级命令卡住时会堵死整个会话（上游 issue #1713/#1741）。**Playwright MCP** 通过同一个 CDP 端点连接，且每个动作都有独立超时，卡住时快速报错而非挂死，因此作为备选一并内置：
+
+```jsonc
+"mcp": {
+  "playwright": {
+    "type": "local",
+    "command": ["playwright-mcp",
+                "--cdp-endpoint", "http://127.0.0.1:9222",
+                "--timeout-action", "20000",
+                "--timeout-navigation", "20000"],
+    "enabled": true
+  }
+}
+```
+
+- 不运行 `playwright install`，只做 CDP attach，连的是本机同一个调试 Chrome；身份/登录态一致。
+- 每次 action / navigation 超过 20s 即报错返回，会话可继续。
+- 工具名形如 `playwright_browser_*`（约 24 个：navigate/snapshot/click/type/fill_form/evaluate/tabs/network_requests 等）。
+- 已知限制：`connectOverCDP` 的保真度低于 Playwright 原生协议，部分高级能力（新 context、trace、PDF）不可用，核心导航/快照/交互不受影响。
+
 ## 五、注意事项
 
 - **Chrome 版本**：136+ 必须用非默认 `--user-data-dir`，否则调试端口不生效。
