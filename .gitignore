@@ -1,5 +1,6 @@
 .cortexkit/
 .openchamber/
 .playwright-mcp/
+.playwright-cli/
 __pycache__/
 *.pyc
