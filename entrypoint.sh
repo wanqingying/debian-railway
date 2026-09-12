@@ -76,6 +76,26 @@ if [ -n "${GITHUB_TOKEN:-}" ]; then
         git config --global credential.helper "store --file=$CRED_FILE"
 fi
 
+# ---- SSH host keys: persist on the volume so the fingerprint is stable ----
+# `railway up` rebuilds the image every time, and openssh-server's postinst
+# generates a fresh host key during the build, so /etc/ssh/ssh_host_* changes on
+# every redeploy and clients hit "REMOTE HOST IDENTIFICATION HAS CHANGED". Keep
+# the host key on the /workspace volume and point sshd at it, so the fingerprint
+# is fixed for the life of the volume (generate once if absent). This does not
+# stop connections dropping on a restart (that is inherent); it removes the key
+# churn so auto-reconnect (autossh, VS Code RemoteForward) can run unattended.
+SSH_HOST_KEY_DIR="$XDG_CONFIG_HOME/ssh"
+mkdir -p "$SSH_HOST_KEY_DIR"
+chmod 700 "$SSH_HOST_KEY_DIR"
+if [ ! -f "$SSH_HOST_KEY_DIR/ssh_host_ed25519_key" ]; then
+    ssh-keygen -q -t ed25519 -N "" -f "$SSH_HOST_KEY_DIR/ssh_host_ed25519_key"
+fi
+chmod 600 "$SSH_HOST_KEY_DIR"/ssh_host_*_key
+chmod 644 "$SSH_HOST_KEY_DIR"/ssh_host_*_key.pub
+# Use only the persisted key: a rebuilt image must never present a different one.
+sed -i '/^#\?HostKey /d' /etc/ssh/sshd_config
+echo "HostKey $SSH_HOST_KEY_DIR/ssh_host_ed25519_key" >> /etc/ssh/sshd_config
+
 # ---- SSH port: prefer SSH_PORT, else $PORT (Railway's public port) ----
 SSH_PORT="${SSH_PORT:-${PORT:-22}}"
 sed -i "s/^#\?Port .*/Port ${SSH_PORT}/" /etc/ssh/sshd_config
