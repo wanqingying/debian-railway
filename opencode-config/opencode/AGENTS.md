@@ -3,6 +3,10 @@
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+## Environment awareness
+
+`sysinfo` reports facts about the current machine: time and timezone, OS, resources, container/CI context, and installed developer tools. Use it whenever a task depends on those facts.
+
 ## 0. Language: English Only
 
 **All code comments and documentation content MUST be written in English** (所有代码注释和文档内容都使用英文).

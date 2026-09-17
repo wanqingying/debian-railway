@@ -49,6 +49,7 @@ No build/test/lint toolchain — the Dockerfile + entrypoint script are the whol
 - `Dockerfile` — image definition.
 - `entrypoint.sh` — runtime entrypoint (SSH + ttyd + OpenChamber-serve + volume bootstrap).
 - `opencode-config/` — non-sensitive opencode + magic-context config, baked into the image, copied to the volume on first start. **Keep `.railwayignore` negations in sync** so its `*.md`/`assets` aren't stripped from the build context.
+- `opencode-config/opencode/tools/sysinfo.ts` + `opencode-config/opencode/lib/sysinfo.js` — global opencode custom tool `sysinfo` so any agent can probe the current date/time and timezone, OS/distro/kernel/shell/user/locale, container/CI/railway flags, CPU/memory/disk, the active Python venv, and the installed developer tools with versions. Single compact JSON shape (no detail levels); tool probes are cached 5 min. The `.ts` is a thin `tool()` wrapper; the dependency-free `.js` holds the logic and also runs directly (`node lib/sysinfo.js`). Reads only whitelisted non-sensitive values.
 - `README.md` — project docs (Chinese) + Railway CLI doc entry.
 - `docs/railway-cli.md` — generated Railway CLI reference (from docs.railway.com/cli). Keep in sync with official docs if the CLI version changes.
 - `.railwayignore` — files excluded from `railway up` uploads, with negations for `opencode-config/**`.
