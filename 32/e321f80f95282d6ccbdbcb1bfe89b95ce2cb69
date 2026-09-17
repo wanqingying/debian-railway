@@ -1,0 +1,21 @@
+scripts/install-tools.sh
+  s_069cd2dfce75af::t_a62b38157c77f1 134-140,143-144
+  s_069cd2dfce75af::t_fd95218727fe4c 110-111
+  s_069cd2dfce75af::t_ada6f0b950a710 170,173-174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.44-trip",
+  "base_commit_sha": "32e321f80f95282d6ccbdbcb1bfe89b95ce2cb69",
+  "prompts": {},
+  "sessions": {
+    "s_069cd2dfce75af": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f517e21c4ffeQSs8AIDiD8WAwT",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "qywan@trip.com <qywan@trip.com>"
+    }
+  }
+}
