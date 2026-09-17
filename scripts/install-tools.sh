@@ -107,7 +107,8 @@ fi
 # credentials.json (from `neon auth`) > interactive web.
 log "Neon CLI"
 if ! command -v neon >/dev/null 2>&1; then
-  npm install -g neon >/dev/null 2>&1
+  npm install -g neon >/dev/null \
+    || log "warning: neon CLI install failed (continuing)"
 fi
 if [ -n "${NEON_API_KEY:-}" ]; then
   log "neon: NEON_API_KEY present (used natively by the CLI, no login needed)"
@@ -119,7 +120,8 @@ fi
 # wiped on redeploy. Auth is via `railway login --browserless` or RAILWAY_API_TOKEN.
 log "Railway CLI"
 if ! command -v railway >/dev/null 2>&1; then
-  npm install -g --allow-scripts=@railway/cli @railway/cli >/dev/null 2>&1
+  npm install -g --allow-scripts=@railway/cli @railway/cli >/dev/null \
+    || log "warning: Railway CLI install failed (continuing)"
 fi
 
 # ── OpenChamber (web UI for OpenCode) ─────────────────────────────────────────
@@ -129,9 +131,17 @@ fi
 # OPENCODE_SERVER_USERNAME/PASSWORD envs for that server's auth, so the
 # existing opencode config carries over unchanged. Installed per boot because
 # /usr/local (npm global) is wiped on redeploy.
+# Pinned to 1.23.2: @openchamber/web@1.24.0 declares a dependency on
+# @openchamber/sdk@1.23.1, which was never published (npm ETARGET), so installing
+# latest fails and (under `set -e`) kills the whole container. Bump this pin only
+# after confirming the target version actually installs. Install failure is
+# non-fatal so a broken upstream release can't take down SSH; the web UI is just
+# skipped (entrypoint.sh already guards on `command -v openchamber`).
+OPENCHAMBER_VERSION=1.23.2
 log "OpenChamber"
 if ! command -v openchamber >/dev/null 2>&1; then
-  npm install -g @openchamber/web >/dev/null 2>&1
+  npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
+    || log "warning: OpenChamber install failed (continuing without web UI)"
 fi
 
 # ── book-to-skill PDF extractors ─────────────────────────────────────────────────
@@ -157,8 +167,11 @@ fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────────
 log "verifying toolchain"
-for tool in uv python3.12 pnpm doppler neon railway openchamber pdftotext; do
+for tool in uv python3.12 pnpm doppler pdftotext; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after install"
+done
+for tool in neon railway openchamber; do
+  command -v "$tool" >/dev/null 2>&1 || log "warning: $tool missing (optional)"
 done
 printf 'uv        %s\n' "$(uv --version)"
 printf 'python    %s\n' "$(uv run --project "$REPO_ROOT/core" python --version 2>/dev/null || uv python find 3.12)"
