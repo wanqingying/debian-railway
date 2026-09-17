@@ -16,6 +16,8 @@
 #   Neon CLI          -> npm (neonctl), authenticated natively via NEON_API_KEY env var
 #   Railway CLI      -> npm (@railway/cli), auth via RAILWAY_API_TOKEN / browserless login
 #   OpenChamber      -> npm (@openchamber/web), web UI that manages its own OpenCode server
+#   book-to-skill    -> PDF extractors for the baked book-to-skill skill: poppler-utils (apt) +
+#                       pypdf/pdfminer.six (pip). docling (technical/tables mode) is intentionally omitted.
 #
 # NOT HANDLED HERE (per-developer, interactive — keep out of the startup script)
 #   - Doppler token:  set DOPPLER_TOKEN env var -> auto-configured below (no interactive login)
@@ -46,6 +48,7 @@ SKIP_VENV=0
 # unzip           : used by a few tool installers
 # jq              : JSON parsing in shell helpers
 # build-essential : source-built Python deps (e.g. forbiddenfruit) compile against it
+# poppler-utils   : pdftotext for the baked book-to-skill skill (PDF text extraction)
 # fontconfig + fonts-liberation : font rendering for overlay/render workers
 log "1/5 system packages (apt)"
 export DEBIAN_FRONTEND=noninteractive
@@ -53,6 +56,7 @@ apt-get update -qq
 apt-get install -y --no-install-recommends \
   ffmpeg lsof unzip jq \
   build-essential \
+  poppler-utils \
   fontconfig fonts-liberation \
   ca-certificates curl wget git \
   >/dev/null
@@ -130,6 +134,18 @@ if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g @openchamber/web >/dev/null 2>&1
 fi
 
+# ── book-to-skill PDF extractors ─────────────────────────────────────────────────
+# The baked book-to-skill skill (opencode-config/opencode/skills/book-to-skill) runs
+# scripts/extract.py, which needs a PDF text extractor. poppler's pdftotext (apt, step 1)
+# is fastest and preferred; pypdf / pdfminer.six are Python fallbacks. Python packages
+# install into the root FS (wiped on redeploy) -> reinstall per boot. Debian's python3 is
+# PEP 668 externally-managed, hence --break-system-packages. docling (better tables/code
+# for `--mode technical`) is deliberately NOT installed: it is large and slow to install.
+log "book-to-skill PDF extractors"
+if ! python3 -c 'import pypdf, pdfminer' >/dev/null 2>&1; then
+  pip3 install --break-system-packages --quiet pypdf pdfminer.six
+fi
+
 # ── repair the persisted venv against this boot's interpreter ────────────────────
 # core/.venv lives in the persistent workspace and survives redeploys, but its pyvenv.cfg may point
 # at a python path that no longer exists. `uv sync` recreates/repairs it (idempotent; a no-op when
@@ -141,7 +157,7 @@ fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────────
 log "verifying toolchain"
-for tool in uv python3.12 pnpm doppler neon railway openchamber; do
+for tool in uv python3.12 pnpm doppler neon railway openchamber pdftotext; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after install"
 done
 printf 'uv        %s\n' "$(uv --version)"
@@ -153,6 +169,8 @@ printf 'railway   %s\n' "$(railway --version 2>/dev/null || echo installed)"
 printf 'openchamber %s\n' "$(openchamber --version 2>/dev/null || echo installed)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
 printf 'lsof      %s\n' "$(lsof -v 2>&1 | grep -oE 'revision: [0-9.]+' | head -1)"
+printf 'pdftotext %s\n' "$(pdftotext -v 2>&1 | head -1)"
+printf 'pypdf     %s\n' "$(python3 -c 'import pypdf; print(getattr(pypdf, "__version__", "installed"))' 2>/dev/null || echo missing)"
 
 cat <<EOF
 
