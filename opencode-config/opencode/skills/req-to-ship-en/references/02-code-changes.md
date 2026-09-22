@@ -4,7 +4,7 @@
 
 **Prerequisite**: stage 1's design review has passed and the user has confirmed the pending decisions (**L2 may be exempt**: proceed straight to implementation when the change is self-evident with no design trade-offs).
 
-**Depth scales with level** (see master file): L0 uses strict small commits + step-by-step progress tracking; L1 standard; L2 may be a single commit with minimal tracking.
+**Depth scales with level** (see master file): L0 uses strict small commits (the commit log is the step tracking); L1 standard; L2 may be a single commit.
 
 ## Steps
 
@@ -12,25 +12,24 @@
 - Check whether the current branch is this requirement's branch.
 - If not on the right branch:
   - **Look at a few historical branch names for the naming convention**, follow the project's existing naming style.
-  - Pick a branch name that **correctly and concisely describes the current requirement** (derived from the requirement document's feature name).
-- After switching/creating the branch: **run `codegraph sync`** to sync code changes.
-- L2 may reuse an existing branch per project convention; there's no need to open a separate branch for every small change.
+  - Pick a branch name that **correctly and concisely describes the current requirement** (derived from the requirement's feature name).
+- A new worktree has no index: run `codegraph init --yes` there once (the file watcher keeps it fresh afterwards).
+- L2 gets its own branch too: every change goes through a feature branch and a PR (per the project's git conventions).
 
 ### 2. Confirm git state is clean and synced with remote
 - `git status`: is the working tree clean?
 - `git fetch` + confirm it's in sync with the remote main branch (avoid developing on stale code).
-- After syncing: **run `codegraph sync`**.
 
 ### 3. Execute the code implementation
-- Implement item by item per the detail design in `technical-design.md` (for L2 with no design, implement per the requirements document).
-- Use `codegraph_explore` throughout implementation to keep an accurate understanding of the code logic.
+- Implement item by item per the agreed design (`design.md` when there is one; for L2 with no design, per the requirement itself).
+- Use `codegraph_explore` throughout implementation to keep an accurate picture of the code you are changing — name the symbols you are about to edit so their source and callers come back together — and read the file before editing it.
 - Advance the unit-test/e2e tests designed at the design stage in parallel (not back-filled after implementation).
-- **Progress tracking**: tick off implementation steps one by one in `ops/implementation-tracking.md` and record commit SHAs (same commit as the code; run `git rev-parse HEAD` to record the baseline before committing); for L2 keep it brief — a single line in `review.md` is enough.
+- **Progress tracking is the commit log**: one commit per logical step with a semantic message, so `git log` shows the sequence and `git blame` the origin; there is no tracking file. The iteration record cites the commit range once.
 - Commit in small steps: one commit per logical unit; commit messages follow the project style (L2 may be a single commit).
 
 ### 4. Human collaboration during implementation (important)
 - **Drive autonomously**: implementation details, naming, error handling, etc., are handled at the "drive autonomously" tier — don't interrupt the user.
-- **New issues not covered by the design**: don't silently expand scope — first record them in `review.md`'s pending-decisions list (with options + recommendation + rationale), keep advancing what can advance, and submit to the user in a batch at the stage boundary.
+- **New issues not covered by the design**: don't silently expand scope — first add them to the pending-decisions list (with options + recommendation + rationale), keep advancing what can advance, and submit to the user in a batch at the stage boundary.
 - **Implementation conflicts with the design**: if implementation reveals a design detail that doesn't hold, record it in the pending-decisions list ("options + recommendation + rationale"), continue implementing the recommended approach, and submit to the user at the stage boundary; only **key decisions that block downstream work** genuinely warrant stopping and waiting.
 - Technology selection / destructive operations / changes touching data permissions → add to the pending-decisions list, submit in a batch; don't execute unilaterally.
 
