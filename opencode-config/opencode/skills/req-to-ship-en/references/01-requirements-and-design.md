@@ -1,40 +1,43 @@
 # Stage 1 — Requirement Clarification & Technical Design
 
-**Goal**: first refine the user's requirement into an **unambiguous, actionable** requirements document, then produce an **architecturally sound, detail-complete, actionable** technical design document based on it.
+**Goal**: first refine the user's requirement until it is **unambiguous and actionable**, then settle an **architecturally sound, detail-complete, actionable** technical design based on it.
 
-**Prerequisite**: first run `codegraph sync` to sync code changes, then use `codegraph_explore` to analyze the existing system. The requirements sub-part (Part A) is the design's (Part B) input; **design does not start until the requirements are clear**.
+**Files only with an iteration** (master file → "Documentation"): the `design.md` template below — requirements and design in one document — is for work that gets it. Otherwise do the same thinking at the depth the level calls for, take the decisions to the human in chat, and carry the conclusions into the PR description.
+
+**Prerequisite**: make sure the worktree is indexed (`codegraph status`; `codegraph init --yes` if it is not), then use `codegraph_explore` to orient in the existing system and confirm what it found against the source (SKILL.md → Tool Quick Reference). The requirements sub-part (Part A) is the design's (Part B) input; **design does not start until the requirements are clear**.
 
 ---
 
-## Part A — Requirement Clarification (produces `requirements.md`)
+## Part A — Requirement Clarification (the requirements half of `design.md`)
 
 ### A1. Understand the requirement
 - Read the user's requirement statement in full; don't miss details. **Keep the user's original wording** as a document appendix to avoid information loss.
 - Make clear the requirement's **background (why)**, **goal (what problem / business value)**, **scope (what's in / what's not)**, and **actors (who uses it, what triggers it)**.
-- If this is a change/iteration on an existing feature: first read `docs/<feature>/`'s README timeline and the relevant iteration docs to confirm the baseline and existing design, then open a new incrementing iteration directory per the master file's spec.
+- If this is a change/iteration on an existing feature: first read the feature README and its latest iteration to confirm the baseline and existing design; open a new iteration directory only if this work gets one.
 
 ### A2. Determine the change level (first — it sets process depth)
-- **Decide the level first**: do a **preliminary** assessment using the questions in the master file's "Change Level & Process Depth". The level determines the process depth and output detail of this stage and all later stages — set the level, then decide how detailed each item should be.
+- **Decide the level first**: do a **preliminary** assessment using the questions in the master file's "Change Level & Process Depth". The level determines the process depth of this stage and all later stages — set the level, then decide how deep each item should go.
 - A small-sounding requirement does not mean a small change: after B1/B6 survey the code and impact, **confirm or revise** the level, and take the revised level as authoritative.
-- Record the level and rationale in the requirements document (e.g. "Change level: L1 (rationale…)"). When in doubt, use the **higher** level.
+- Record the level and rationale (e.g. "Change level: L1 (rationale…)") in `design.md` or the PR description. When in doubt, use the **higher** level.
 
 ### A3. Understand against existing code
 (This step only needs enough understanding to "define the requirement and its impact scope"; deep structural/insertion-point analysis is left to B1 to avoid duplicated work.)
-- Use `codegraph_explore` to find the relevant modules, call chains, data models, and existing implementations the requirement touches.
+- **Find the project's own knowledge first** (SKILL.md → Tool Quick Reference → *Finding project knowledge*): the docs index (if the project keeps one) locates the area, the feature `README.md` and its latest iteration give the baseline, `rg` searches the corpus, and `qmd` — only if installed, otherwise note and skip — answers natural-language questions. Re-deriving a decision that is already recorded is the most common waste.
+- Use `codegraph_explore` to find the relevant modules, call chains, data models, and existing implementations the requirement touches, then confirm the set with `rg` — explore returns a starting set, not every writer or caller.
 - Determine whether this is a **new feature**, a **behavior change to existing code**, or a **fix**, and which existing features it affects.
 - When the requirement references existing UI/flows/interfaces, read the corresponding code first to confirm the current state.
 
 ### A4. Refine and clarify
 - List the ambiguous points, **first autonomously handle what you can**:
-  - What can be inferred from existing code/docs: verify it yourself and write it directly into the requirements document.
+  - What can be inferred from existing code/docs: verify it yourself and settle it without asking.
   - Edge cases (empty data, exceptions, concurrency), non-functional requirements, interaction details, dependencies: first make reasonable inferences based on the existing system, marked "to be confirmed".
 - Decisions involving **scope, priority, product behavior** → per the master-file decision tiers, **must ask the human**: add to the pending-decisions list and present in batch at the stage boundary.
-- Implementation-detail ambiguities (how to implement, etc.) → leave to Part B (technical design); record the related pending/autonomous decisions in `review.md`.
+- Implementation-detail ambiguities (how to implement, etc.) → leave to Part B (technical design); record the related pending/autonomous decisions.
 - Analyze reasonableness: does the requirement conflict with the existing architecture? Is it out of reasonable scope? If so, record it as a pending decision with reasons and submit to the user.
 
-### A5. Produce the requirements document
+### A5. Produce the requirements half
 
-Write to `requirements.md` in the iteration directory defined by the master file (**location and naming follow the master file's "Document Directory Structure"**). Content template:
+**Only when the work gets an iteration.** Write the requirements section of `design.md` in the iteration directory (**location and naming follow the master file's "Documentation"**). Content template:
 
 ```markdown
 # <Feature> Requirements
@@ -73,15 +76,13 @@ Write to `requirements.md` in the iteration directory defined by the master file
 > **Background & Goals are the document's driving force** — they are the underlying motivation behind the requirement, and all later analysis, architecture, and trade-offs must revolve around them. Hence they come first, and the design review (B11) checks goal alignment: if a design does not serve the goal, either redesign it or state the deviation and why.
 >
 > **The requirements document focuses on "what we want", not technical implementation.** Technical matters like data/interface impact belong in the technical design document (B6); the requirements document describes only the business and user perspective.
->
-> **L2 may be brief**: for a small/harmless change, the requirements document can be just "background & goals + feature/fix points + acceptance criteria" without filling every section.
 
 ---
 
-## Part B — Technical Design (produces `technical-design.md`)
+## Part B — Technical Design (the design half of the same `design.md`)
 
 ### B1. Survey the existing code and architecture
-- Use `codegraph_explore` to systematically map: involved modules, service boundaries, data flow, similar existing implementations.
+- Use `codegraph_explore` to map involved modules, service boundaries, data flow and similar existing implementations — a question to orient, then the file and symbol names to pin the flow — and confirm writers/callers with `rg` before they go into the design.
 - Confirm the **insertion points**: which layer/module to implement in, which files to change, which existing logic will be touched.
 - **Include key code/file references**: give relevant file paths + line numbers (e.g. `path/to/file.ts:123`) or key symbols, and say "why it's relevant, what will change". **Give only locating information, not large source excerpts** — the goal is to let implementation quickly locate the module and change points, not to restate the existing code.
 - **Confirm/revise the change level here** (see A2): the actual change scope and impact may exceed the requirement's preliminary assessment.
@@ -94,7 +95,7 @@ Required only when **introducing a new low-level/core dependency**; when there a
 ### B3. Architecture design (required)
 - Produce the overall architecture: module breakdown, layers and boundaries, data flow, external interfaces, relationship to the existing system.
 - After the initial design, **reflect on and evaluate the overall and key designs**: are there other designs? What are the candidate alternatives? Evaluate each (complexity, maintainability, performance, extensibility, risk), and arrive at the **optimal solution for this project's current situation**, with rationale.
-- When there's an architecture divergence, record the comparison conclusion in `technical-design.md` (as part of the architecture design).
+- When there's an architecture divergence, record the comparison conclusion as part of the architecture design (`design.md` with an iteration, otherwise the PR description).
 
 ### B4. Database & table design (optional; mandatory if present)
 - Describe the database changes: new/modified tables, fields, indexes, constraints.
@@ -110,7 +111,7 @@ Required only when **introducing a new low-level/core dependency**; when there a
 ### B7. Test design (required)
 - Design the **core-flow-covering** unit-test case list (normal paths + key exception paths).
 - Design the e2e case list: walk the end-to-end user flow.
-- Map to the requirements document's "Acceptance Criteria" so every acceptance point has test coverage.
+- Map to the requirement's acceptance criteria so every acceptance point has test coverage.
 - **Depth scales with level**: L0 covers core flows + key exceptions + e2e; L1 covers the core paths; L2 needs only targeted tests or manual verification.
 
 ### B8. Local & remote debugging guide (required)
@@ -141,12 +142,12 @@ When needed, this section must be standalone and executable — not just "roll b
 
 ### B11. Design review
 - After the initial design, **re-inspect the modules and code involved** to confirm:
-  - Goal alignment: against the requirements document's "Background & Goals", check whether this design serves the goals; designs that deviate must be adjusted or explicitly justified.
+  - Goal alignment: against the requirement's background and goals, check whether this design serves the goals; designs that deviate must be adjusted or explicitly justified.
   - Design reasonableness: does it match the existing architecture and avoid over-engineering?
   - Actionability: change scope is controllable, no hidden dependencies, no missing key details.
-- Write the review conclusion (confirmed/rejected design points + rationale) as a "Design review" section inside `technical-design.md` — **do not create a separate document**.
+- With an iteration, write the review conclusion (confirmed/rejected design points + rationale) as a "Design review" section inside `design.md` — **do not create a separate document**. Without one, the design decisions a reviewer should see go into the PR description, with their rationale.
 
-> **Unified output**: all of the design stage's outputs (B1 code survey, B3 architecture, B5 detail, B6 data/interface, B7 test design, B8 debugging guide, B9 release checklist, B10 canary/rollback, B11 design review) **go into this single `technical-design.md`** — no more separate documents. **For L2 the design may be minimal or even omitted** (when the change is self-evident with no design trade-offs).
+> **Unified output**: with an iteration, all of the design stage's outputs (B1 code survey, B3 architecture, B5 detail, B6 data/interface, B7 test design, B8 debugging guide, B9 release checklist, B10 canary/rollback, B11 design review) **go into this single `design.md`** — one document, no separate files. Without one, the design choices, test results, and any release or rollback steps go into the PR description; **for L2 the design may be omitted** when the change is self-evident with no design trade-offs.
 
 ---
 
@@ -156,18 +157,18 @@ When needed, this section must be standalone and executable — not just "roll b
 - Present them all at once, marking which are **blockers** (must decide first, e.g. undefined scope) and which can be **deferred** (don't block continuing).
 - **High-risk guardrail**: if the requirement scope is highly uncertain or the requirement is large, treat "scope" as a **critical blocker and stop early to confirm** before investing in design — to avoid large rework after designing on an ambiguous requirement. When the requirement is clear, by default run all the way to this boundary.
 - Make questions contextual and specific; don't make the human guess what you're asking.
-- After the human decides in one batch, write decisions back into `requirements.md` / `technical-design.md` and record them in `review.md`; after correcting the remaining pending decisions, proceed to stage 2.
+- After the human decides in one batch, record the decisions (with an iteration, back into `design.md` and the iteration record); after correcting the remaining pending decisions, proceed to stage 2.
 - **L2 may weaken this step**: when the change is harmless and decision authority is clear, give the user a one-line note and proceed to implementation without forcing a pending-decisions list.
 
 ## Cautions
-- **Set the change level first**: the level governs how much to invest (document detail, test depth, review rigor, whether canary/rollback is needed, number of human checkpoints). Don't wrap a harmless small change in a heavy process, and don't cut corners on a core change.
-- The requirements document is the design's input; **don't start design before it's clear**.
+- **Set the change level first**: the level governs how much to invest (test depth, review rigor, whether canary/rollback is needed, number of human checkpoints). Don't wrap a harmless small change in a heavy process, and don't cut corners on a core change.
+- The requirement is the design's input; **don't start design before it's clear**.
 - **Background & Goals are the driving force**; the design should revolve around them and not drift — just check this during the design review.
 - **Requirements describe only the business/user view**; data & interface impact belongs in the design document (B6).
 - Key code/file references must be **locatable** (path + line/symbol); don't paste large source excerpts.
-- Deliverables live in the single `technical-design.md`; no more separate files, so implementation can consult one place.
+- With an iteration, requirements and design live in the single `design.md`; no more separate files, so implementation can consult one place.
 - Acceptance criteria must be **verifiable** ("the user can do X", not "the system should be somewhat better at X").
-- Key technology research and architecture comparison are **mandatory fields** (write "N/A" with reasons when there are no new dependencies / no architecture divergence); they cannot be omitted wholesale.
+- In `design.md`, key technology research and architecture comparison are **mandatory fields** (write "N/A" with reasons when there are no new dependencies / no architecture divergence); they cannot be omitted wholesale. A PR description names them only when there was a real choice.
 - e2e/unit-test design is completed at the design stage and executed during implementation — not back-filled after implementation.
-- No production code in the design stage, but **spikes are allowed**: for uncertain selections, write throwaway verification code to confirm feasibility; record results in `review.md`; spike code is not merged into the deliverable.
+- No production code in the design stage, but **spikes are allowed**: for uncertain selections, write throwaway verification code to confirm feasibility; record the results; spike code is not merged into the deliverable.
 - **Don't clarify in a back-and-forth chat**: the agent first completes everything it can verify/infer, produces a complete draft, and asks the remaining questions all at once — avoid piecemeal interruptions of the user.
