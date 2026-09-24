@@ -48,6 +48,24 @@ if [ -d /opt/opencode-config ] && [ -n "$XDG_CONFIG_HOME" ]; then
     mkdir -p "$XDG_CONFIG_HOME/cortexkit"
 fi
 
+# ---- Prune config paths retired from the baked image ----
+# The bootstrap above is a one-way copy and never deletes, so a path dropped
+# from the image would linger on the volume forever (and silently keep winning
+# over its replacement). Retired paths are listed explicitly by name -- never
+# prune blindly: the volume also holds credentials (opencode/auth.json,
+# opencode/account.json) and OpenChamber's own state, none of which are baked.
+# Each entry here can be dropped once every container has booted at least once
+# on the newer image.
+for f in code-review req-to-ship req-to-ship-en skill-creator; do
+    p="$XDG_CONFIG_HOME/opencode/commands/$f.md"
+    if [ -e "$p" ]; then
+        rm -f "$p"
+        echo "[entrypoint] removed retired /skill bridge command: $f.md"
+    fi
+done
+# Only succeeds when the directory is now empty, so user-added commands survive.
+rmdir "$XDG_CONFIG_HOME/opencode/commands" 2>/dev/null || true
+
 # ---- Migrate a v1 OpenCode session database to the v2 schema ----
 # OpenCode 2 uses a different schema (session_message/session_inbox) than v1
 # (message/part). A v1 database left on this volume from an earlier deploy is
