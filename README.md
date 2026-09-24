@@ -36,10 +36,10 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 镜像内固定一对版本，二者必须匹配：
 
-| 组件 | 包 | 版本 |
-| ---- | ---- | ---- |
+| 组件        | 包                 | 版本                                                           |
+| ----------- | ------------------ | -------------------------------------------------------------- |
 | OpenChamber | `@openchamber/web` | `2.0.0`（`scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION`） |
-| OpenCode | `@opencode/cli` | v2（`Dockerfile` baked；OpenChamber 2.0.0 要求 ≥ 2.0.15） |
+| OpenCode    | `@opencode/cli`    | v2（`Dockerfile` baked；OpenChamber 2.0.0 要求 ≥ 2.0.15）      |
 
 几点须知：
 
@@ -69,28 +69,28 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 ### 环境变量
 
-| 变量 | 必填 | 默认值 | 说明 |
-| ---- | ---- | ---- | ---- |
-| `PORT` | 是 | — | Railway 自动注入的公开端口，SSH 监听该端口 |
-| `SSH_PORT` | 否 | `$PORT` | SSH 监听端口，显式设置时优先于 `PORT` |
-| `SSH_PUBLIC_KEY` | 推荐 | — | SSH 公钥，写入 `/root/.ssh/authorized_keys`，实现免密登录；重启不丢 |
-| `PASSWORD` | 否 | — | root 登录密码（密钥之外的第二通道兜底） |
-| `USERNAME` | 否 | `root` | ttyd 网页终端的登录用户名 |
-| `TTYD_PORT` | 否 | — | 设置后启动 ttyd 网页终端，监听该端口 |
-| `OPENCODE_PORT` | 否 | `4096` | opencode serve 监听端口（由 OpenChamber 托管启动） |
-| `OPENCODE_SERVER_USERNAME` | 否 | `opencode` | opencode HTTP basic auth 用户名 |
-| `OPENCODE_SERVER_PASSWORD` | 否 | `qingying` | opencode HTTP basic auth 密码 |
-| `OPENCHAMBER_PORT` | 否 | `3001` | OpenChamber Web UI 监听端口 |
-| `OPENCHAMBER_UI_PASSWORD` | 否 | `$OPENCODE_SERVER_PASSWORD` | OpenChamber Web UI 密码（缺省回退 opencode 密码） |
-| `GIT_USER_NAME` | 否 | — | git 全局身份（`git commit` 署名用），启动时写入卷上 git config |
-| `GIT_USER_EMAIL` | 否 | — | git 全局邮箱（`git commit` 署名用），启动时写入卷上 git config |
-| `GITHUB_TOKEN` | 否 | — | GitHub PAT，写入卷上 git credential store，HTTPS clone/push 免交互 |
-| `GITHUB_HOST` | 否 | `github.com` | 配合 `GITHUB_TOKEN` 使用（如企业版 GitHub 自定义域名） |
-| `DOPPLER_TOKEN` | 否 | — | Doppler Service/Personal token，启动时自动 `doppler configure set` |
-| `NEON_API_KEY` | 否 | — | Neon CLI（neonctl）原生认证，无需登录步骤 |
-| `EMBEDDING_API_KEY` | 否 | — | magic-context embedding（text-embedding-3-small）API key |
-| `COMMANDCODE_API_KEY` | 推荐 | — | Command Code Provider API key（GOAT/Pro/Max 套餐额度），opencode 默认模型走此 provider（deepseek-v4.1-flash）；也可在容器内 `/connect` 交互式填入 |
-| `ANTHROPIC_API_KEY` | 否 | — | 如需调用 Claude 系列模型时设置；也可在容器内 `opencode auth login` 替代 |
+| 变量                       | 必填 | 默认值                      | 说明                                                                                                                                              |
+| -------------------------- | ---- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                     | 是   | —                           | Railway 自动注入的公开端口，SSH 监听该端口                                                                                                        |
+| `SSH_PORT`                 | 否   | `$PORT`                     | SSH 监听端口，显式设置时优先于 `PORT`                                                                                                             |
+| `SSH_PUBLIC_KEY`           | 推荐 | —                           | SSH 公钥，写入 `/root/.ssh/authorized_keys`，实现免密登录；重启不丢                                                                               |
+| `PASSWORD`                 | 否   | —                           | root 登录密码（密钥之外的第二通道兜底）                                                                                                           |
+| `USERNAME`                 | 否   | `root`                      | ttyd 网页终端的登录用户名                                                                                                                         |
+| `TTYD_PORT`                | 否   | —                           | 设置后启动 ttyd 网页终端，监听该端口                                                                                                              |
+| `OPENCODE_PORT`            | 否   | `4096`                      | opencode serve 监听端口（由 OpenChamber 托管启动）                                                                                                |
+| `OPENCODE_SERVER_USERNAME` | 否   | `opencode`                  | opencode HTTP basic auth 用户名                                                                                                                   |
+| `OPENCODE_SERVER_PASSWORD` | 否   | `qingying`                  | opencode HTTP basic auth 密码                                                                                                                     |
+| `OPENCHAMBER_PORT`         | 否   | `3001`                      | OpenChamber Web UI 监听端口                                                                                                                       |
+| `OPENCHAMBER_UI_PASSWORD`  | 否   | `$OPENCODE_SERVER_PASSWORD` | OpenChamber Web UI 密码（缺省回退 opencode 密码）                                                                                                 |
+| `GIT_USER_NAME`            | 否   | —                           | git 全局身份（`git commit` 署名用），启动时写入卷上 git config                                                                                    |
+| `GIT_USER_EMAIL`           | 否   | —                           | git 全局邮箱（`git commit` 署名用），启动时写入卷上 git config                                                                                    |
+| `GITHUB_TOKEN`             | 否   | —                           | GitHub PAT，写入卷上 git credential store，HTTPS clone/push 免交互                                                                                |
+| `GITHUB_HOST`              | 否   | `github.com`                | 配合 `GITHUB_TOKEN` 使用（如企业版 GitHub 自定义域名）                                                                                            |
+| `DOPPLER_TOKEN`            | 否   | —                           | Doppler Service/Personal token，启动时自动 `doppler configure set`                                                                                |
+| `NEON_API_KEY`             | 否   | —                           | Neon CLI（neonctl）原生认证，无需登录步骤                                                                                                         |
+| `EMBEDDING_API_KEY`        | 否   | —                           | magic-context embedding（text-embedding-3-small）API key                                                                                          |
+| `COMMANDCODE_API_KEY`      | 推荐 | —                           | Command Code Provider API key（GOAT/Pro/Max 套餐额度），opencode 默认模型走此 provider（deepseek-v4.1-flash）；也可在容器内 `/connect` 交互式填入 |
+| `ANTHROPIC_API_KEY`        | 否   | —                           | 如需调用 Claude 系列模型时设置；也可在容器内 `opencode auth login` 替代                                                                           |
 
 > 说明：`SSH_PUBLIC_KEY` 通过 entrypoint 每次启动注入，即使 Railway 没有挂持久卷也能保证密钥存在。强烈建议设置，否则只能用密码登录。
 
@@ -165,10 +165,10 @@ nohup railway login --browserless > /tmp/railway-login.log 2>&1 &
 
 CLI 通过环境变量读取 token，**注意区分变量名**（接错会报 `Unauthorized` / `Invalid RAILWAY_TOKEN`）：
 
-| 变量 | 类型 | 适用 |
-| ---- | ---- | ---- |
-| `RAILWAY_API_TOKEN` | 账户级（账户设置 > Tokens 生成） | `whoami`、`up`、多项目管理 |
-| `RAILWAY_TOKEN` | 项目级（Dashboard 按项目生成） | 单项目内 `up`/`redeploy`/`logs` |
+| 变量                | 类型                             | 适用                            |
+| ------------------- | -------------------------------- | ------------------------------- |
+| `RAILWAY_API_TOKEN` | 账户级（账户设置 > Tokens 生成） | `whoami`、`up`、多项目管理      |
+| `RAILWAY_TOKEN`     | 项目级（Dashboard 按项目生成）   | 单项目内 `up`/`redeploy`/`logs` |
 
 ```bash
 RAILWAY_API_TOKEN="$RW_TOKEN" railway whoami     # 验证 token 有效（返回 Logged in as ...）
