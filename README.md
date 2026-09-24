@@ -48,6 +48,19 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 - **指令文件只用 `AGENTS.md`**：OpenCode 2 读 `AGENTS.md`，**不再加载 `CLAUDE.md`**（故 `opencode-config/` 中不含 `CLAUDE.md`）。
 - **会话库自动迁移**：v1 的 `opencode.db`（含 `message`/`part` 表）会被 magic-context 判定为 `expected v2, found v1` 并拒绝访问，导致每轮对话静默中断。`entrypoint.sh` 启动时自动检测并把 v1 库改名为 `opencode.db.v1-backup-<时间戳>`（只保留最近一份），让 v2 重建新库。旧会话在 UI 中不再可见，但数据保留在备份文件里。
 
+### 如何调用 skill（重要）
+
+**不要用 `/skill-name` 顶格发消息。** OpenChamber 2.0.0 会把「首字符是 `/`」的消息一律丢给 `POST /api/session/{id}/command`，而 OpenCode 2 的该端点只解析**命令**注册表 —— skill 和命令是两个互不相通的注册表，所以顶格写 skill 名必然报 `Command not found: <skill>`（即上游 issue #3877）。
+
+正确用法（两者都会走原生 `POST /api/session/{id}/prompt`，并把 skill 正文完整注入上下文）：
+
+- **句中提及**：`请用 /req-to-ship 处理这个需求：…`
+- **斜杠前留一个空格**：`␣/req-to-ship 处理这个需求`（`␣` 是一个半角空格）
+
+> 上游已修复（PR #3895 / commit `61e6535`），但**尚未发版**（npm `dist-tags` 仍为 `2.0.0`）。等 OpenChamber 发布 > 2.0.0 后顶格 `/skill-name` 即可直接使用。
+>
+> ⚠️ **不要**为此在 `opencode-config/opencode/commands/` 下加同名「桥接命令」：上游修复的选择逻辑是「同名 command 优先于 skill」，一旦发版，桥接命令会**永久遮蔽**原生 skill 通道。
+
 ## 文档
 
 - **Railway CLI 完整参考**：[docs/railway-cli.md](docs/railway-cli.md) — 整理自 [Railway 官方 CLI 文档](https://docs.railway.com/cli)，覆盖安装、认证、全局选项及全部命令的详细用法（版本 5.41.2）。
