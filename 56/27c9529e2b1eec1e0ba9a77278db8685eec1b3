@@ -1,0 +1,14 @@
+README.md
+  h_fac5cbaf5b28cf 40,73,169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "5627c9529e2b1eec1e0ba9a77278db8685eec1b3",
+  "prompts": {},
+  "humans": {
+    "h_fac5cbaf5b28cf": {
+      "author": "qywan@trip.com <qywan@trip.com>"
+    }
+  }
+}
