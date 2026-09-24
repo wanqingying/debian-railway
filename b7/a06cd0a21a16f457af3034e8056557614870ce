@@ -1,0 +1,30 @@
+opencode-config/opencode/commands/req-to-ship.md
+  s_b2e23253fe6fcb::t_10724420d5414a 1-11
+opencode-config/opencode/commands/req-to-ship-en.md
+  s_b2e23253fe6fcb::t_85b8cb70e413fb 1-11
+opencode-config/opencode/commands/skill-creator.md
+  s_b2e23253fe6fcb::t_e57f0b404d0b9a 1-11
+opencode-config/opencode/commands/code-review.md
+  s_b2e23253fe6fcb::t_d6bfad2356c658 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "b7a06cd0a21a16f457af3034e8056557614870ce",
+  "prompts": {},
+  "humans": {
+    "h_fac5cbaf5b28cf": {
+      "author": "qywan@trip.com <qywan@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_b2e23253fe6fcb": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "87a16222-ef33-46dc-bef0-e9ea3536c844",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "qywan@trip.com <qywan@trip.com>"
+    }
+  }
+}
