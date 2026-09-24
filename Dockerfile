@@ -38,7 +38,12 @@ ENV NODE_ENV=development \
 # opencode + codegraph are installed here (baked) so the AI stack is present in
 # the image; opencode serve is NOT started directly — openchamber manages its
 # own embedded opencode server at runtime (see entrypoint.sh).
-RUN npm i -g opencode-ai @colbymchenry/codegraph && npm cache clean --force
+#
+# opencode MUST be v2 (@opencode/cli): OpenChamber v2.0.0 requires OpenCode
+# 2.0.15+. The old v1 package `opencode-ai` is incompatible — OpenChamber reports
+# "Configured OpenCode binary not found" and degrades to a no-agent mode. The
+# `opencode` binary this package installs is what OpenChamber discovers on PATH.
+RUN npm i -g @opencode/cli @colbymchenry/codegraph && npm cache clean --force
 
 # ---- Bake non-sensitive opencode config (copied from host global config) ----
 # Sensitive credentials (auth.json / account.json / opencode.db) are NOT baked;
