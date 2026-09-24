@@ -182,7 +182,10 @@ fi
 #
 # OpenCode 2 config compatibility: v2 still accepts the v1 config shape
 # (`provider` with `npm`/`options`/`id`, `plugin`, `permission`, `autoupdate`,
-# `mcp.<name>`), so the baked opencode.jsonc carries over unchanged. Two v1-only
+# `mcp.<name>`). The baked opencode.jsonc is trimmed of v2-unsupported keys
+# (model `release_date`/`reasoning`/`attachment`, top-level `server`,
+# `compaction.prune`) because v2 re-diagnoses each one on every config
+# resolution, which otherwise floods the log and burns CPU. Two v1-only
 # behaviors do NOT carry over and are handled here:
 #   * v2 reads project instructions from AGENTS.md only — CLAUDE.md is ignored.
 #   * v2 renamed the session database schema; a v1 `opencode.db` left on the
