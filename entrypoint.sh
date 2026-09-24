@@ -48,7 +48,55 @@ if [ -d /opt/opencode-config ] && [ -n "$XDG_CONFIG_HOME" ]; then
     mkdir -p "$XDG_CONFIG_HOME/cortexkit"
 fi
 
+# ---- Migrate a v1 OpenCode session database to the v2 schema ----
+# OpenCode 2 uses a different schema (session_message/session_inbox) than v1
+# (message/part). A v1 database left on this volume from an earlier deploy is
+# still readable by the v2 core, but magic-context checks the tables and refuses
+# with "expected v2, found v1" — which silently interrupts every turn (the UI
+# only says "OpenCode interrupted this reply"). Both the core and the plugin
+# hardcode the filename `opencode.db` and the plugin ignores OPENCODE_DB, so the
+# only fix is to move the v1 file aside and let v2 recreate it.
+# Idempotent: only acts when the file exists and actually has the v1 tables.
+OPENCODE_DB_FILE="${XDG_DATA_HOME:-$HOME/.local/share}/opencode/opencode.db"
+if [ -f "$OPENCODE_DB_FILE" ]; then
+    # Classify by table name; the query avoids string literals so it survives
+    # being embedded in this script.
+    DB_GEN="$(DBPATH="$OPENCODE_DB_FILE" node -e '
+        try {
+            const { DatabaseSync } = require("node:sqlite");
+            const db = new DatabaseSync(process.env.DBPATH, { readOnly: true });
+            const names = db.prepare("SELECT name FROM sqlite_master").all().map((r) => r.name);
+            db.close();
+            const t = new Set(names);
+            if (t.has("message") && t.has("part")) console.log("v1");
+            else if (t.has("session_message")) console.log("v2");
+            else console.log("unknown");
+        } catch { console.log("unknown"); }
+    ' 2>/dev/null || echo unknown)"
+    if [ "$DB_GEN" = "v1" ]; then
+        BACKUP="$OPENCODE_DB_FILE.v1-backup-$(date +%Y%m%d-%H%M%S)"
+        # Move all three files: the WAL may hold data not yet checkpointed.
+        mv -f "$OPENCODE_DB_FILE" "$BACKUP"
+        [ -f "$OPENCODE_DB_FILE-shm" ] && mv -f "$OPENCODE_DB_FILE-shm" "$BACKUP-shm"
+        [ -f "$OPENCODE_DB_FILE-wal" ] && mv -f "$OPENCODE_DB_FILE-wal" "$BACKUP-wal"
+        echo "migrated v1 opencode.db -> $(basename "$BACKUP") (v2 schema is recreated on first use)"
+        # Keep only the newest backup so the volume does not accumulate copies.
+        # $BACKUP was just created, so it IS the newest: drop every other main
+        # backup (and its -shm/-wal siblings). Iterate the glob directly instead
+        # of `ls -t | tail -n +2` — that idiom matches the -shm/-wal siblings too,
+        # so `rm -f "$old" "$old-shm" "$old-wal"` could delete the main file it
+        # was meant to keep. The glob is expanded before the loop mutates the dir.
+        for old in "$OPENCODE_DB_FILE".v1-backup-*; do
+            case "$old" in *-shm|*-wal) continue ;; esac
+            [ -e "$old" ] || continue
+            [ "$old" = "$BACKUP" ] && continue
+            rm -f "$old" "$old-shm" "$old-wal"
+        done
+    fi
+fi
+
 # ---- Git identity: configured into the persistent volume's XDG git config ----
+
 # git reads $XDG_CONFIG_HOME/git/config (XDG spec) before ~/.gitconfig; the file
 # lives on the /workspace volume so identity survives restarts.
 if [ -n "${GIT_USER_NAME:-}" ] || [ -n "${GIT_USER_EMAIL:-}" ]; then
@@ -108,11 +156,20 @@ if [ -x /scripts/install-tools.sh ]; then
 fi
 
 # ---- OpenChamber: web UI that spawns/manages its own OpenCode server ----
-# openchamber starts the embedded `opencode serve` itself (on $OPENCODE_PORT,
-# bound to $OPENCHAMBER_OPENCODE_HOSTNAME, default 127.0.0.1), so opencode is no
-# longer started separately here. It reads the standard OPENCODE_SERVER_*
-# envs for that server's basic auth. Run in foreground mode so the process is a
-# plain child of this shell (managed by nohup like the old opencode serve).
+# OpenChamber 2.x drives OpenCode 2.x. It starts the embedded `opencode serve`
+# itself (on $OPENCODE_PORT, bound to $OPENCHAMBER_OPENCODE_HOSTNAME, default
+# 127.0.0.1), so opencode is not started separately here. It reads the standard
+# OPENCODE_SERVER_* envs for that server's basic auth. Run in foreground mode so
+# the process is a plain child of this shell (managed by nohup).
+#
+# OpenCode 2 config compatibility: v2 still accepts the v1 config shape
+# (`provider` with `npm`/`options`/`id`, `plugin`, `permission`, `autoupdate`,
+# `mcp.<name>`), so the baked opencode.jsonc carries over unchanged. Two v1-only
+# behaviors do NOT carry over and are handled here:
+#   * v2 reads project instructions from AGENTS.md only — CLAUDE.md is ignored.
+#   * v2 renamed the session database schema; a v1 `opencode.db` left on the
+#     volume makes magic-context refuse with "expected v2, found v1" and every
+#     turn fails silently. Migrate it once (same logic as the dev container).
 OPENCHAMBER_PORT="${OPENCHAMBER_PORT:-3001}"
 if command -v openchamber >/dev/null 2>&1; then
     # openchamber reads OPENCODE_PORT to decide where its managed opencode

@@ -16,6 +16,7 @@
 #   Neon CLI          -> npm (neonctl), authenticated natively via NEON_API_KEY env var
 #   Railway CLI      -> npm (@railway/cli), auth via RAILWAY_API_TOKEN / browserless login
 #   OpenChamber      -> npm (@openchamber/web), web UI that manages its own OpenCode server
+#   OpenCode CLI     -> npm (@opencode/cli), the v2 `opencode` binary OpenChamber drives
 #   book-to-skill    -> PDF extractors for the baked book-to-skill skill: poppler-utils (apt) +
 #                       pypdf/pdfminer.six (pip). docling (technical/tables mode) is intentionally omitted.
 #
@@ -124,24 +125,38 @@ if ! command -v railway >/dev/null 2>&1; then
     || log "warning: Railway CLI install failed (continuing)"
 fi
 
-# ── OpenChamber (web UI for OpenCode) ─────────────────────────────────────────
+# ── OpenChamber (web UI for OpenCode) + OpenCode v2 ───────────────────────────
 # @openchamber/web has no postinstall script; plain npm i -g works. Requires
 # Node >=22 (image ships Node 24). It manages its own embedded OpenCode server
 # (spawns `opencode serve` on $OPENCODE_PORT) and reads the standard
 # OPENCODE_SERVER_USERNAME/PASSWORD envs for that server's auth, so the
 # existing opencode config carries over unchanged. Installed per boot because
 # /usr/local (npm global) is wiped on redeploy.
-# Pinned to 1.23.2: @openchamber/web@1.24.0 declares a dependency on
-# @openchamber/sdk@1.23.1, which was never published (npm ETARGET), so installing
-# latest fails and (under `set -e`) kills the whole container. Bump this pin only
-# after confirming the target version actually installs. Install failure is
-# non-fatal so a broken upstream release can't take down SSH; the web UI is just
-# skipped (entrypoint.sh already guards on `command -v openchamber`).
-OPENCHAMBER_VERSION=1.23.2
-log "OpenChamber"
+#
+# Version pair: OpenChamber 2.0.0 requires OpenCode 2.0.15+. Its dependency
+# @openchamber/sdk@2.0.0 IS published (the 1.24.0-era ETARGET that forced the old
+# 1.23.2 pin is gone), so the pin can move. Keep both pins in lockstep — a
+# mismatched pair degrades the web UI instead of failing loudly.
+# Install failure is non-fatal so a broken upstream release can't take down SSH;
+# the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
+OPENCHAMBER_VERSION=2.0.0
+log "OpenChamber ${OPENCHAMBER_VERSION}"
 if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
     || log "warning: OpenChamber install failed (continuing without web UI)"
+fi
+
+# ── OpenCode v2 CLI ───────────────────────────────────────────────────────────
+# OpenChamber 2.x drives OpenCode 2.x and will not use v1: with `opencode-ai`
+# installed it reports "Configured OpenCode binary not found" and runs without an
+# agent. `@opencode/cli` installs the v2 `opencode` binary that OpenChamber finds
+# on PATH. Its postinstall script downloads the platform binary, so npm 11 needs
+# --allow-scripts (same reason as @railway/cli below).
+# Installed per boot because /usr/local (npm global) is wiped on redeploy.
+log "OpenCode CLI (v2)"
+if ! command -v opencode >/dev/null 2>&1; then
+  npm install -g --allow-scripts=@opencode/cli @opencode/cli >/dev/null \
+    || log "warning: opencode CLI install failed (continuing without AI agent)"
 fi
 
 # ── book-to-skill PDF extractors ─────────────────────────────────────────────────
@@ -173,6 +188,7 @@ done
 for tool in neon railway openchamber; do
   command -v "$tool" >/dev/null 2>&1 || log "warning: $tool missing (optional)"
 done
+command -v opencode >/dev/null 2>&1 || log "warning: opencode CLI missing (optional; OpenChamber needs it for its agent)"
 printf 'uv        %s\n' "$(uv --version)"
 printf 'python    %s\n' "$(uv run --project "$REPO_ROOT/core" python --version 2>/dev/null || uv python find 3.12)"
 printf 'pnpm      %s\n' "$(pnpm --version)"
@@ -180,6 +196,7 @@ printf 'doppler   %s\n' "$(doppler --version)"
 printf 'neon      %s\n' "$(neon --version 2>/dev/null || echo installed)"
 printf 'railway   %s\n' "$(railway --version 2>/dev/null || echo installed)"
 printf 'openchamber %s\n' "$(openchamber --version 2>/dev/null || echo installed)"
+printf 'opencode   %s\n' "$(opencode --version 2>/dev/null | head -1 || echo missing)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
 printf 'lsof      %s\n' "$(lsof -v 2>&1 | grep -oE 'revision: [0-9.]+' | head -1)"
 printf 'pdftotext %s\n' "$(pdftotext -v 2>&1 | head -1)"
