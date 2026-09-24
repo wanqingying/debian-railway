@@ -32,6 +32,22 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 > ⚠️ **敏感凭据不打包**：API key（`auth.json` / `account.json`）和会话数据库（`opencode.db`）不进入镜像或仓库。容器里需通过环境变量（provider key）或 `opencode auth login` 提供凭据。
 
+### 版本组合（OpenCode 2 + OpenChamber 2）
+
+镜像内固定一对版本，二者必须匹配：
+
+| 组件 | 包 | 版本 |
+| ---- | ---- | ---- |
+| OpenChamber | `@openchamber/web` | `2.0.0`（`scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION`） |
+| OpenCode | `@opencode/cli` | v2（`Dockerfile` baked；OpenChamber 2.0.0 要求 ≥ 2.0.15） |
+
+几点须知：
+
+- **不要装 v1 的 `opencode-ai`**：OpenChamber 2.x 只驱动 OpenCode 2.x，装 v1 会在日志里报 `Configured OpenCode binary not found` 并降级为「无 agent」模式（Web UI 能开，但发消息无响应）。
+- **`opencode.jsonc` 无需改写**：OpenCode 2 仍接受 v1 的配置结构（`provider` 的 `npm`/`options`/`id`、`plugin`、`permission`、`autoupdate`、`mcp.<name>`），现有配置可直接沿用。
+- **指令文件只用 `AGENTS.md`**：OpenCode 2 读 `AGENTS.md`，**不再加载 `CLAUDE.md`**（故 `opencode-config/` 中不含 `CLAUDE.md`）。
+- **会话库自动迁移**：v1 的 `opencode.db`（含 `message`/`part` 表）会被 magic-context 判定为 `expected v2, found v1` 并拒绝访问，导致每轮对话静默中断。`entrypoint.sh` 启动时自动检测并把 v1 库改名为 `opencode.db.v1-backup-<时间戳>`（只保留最近一份），让 v2 重建新库。旧会话在 UI 中不再可见，但数据保留在备份文件里。
+
 ## 文档
 
 - **Railway CLI 完整参考**：[docs/railway-cli.md](docs/railway-cli.md) — 整理自 [Railway 官方 CLI 文档](https://docs.railway.com/cli)，覆盖安装、认证、全局选项及全部命令的详细用法（版本 5.41.2）。
