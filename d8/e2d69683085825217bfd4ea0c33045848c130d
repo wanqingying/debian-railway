@@ -1,0 +1,23 @@
+entrypoint.sh
+  s_b2e23253fe6fcb::t_35b4b9bcc0fcd9 51-68
+AGENTS.md
+  s_b2e23253fe6fcb::t_2fb92719cfc19b 39
+README.md
+  s_b2e23253fe6fcb::t_1ba10fabca67a9 51-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "acb2a13de752097239d76a6e3973ef91d0f972c3",
+  "prompts": {},
+  "sessions": {
+    "s_b2e23253fe6fcb": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "87a16222-ef33-46dc-bef0-e9ea3536c844",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": null
+    }
+  }
+}
