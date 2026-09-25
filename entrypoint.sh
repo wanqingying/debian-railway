@@ -177,8 +177,18 @@ fi
 # OpenChamber 2.x drives OpenCode 2.x. It starts the embedded `opencode serve`
 # itself (on $OPENCODE_PORT, bound to $OPENCHAMBER_OPENCODE_HOSTNAME, default
 # 127.0.0.1), so opencode is not started separately here. It reads the standard
-# OPENCODE_SERVER_* envs for that server's basic auth. Run in foreground mode so
-# the process is a plain child of this shell (managed by nohup).
+# OPENCODE_SERVER_* envs for that server's basic auth.
+#
+# Launched as a daemon (openchamber's default), NOT `--foreground`. The in-app
+# "update available" button installs the new package and restarts the server
+# itself, but only for a daemon instance: a foreground instance is assumed to be
+# managed by systemd and the updater answers "Foreground servers must be updated
+# by their service manager. Set OPENCHAMBER_SYSTEMD_UNIT ...". Neither systemd
+# nor the updater's container branch is available here — Railway runs neither
+# systemd nor a Docker-detected sandbox (no /.dockerenv, no CONTAINER env).
+# Daemon mode writes its own log to
+# $OPENCHAMBER_DATA_DIR/logs/openchamber-<port>.log (`openchamber logs`); the
+# redirect below only captures the startup banner.
 #
 # OpenCode 2 config compatibility: v2 still accepts the v1 config shape
 # (`provider` with `npm`/`options`/`id`, `plugin`, `permission`, `autoupdate`,
@@ -198,10 +208,14 @@ if command -v openchamber >/dev/null 2>&1; then
     # here to keep the documented default (4096) stable across restarts.
     export OPENCODE_PORT="${OPENCODE_PORT:-4096}"
     OC_UI_PASSWORD="${OPENCHAMBER_UI_PASSWORD:-${OPENCODE_SERVER_PASSWORD:-}}"
-    OC_ARGS=(serve --foreground --port "$OPENCHAMBER_PORT" --host 0.0.0.0)
+    OC_ARGS=(serve --port "$OPENCHAMBER_PORT" --host 0.0.0.0)
     [ -n "$OC_UI_PASSWORD" ] && OC_ARGS+=(--ui-password "$OC_UI_PASSWORD")
-    nohup openchamber "${OC_ARGS[@]}" \
-        >"$XDG_DATA_HOME/openchamber.log" 2>&1 &
+    # `serve` daemonizes itself and returns once the server is ready; the `||`
+    # guard keeps a failed start from tripping `set -e` and killing the
+    # container (same reason install-tools.sh treats tool installs as non-fatal).
+    openchamber "${OC_ARGS[@]}" \
+        >"$XDG_DATA_HOME/openchamber.log" 2>&1 \
+        || echo "[entrypoint] warning: OpenChamber failed to start (continuing without web UI)"
 fi
 
 # ---- Keep the container alive ----

@@ -36,30 +36,35 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 镜像内固定一对版本，二者必须匹配：
 
-| 组件        | 包                 | 版本                                                           |
-| ----------- | ------------------ | -------------------------------------------------------------- |
-| OpenChamber | `@openchamber/web` | `2.0.0`（`scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION`） |
-| OpenCode    | `@opencode/cli`    | v2（`Dockerfile` baked；OpenChamber 2.0.0 要求 ≥ 2.0.15）      |
+| 组件        | 包                 | 版本                                                                         |
+| ----------- | ------------------ | ---------------------------------------------------------------------------- |
+| OpenChamber | `@openchamber/web` | `2.0.1`（`scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION`）               |
+| OpenCode    | `@opencode/cli`    | `2.0.15`（同脚本的 `OPENCODE_VERSION`；OpenChamber 2.0.1 要求 ≥ 2.0.15）     |
 
 几点须知：
 
 - **不要装 v1 的 `opencode-ai`**：OpenChamber 2.x 只驱动 OpenCode 2.x，装 v1 会在日志里报 `Configured OpenCode binary not found` 并降级为「无 agent」模式（Web UI 能开，但发消息无响应）。
 - **`opencode.jsonc` 无需改写**：OpenCode 2 仍接受 v1 的配置结构（`provider` 的 `npm`/`options`/`id`、`plugin`、`permission`、`autoupdate`、`mcp.<name>`），现有配置可直接沿用。
+- **OpenCode 固定在 `2.0.15`**：`2.0.16` 会让带图片的消息失败（图片 part 过不了 `Media.Asset` 的 schema 校验，UI 只显示「OpenCode stopped this reply」），上游修好前不要升级这一项。
 - **指令文件只用 `AGENTS.md`**：OpenCode 2 读 `AGENTS.md`，**不再加载 `CLAUDE.md`**（故 `opencode-config/` 中不含 `CLAUDE.md`）。
 - **会话库自动迁移**：v1 的 `opencode.db`（含 `message`/`part` 表）会被 magic-context 判定为 `expected v2, found v1` 并拒绝访问，导致每轮对话静默中断。`entrypoint.sh` 启动时自动检测并把 v1 库改名为 `opencode.db.v1-backup-<时间戳>`（只保留最近一份），让 v2 重建新库。旧会话在 UI 中不再可见，但数据保留在备份文件里。
 
 ### 如何调用 skill（重要）
 
-**不要用 `/skill-name` 顶格发消息。** OpenChamber 2.0.0 会把「首字符是 `/`」的消息一律丢给 `POST /api/session/{id}/command`，而 OpenCode 2 的该端点只解析**命令**注册表 —— skill 和命令是两个互不相通的注册表，所以顶格写 skill 名必然报 `Command not found: <skill>`（即上游 issue #3877）。
+OpenChamber **2.0.1** 起，下面三种写法都会走原生 `POST /api/session/{id}/prompt`，把 skill 正文完整注入上下文：
 
-正确用法（两者都会走原生 `POST /api/session/{id}/prompt`，并把 skill 正文完整注入上下文）：
-
+- **顶格**：`/req-to-ship 处理这个需求`
 - **句中提及**：`请用 /req-to-ship 处理这个需求：…`
 - **斜杠前留一个空格**：`␣/req-to-ship 处理这个需求`（`␣` 是一个半角空格）
 
-> 上游已修复（PR #3895 / commit `61e6535`），但**尚未发版**（npm `dist-tags` 仍为 `2.0.0`）。等 OpenChamber 发布 > 2.0.0 后顶格 `/skill-name` 即可直接使用。
+> 2.0.0 的 bug：它把「首字符是 `/`」的消息一律丢给 `POST /api/session/{id}/command`，而 OpenCode 2 的该端点只解析**命令**注册表 —— skill 和命令是两个互不相通的注册表，所以顶格写 skill 名必然报 `Command not found: <skill>`（上游 issue #3877）。2.0.1 改为识别 skill 后按 prompt 发送（PR #3895 / commit `61e6535`，另见 `7f01569`）。
 >
-> ⚠️ **不要**为此在 `opencode-config/opencode/commands/` 下加同名「桥接命令」：上游修复的选择逻辑是「同名 command 优先于 skill」，一旦发版，桥接命令会**永久遮蔽**原生 skill 通道。
+> ⚠️ **不要**为此在 `opencode-config/opencode/commands/` 下加同名「桥接命令」：选择逻辑是「同名 command 优先于 skill」，桥接命令会**永久遮蔽**原生 skill 通道。
+
+### 更新 OpenChamber
+
+- **Web UI 里点「立即更新」**（容器内即时生效）：OpenChamber 以 daemon 模式运行，按钮会在后台执行 `npm install -g @openchamber/web@latest`、退出当前进程、再用相同参数自动重启；随后刷新页面即可，耗时取决于 npm 安装速度（几秒到几十秒）。若容器以 `--foreground` 启动，这个按钮只会报 `Foreground servers must be updated by their service manager`，因为该模式假定有 systemd 代管。
+- **改版本号 + 重新部署**（永久）：`/usr` 是临时文件系统，就地更新会在下次 `railway up` 时被镜像里固定的 `OPENCHAMBER_VERSION` 覆盖回旧版本。要让某个版本长期生效，改 `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` 后 `railway up`。
 
 ## 文档
 
