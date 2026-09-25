@@ -126,17 +126,23 @@ if ! command -v railway >/dev/null 2>&1; then
 fi
 
 # ── OpenChamber (web UI for OpenCode) + OpenCode v2 ───────────────────────────
-# @openchamber/web has no postinstall script; plain npm i -g works. Requires
-# Node >=22 (image ships Node 24). It manages its own embedded OpenCode server
-# (spawns `opencode serve` on $OPENCODE_PORT) and reads the standard
-# OPENCODE_SERVER_USERNAME/PASSWORD envs for that server's auth, so the
-# existing opencode config carries over unchanged. Installed per boot because
-# /usr/local (npm global) is wiped on redeploy.
+# @openchamber/web's own published files have no install script; plain npm i -g
+# works. npm 11's allow-scripts policy skips the dep scripts of node-pty /
+# msgpackr-extract, which is fine: node-pty ships prebuilds/linux-x64/pty.node in
+# the tarball (verified 2026-09-25: a plain install yields a working terminal).
+# Requires Node >=22 (image ships Node 24). It manages its own embedded OpenCode
+# server (spawns `opencode serve` on $OPENCODE_PORT) and reads the standard
+# OPENCODE_SERVER_USERNAME/PASSWORD envs for that server's auth, so the existing
+# opencode config carries over unchanged. Installed per boot because /usr/local
+# (npm global) is wiped on redeploy.
 #
-# Version pair: OpenChamber 2.0.0 requires OpenCode 2.0.15+. Its dependency
-# @openchamber/sdk@2.0.0 IS published (the 1.24.0-era ETARGET that forced the old
-# 1.23.2 pin is gone), so the pin can move. Keep both pins in lockstep — a
-# mismatched pair degrades the web UI instead of failing loudly.
+# Version pair: OpenChamber 2.0.1 declares MINIMUM_OPENCODE_VERSION = 2.0.15
+# (server/lib/opencode/compatibility.js), so the OpenCode 2.0.15 pin below stays
+# valid. 2.0.1's own dependencies pin @opencode/client + @opencode/schema to
+# 2.0.16, but those are client-side libs and do NOT reintroduce the core 2.0.16
+# attachment regression (verified 2026-09-25: SessionModelRequest / Media.Asset
+# exist only in the @opencode/cli binary, nowhere in @openchamber/web). Keep both
+# pins in lockstep — a mismatched pair degrades the web UI instead of failing loudly.
 # OpenCode is pinned to 2.0.15: 2.0.16 regresses user prompt image attachments —
 # the media content part fails internal `Media.Asset` schema validation in
 # SessionModelRequest.prepare, so SessionRunner.drain aborts and the UI shows
@@ -145,7 +151,7 @@ fi
 # to latest until upstream ships a fix.
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
-OPENCHAMBER_VERSION=2.0.0
+OPENCHAMBER_VERSION=2.0.1
 log "OpenChamber ${OPENCHAMBER_VERSION}"
 if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
