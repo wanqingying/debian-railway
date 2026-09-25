@@ -137,6 +137,12 @@ fi
 # @openchamber/sdk@2.0.0 IS published (the 1.24.0-era ETARGET that forced the old
 # 1.23.2 pin is gone), so the pin can move. Keep both pins in lockstep — a
 # mismatched pair degrades the web UI instead of failing loudly.
+# OpenCode is pinned to 2.0.15: 2.0.16 regresses user prompt image attachments —
+# the media content part fails internal `Media.Asset` schema validation in
+# SessionModelRequest.prepare, so SessionRunner.drain aborts and the UI shows
+# only "OpenCode stopped this reply". Verified 2026-09-25: 2.0.16 fails for every
+# provider/model, 2.0.15 handles the same image normally. Do not float this pin
+# to latest until upstream ships a fix.
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
 OPENCHAMBER_VERSION=2.0.0
@@ -153,9 +159,10 @@ fi
 # on PATH. Its postinstall script downloads the platform binary, so npm 11 needs
 # --allow-scripts (same reason as @railway/cli below).
 # Installed per boot because /usr/local (npm global) is wiped on redeploy.
-log "OpenCode CLI (v2)"
+OPENCODE_VERSION=2.0.15
+log "OpenCode CLI (v2) ${OPENCODE_VERSION}"
 if ! command -v opencode >/dev/null 2>&1; then
-  npm install -g --allow-scripts=@opencode/cli @opencode/cli >/dev/null \
+  npm install -g --allow-scripts=@opencode/cli "@opencode/cli@${OPENCODE_VERSION}" >/dev/null \
     || log "warning: opencode CLI install failed (continuing without AI agent)"
 fi
 
