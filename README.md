@@ -34,18 +34,18 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 ### 版本组合（OpenCode 2 + OpenChamber 2）
 
-镜像内固定一对版本，二者必须匹配：
+镜像内两个组件都按各自官方方式取**最新正式版**，二者必须匹配：
 
-| 组件        | 包                 | 版本                                                                         |
-| ----------- | ------------------ | ---------------------------------------------------------------------------- |
-| OpenChamber | `@openchamber/web` | `2.0.1`（`scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION`）               |
-| OpenCode    | `@opencode/cli`    | `2.0.15`（同脚本的 `OPENCODE_VERSION`；OpenChamber 2.0.1 要求 ≥ 2.0.15）     |
+| 组件        | 包                 | 版本                                                                                     |
+| ----------- | ------------------ | ---------------------------------------------------------------------------------------- |
+| OpenChamber | `@openchamber/web` | `latest`（官方 npm 方式；要固定就设 `OPENCHAMBER_VERSION`）                               |
+| OpenCode    | `@opencode/cli`    | `latest`（官方 v2 文档的 npm 方式；实际生效的是 `Dockerfile` 里那行 `npm i -g @opencode/cli`） |
 
 几点须知：
 
 - **不要装 v1 的 `opencode-ai`**：OpenChamber 2.x 只驱动 OpenCode 2.x，装 v1 会在日志里报 `Configured OpenCode binary not found` 并降级为「无 agent」模式（Web UI 能开，但发消息无响应）。
 - **`opencode.jsonc` 无需改写**：OpenCode 2 仍接受 v1 的配置结构（`provider` 的 `npm`/`options`/`id`、`plugin`、`permission`、`autoupdate`、`mcp.<name>`），现有配置可直接沿用。
-- **OpenCode 固定在 `2.0.15`**：`2.0.16` 会让带图片的消息失败（图片 part 过不了 `Media.Asset` 的 schema 校验，UI 只显示「OpenCode stopped this reply」），上游修好前不要升级这一项。
+- **两个组件都装 `latest`**（各自官方 npm 方式：OpenChamber 参考其 README/`scripts/install.sh` → `npm i -g @openchamber/web`；OpenCode v2 参考 https://opencode.ai/v2/docs → `npm i -g @opencode/cli`）。注意 **OpenCode 实际生效的版本来自 `Dockerfile` 里那行 `npm i -g @opencode/cli`**：`install-tools.sh` 只在二进制缺失时才安装。要临时躲开某个上游坏版本：设 `OPENCHAMBER_VERSION`/`OPENCODE_VERSION`，并把 `Dockerfile` 的 opencode 行写成 `@opencode/cli@<版本>`，然后 `railway up`。
 - **指令文件只用 `AGENTS.md`**：OpenCode 2 读 `AGENTS.md`，**不再加载 `CLAUDE.md`**（故 `opencode-config/` 中不含 `CLAUDE.md`）。
 - **会话库自动迁移**：v1 的 `opencode.db`（含 `message`/`part` 表）会被 magic-context 判定为 `expected v2, found v1` 并拒绝访问，导致每轮对话静默中断。`entrypoint.sh` 启动时自动检测并把 v1 库改名为 `opencode.db.v1-backup-<时间戳>`（只保留最近一份），让 v2 重建新库。旧会话在 UI 中不再可见，但数据保留在备份文件里。
 
@@ -64,7 +64,7 @@ OpenChamber **2.0.1** 起，下面三种写法都会走原生 `POST /api/session
 ### 更新 OpenChamber
 
 - **Web UI 里点「立即更新」**（容器内即时生效）：OpenChamber 以 daemon 模式运行，按钮会在后台执行 `npm install -g @openchamber/web@latest`、退出当前进程、再用相同参数自动重启；随后刷新页面即可，耗时取决于 npm 安装速度（几秒到几十秒）。若容器以 `--foreground` 启动，这个按钮只会报 `Foreground servers must be updated by their service manager`，因为该模式假定有 systemd 代管。
-- **改版本号 + 重新部署**（永久）：`/usr` 是临时文件系统，就地更新会在下次 `railway up` 时被镜像里固定的 `OPENCHAMBER_VERSION` 覆盖回旧版本。要让某个版本长期生效，改 `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` 后 `railway up`。
+- **重新部署**（长期一致）：`/usr` 是临时文件系统，就地更新会在下次 `railway up` 时被重装一遍 —— 现在两边都取 `latest`，所以两条路径结果一致。反过来要长期**固定**某个版本，就设 `OPENCHAMBER_VERSION`/`OPENCODE_VERSION`（opencode 还需改 `Dockerfile` 那行）后 `railway up`。
 
 ## 文档
 
