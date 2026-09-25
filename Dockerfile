@@ -39,19 +39,17 @@ ENV NODE_ENV=development \
 # the image; opencode serve is NOT started directly — openchamber manages its
 # own embedded opencode server at runtime (see entrypoint.sh).
 #
-# opencode MUST be v2 (@opencode/cli): OpenChamber v2.0.0 requires OpenCode
-# 2.0.15+. The old v1 package `opencode-ai` is incompatible — OpenChamber reports
-# "Configured OpenCode binary not found" and degrades to a no-agent mode. The
-# `opencode` binary this package installs is what OpenChamber discovers on PATH.
-# PINNED to 2.0.15: 2.0.16 regresses user prompt image attachments (the media
-# content part fails internal Media.Asset schema validation in
-# SessionModelRequest.prepare, so SessionRunner.drain aborts and the UI shows
-# only "OpenCode stopped this reply"). Verified 2026-09-25 on the same
-# provider/model: 2.0.16 fails for every model, 2.0.15 handles the image.
-# This is the install that actually determines the version — scripts/install-tools.sh
-# only installs opencode when it is missing, so its pin is a fallback, not the source
-# of truth. Do not float this to `latest` until upstream ships a fix.
-RUN npm i -g @opencode/cli@2.0.15 @colbymchenry/codegraph && npm cache clean --force
+# opencode MUST be v2 (@opencode/cli), installed unversioned so each build takes
+# the latest release — the official guide's npm method
+# (https://opencode.ai/v2/docs → `npm install -g @opencode/cli`). The old v1
+# package `opencode-ai` is incompatible — OpenChamber reports "Configured OpenCode
+# binary not found" and degrades to a no-agent mode. The `opencode` binary this
+# package installs is what OpenChamber discovers on PATH.
+# This install is normally the one that determines the running version:
+# scripts/install-tools.sh only installs opencode when it is missing, so its
+# version variable is the fallback/pin knob, not the source of truth. If a bad
+# upstream release has to be kept out, pin it here *and* in that script.
+RUN npm i -g @opencode/cli @colbymchenry/codegraph && npm cache clean --force
 
 # ---- Bake non-sensitive opencode config (copied from host global config) ----
 # Sensitive credentials (auth.json / account.json / opencode.db) are NOT baked;
