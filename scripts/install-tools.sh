@@ -126,32 +126,37 @@ if ! command -v railway >/dev/null 2>&1; then
 fi
 
 # ── OpenChamber (web UI for OpenCode) + OpenCode v2 ───────────────────────────
-# @openchamber/web's own published files have no install script; plain npm i -g
-# works. npm 11's allow-scripts policy skips the dep scripts of node-pty /
-# msgpackr-extract, which is fine: node-pty ships prebuilds/linux-x64/pty.node in
-# the tarball (verified 2026-09-25: a plain install yields a working terminal).
-# Requires Node >=22 (image ships Node 24). It manages its own embedded OpenCode
-# server (spawns `opencode serve` on $OPENCODE_PORT) and reads the standard
-# OPENCODE_SERVER_USERNAME/PASSWORD envs for that server's auth, so the existing
-# opencode config carries over unchanged. Installed per boot because /usr/local
-# (npm global) is wiped on redeploy.
+# Both are installed at `latest` (official npm method for each):
+#   OpenChamber: github.com/openchamber/openchamber (README / scripts/install.sh)
+#                → `npm install -g @openchamber/web`
+#   OpenCode v2: https://opencode.ai/v2/docs → `npm install -g @opencode/cli`
+# Neither version variable is pinned by default; set OPENCHAMBER_VERSION /
+# OPENCODE_VERSION (env, or edit here) to hold a known-good release while a bad
+# upstream one is out, and mirror an opencode pin in the Dockerfile.
 #
-# Version pair: OpenChamber 2.0.1 declares MINIMUM_OPENCODE_VERSION = 2.0.15
-# (server/lib/opencode/compatibility.js), so the OpenCode 2.0.15 pin below stays
-# valid. 2.0.1's own dependencies pin @opencode/client + @opencode/schema to
-# 2.0.16, but those are client-side libs and do NOT reintroduce the core 2.0.16
-# attachment regression (verified 2026-09-25: SessionModelRequest / Media.Asset
-# exist only in the @opencode/cli binary, nowhere in @openchamber/web). Keep both
-# pins in lockstep — a mismatched pair degrades the web UI instead of failing loudly.
-# OpenCode is pinned to 2.0.15: 2.0.16 regresses user prompt image attachments —
-# the media content part fails internal `Media.Asset` schema validation in
-# SessionModelRequest.prepare, so SessionRunner.drain aborts and the UI shows
-# only "OpenCode stopped this reply". Verified 2026-09-25: 2.0.16 fails for every
-# provider/model, 2.0.15 handles the same image normally. Do not float this pin
-# to latest until upstream ships a fix.
+# Why npm -g rather than the curl installers: `curl -fsSL https://opencode.ai/v2/install | bash`
+# and OpenChamber's install.sh drop the binary under $HOME (or pick pnpm/bun when
+# present) and patch shell rc files — wrong for a container whose $HOME is
+# ephemeral and whose root FS is rebuilt on every redeploy. npm -g lands in /usr,
+# which this script re-creates each boot, and is the documented npm method for both.
+#
+# npm 11 allow-scripts: @opencode/cli needs --allow-scripts (its postinstall picks
+# the native binary); @openchamber/web's own files ship no install script, and
+# node-pty's linux-x64 prebuild is inside the tarball, so a plain install is fine
+# (verified 2026-09-25: working terminal, no dep scripts needed).
+# Requires Node >=22 (image ships Node 24). OpenChamber manages its own embedded
+# OpenCode server (spawns `opencode serve` on $OPENCODE_PORT) and reads the
+# standard OPENCODE_SERVER_USERNAME/PASSWORD envs for that server's auth, so the
+# existing opencode config carries over unchanged. Installed per boot because
+# /usr/local (npm global) is wiped on redeploy.
+#
+# Version pairing: OpenChamber 2.x drives OpenCode 2.x only and declares a
+# minimum (2.0.1 → MINIMUM_OPENCODE_VERSION = 2.0.15 in
+# server/lib/opencode/compatibility.js). `latest` for both keeps them matched;
+# v1 `opencode-ai` must never be installed (no-agent mode).
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
-OPENCHAMBER_VERSION=2.0.1
+OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-latest}"
 log "OpenChamber ${OPENCHAMBER_VERSION}"
 if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
@@ -159,18 +164,25 @@ if ! command -v openchamber >/dev/null 2>&1; then
 fi
 
 # ── OpenCode v2 CLI ───────────────────────────────────────────────────────────
+# Official npm method (https://opencode.ai/v2/docs): `npm install -g @opencode/cli`.
 # OpenChamber 2.x drives OpenCode 2.x and will not use v1: with `opencode-ai`
 # installed it reports "Configured OpenCode binary not found" and runs without an
 # agent. `@opencode/cli` installs the v2 `opencode` binary that OpenChamber finds
 # on PATH. Its postinstall script downloads the platform binary, so npm 11 needs
 # --allow-scripts (same reason as @railway/cli below).
-# Installed per boot because /usr/local (npm global) is wiped on redeploy.
-OPENCODE_VERSION=2.0.15
+# The Dockerfile bakes this package too, so the guard below normally skips the
+# install; this is the pin knob for a bad release. Installed per boot because
+# /usr/local (npm global) is wiped on redeploy.
+OPENCODE_VERSION="${OPENCODE_VERSION:-latest}"
 log "OpenCode CLI (v2) ${OPENCODE_VERSION}"
 if ! command -v opencode >/dev/null 2>&1; then
   npm install -g --allow-scripts=@opencode/cli "@opencode/cli@${OPENCODE_VERSION}" >/dev/null \
     || log "warning: opencode CLI install failed (continuing without AI agent)"
 fi
+
+# Log what is actually on PATH (the baked Dockerfile install wins for opencode,
+# so this is the line that says which pair this boot is really running).
+log "resolved: openchamber $(openchamber --version 2>/dev/null || echo 'n/a') · opencode $(opencode --version 2>/dev/null || echo 'n/a')"
 
 # ── book-to-skill PDF extractors ─────────────────────────────────────────────────
 # The baked book-to-skill skill (opencode-config/opencode/skills/book-to-skill) runs
