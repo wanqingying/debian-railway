@@ -7,7 +7,7 @@
   "history_budget_percentage": 0.1,
   "temporal_awareness": true,
   "historian": {
-    "opencode": {"model":"opencode-go/deepseek-v4-flash"},"pi": {"model":"opencode-go/deepseek-v4-flash"}
+    "opencode": {"model":"commandcode/deepseek-v4-flash"},"pi": {"model":"commandcode/deepseek-v4-flash"}
   },
   "dreamer": {
     
@@ -33,7 +33,7 @@
       "verify-broad": {
         "schedule": "0 4 * * 0"
       }
-    },"opencode": {"model":"opencode-go/deepseek-v4-flash"},"pi": {"model":"opencode-go/deepseek-v4-flash"}
+    },"opencode": {"model":"commandcode/deepseek-v4-flash"},"pi": {"model":"commandcode/deepseek-v4-flash"}
   },
   "embedding": {
     "provider": "openai-compatible",
@@ -57,7 +57,7 @@
     }
   },
   "sidekick": {
-    "model": "opencode-go/deepseek-v4-flash",
+    "model": "commandcode/deepseek-v4-flash",
     "timeout_ms": 30000
   }
 }
