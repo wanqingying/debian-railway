@@ -173,6 +173,31 @@ if [ -x /scripts/install-tools.sh ]; then
     /scripts/install-tools.sh
 fi
 
+# ---- Magic Context housekeeping: delete finished dreamer/historian child sessions ----
+# Every scheduled dreamer/historian run is a real OpenCode session (metadata
+# {"magic_context":"hidden-run"}). Settled ones are supposed to be deleted after
+# the run, but under a plain `opencode serve` host -- which is what OpenChamber
+# starts -- a plugin has no way to delete sessions (upstream #558): the plugin
+# records the finished children instead, and `doctor --fix` performs the deletion,
+# which it only does with both session stores closed and unheld. This point in the
+# boot is exactly that window: OpenChamber has not started its embedded opencode
+# yet. Skipping this lets the sessions pile up in the OpenChamber list at roughly
+# one per project per role per day, because OpenChamber does not read the
+# magic_context marker and has no filter for it.
+# Bounded and non-fatal, like install-tools.sh above: doctor backs opencode.db up
+# before deleting anything and refuses (rather than guessing) when a store is
+# held or the store is not the verified OpenCode 2 schema, so a failure here must
+# not stop the container. Its exit status is reported rather than branched on:
+# doctor also exits nonzero for checks that simply need a running OpenCode host
+# (the hidden-agent model catalog cannot be read before OpenChamber starts), so
+# "exit 1" here is normal and says nothing about whether the cleanup happened.
+if [ -f "$OPENCODE_DB_FILE" ] && command -v npx >/dev/null 2>&1; then
+    MC_STATUS=0
+    timeout 300 npx --yes "@cortexkit/magic-context@${MAGIC_CONTEXT_VERSION:-latest}" \
+        doctor --fix --harness opencode || MC_STATUS=$?
+    echo "[entrypoint] magic-context: doctor --fix exit ${MC_STATUS} (non-fatal)"
+fi
+
 # ---- OpenChamber: web UI that spawns/manages its own OpenCode server ----
 # OpenChamber 2.x drives OpenCode 2.x. It starts the embedded `opencode serve`
 # itself (on $OPENCODE_PORT, bound to $OPENCHAMBER_OPENCODE_HOSTNAME, default
