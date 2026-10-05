@@ -9,6 +9,7 @@ RUN apt-get update && apt-get upgrade -y && \
         openssh-server \
         locales bash-completion \
         neofetch \
+        tini \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ---- UTF-8 locale (avoids warnings in git/node/etc.) ----
@@ -82,4 +83,16 @@ RUN chmod +x /entrypoint.sh
 # UI, map as the second Railway public TCP port)
 EXPOSE $PORT 3001 4096
 
+# ---- tini as PID 1: reap orphaned children so zombies cannot pile up ----
+# `entrypoint.sh` ends with `exec tail -f /dev/null`, so without an init the
+# keep-alive `tail` *is* PID 1 and never wait()s. Any orphaned descendant whose
+# parent exits first (esbuild's service child, codegraph's watchdog, short-lived
+# bash/grep) is re-parented to PID 1 and, once it exits, stays a permanent
+# zombie. Zombies are counted against the cgroup's pids.max (1000 here) and are
+# never released, so after ~2 days every fork() fails with EAGAIN and even `git`
+# cannot start — the container appears "stuck" until it is restarted. tini only
+# reaps; the keep-alive process and the rest of entrypoint.sh are unchanged.
+# `-s` (subreaper) is harmless as PID 1 and also reaps if tini is ever nested
+# under another init instead of being PID 1.
+ENTRYPOINT ["/usr/bin/tini", "-s", "--"]
 CMD ["/entrypoint.sh"]
