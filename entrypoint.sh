@@ -191,6 +191,23 @@ fi
 # doctor also exits nonzero for checks that simply need a running OpenCode host
 # (the hidden-agent model catalog cannot be read before OpenChamber starts), so
 # "exit 1" here is normal and says nothing about whether the cleanup happened.
+# ---- Drop the pinned "@latest" plugin cache so it re-resolves ----
+# opencode pins the version it resolved for an "@latest" plugin inside its npm cache
+# (~/.cache/opencode/npm/<pkg>@latest/<timestamp>/) and never re-resolves it, so the
+# cached copy can go stale indefinitely. Observed on the dev container: magic-context
+# stayed at 0.42.6 while 0.45.0 was out — and anything below 0.43.0 breaks image
+# attachments on OpenCode 2 (upstream cortexkit/magic-context#517: "Schema validation
+# failed" out of SessionModelRequest.prepare, after which every turn in that session
+# fails). There the cache lives on a volume; here /root is rebuilt on redeploy, so the
+# window is only a long-running container. Cheap either way, and non-fatal.
+for d in "$HOME/.cache/opencode/npm" "${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm"; do
+    p="$d/@cortexkit/opencode-magic-context@latest"
+    if [ -d "$p" ]; then
+        rm -rf "$p"
+        echo "[entrypoint] dropped the pinned magic-context plugin cache (will re-resolve @latest)"
+    fi
+done
+
 if [ -f "$OPENCODE_DB_FILE" ] && command -v npx >/dev/null 2>&1; then
     MC_STATUS=0
     timeout 300 npx --yes "@cortexkit/magic-context@${MAGIC_CONTEXT_VERSION:-latest}" \
