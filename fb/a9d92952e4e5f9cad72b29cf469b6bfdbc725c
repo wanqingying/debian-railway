@@ -1,0 +1,27 @@
+scripts/install-tools.sh
+  s_b2e23253fe6fcb::t_da6e6faf1bd96d 142
+Dockerfile
+  s_b2e23253fe6fcb::t_9601cbb57d65c1 42
+README.md
+  s_b2e23253fe6fcb::t_2416e87b8e69fb 41-42
+  s_b2e23253fe6fcb::t_2d44c2c15d8894 51,53,55-56,58-60,62
+AGENTS.md
+  s_b2e23253fe6fcb::t_9e3dac49aa5c65 39
+  s_b2e23253fe6fcb::t_463da2db627c27 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "fba9d92952e4e5f9cad72b29cf469b6bfdbc725c",
+  "prompts": {},
+  "sessions": {
+    "s_b2e23253fe6fcb": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "87a16222-ef33-46dc-bef0-e9ea3536c844",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "qywan@trip.com <qywan@trip.com>"
+    }
+  }
+}
