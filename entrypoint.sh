@@ -210,8 +210,17 @@ done
 
 if [ -f "$OPENCODE_DB_FILE" ] && command -v npx >/dev/null 2>&1; then
     MC_STATUS=0
-    timeout 300 npx --yes "@cortexkit/magic-context@${MAGIC_CONTEXT_VERSION:-latest}" \
-        doctor --fix --harness opencode || MC_STATUS=$?
+    # `</dev/null` + `-k 15` are deliberate, not decoration:
+    # GNU timeout puts the child in its OWN PROCESS GROUP. Whenever the caller has a
+    # controlling tty (any interactive/vscontainer start) that group is a *background*
+    # group of that tty, so the first read from stdin raises SIGTTIN and STOPS the child
+    # (ps state T, wchan do_signal_stop). timeout's SIGTERM is then only *pending* — a
+    # stopped process cannot act on it (only SIGKILL works) — so the caller waits forever
+    # on a corpse. Observed 2026-10-10: a container boot wedged at doctor for good.
+    # dtach/detached starts (Railway) get stdin = /dev/null so they never hit it; keep
+    # this anyway so the guard does not depend on how the container happens to be started.
+    timeout -k 15 300 npx --yes "@cortexkit/magic-context@${MAGIC_CONTEXT_VERSION:-latest}" \
+        doctor --fix --harness opencode </dev/null || MC_STATUS=$?
     echo "[entrypoint] magic-context: doctor --fix exit ${MC_STATUS} (non-fatal)"
 fi
 
