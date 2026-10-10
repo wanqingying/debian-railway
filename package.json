@@ -1,0 +1,9 @@
+{
+  "name": "debian-railway-tools",
+  "private": true,
+  "type": "module",
+  "description": "In-container helper scripts (browser automation via the visible Chromium, mcmod scraping/ranking)",
+  "dependencies": {
+    "playwright-core": "^1.64.0"
+  }
+}

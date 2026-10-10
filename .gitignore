@@ -1,3 +1,8 @@
 .cortexkit/
 __pycache__/
 *.pyc
+.playwright-cli/
+tmp/
+node_modules/
+data/*.db-wal
+data/*.db-shm
