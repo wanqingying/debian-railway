@@ -1,0 +1,19 @@
+entrypoint.sh
+  s_b2e23253fe6fcb::t_d3c43f3fbe37b4 213-223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "e7264de95af2cc37c56c99d35610d677a4702088",
+  "prompts": {},
+  "sessions": {
+    "s_b2e23253fe6fcb": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "87a16222-ef33-46dc-bef0-e9ea3536c844",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "qywan@trip.com <qywan@trip.com>"
+    }
+  }
+}
