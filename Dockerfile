@@ -75,13 +75,19 @@ WORKDIR /workspace
 COPY scripts/install-tools.sh /scripts/install-tools.sh
 RUN chmod +x /scripts/install-tools.sh
 
+# ---- Interactive browser bring-up (KasmVNC + Chromium) ----
+# Called by entrypoint.sh when BROWSER_ENABLE is set (default on). See docs/interactive-browser.md.
+COPY scripts/start-browser.sh /scripts/start-browser.sh
+RUN chmod +x /scripts/start-browser.sh
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Ports: $PORT (SSH, Railway public) · 4096 (opencode, managed by openchamber on
 # 127.0.0.1 — expose via the openchamber proxy instead) · 3001 (openchamber web
-# UI, map as the second Railway public TCP port)
-EXPOSE $PORT 3001 4096
+# UI, map as the second Railway public TCP port) · 8444 (interactive browser's
+# KasmVNC HTML5 view — bound to 127.0.0.1 by default; reach it over the SSH tunnel)
+EXPOSE $PORT 3001 4096 8444
 
 # ---- tini as PID 1: reap orphaned children so zombies cannot pile up ----
 # `entrypoint.sh` ends with `exec tail -f /dev/null`, so without an init the
