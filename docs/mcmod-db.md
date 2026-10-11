@@ -52,6 +52,10 @@ and read by [`scripts/mcmod/rank.mjs`](../scripts/mcmod/rank.mjs); the access la
 | `mod_authors` | 作者团队 with role (所有者 / 美术 / Mod作者 …) | `(mod_id, name, role)` |
 | `mod_versions` | 支持的MC版本, one row per (loader, version) | `(mod_id, loader, version)` |
 | `modpacks` | one row per modpack we resolved | `id` = mcmod modpack id |
+| `modpack_tags` | 整合包标签 | `(modpack_id, tag)` |
+| `modpack_texts` | every prose/tab section of a pack page (前言 / 模组列表 / 教程 …) | `(modpack_id, section)` |
+| `modpack_authors` | 整合包制作团队, one row per (name, role) | `(modpack_id, name, role)` |
+| `modpack_versions` | the MC versions a pack supports, per loader | `(modpack_id, loader, version)` |
 | `modpack_mods` | pack membership + the version pinned inside that pack | `(modpack_id, mod_id)` |
 | `runs` | scrape-run log and live progress, so a background scrape can be monitored | `id` autoincrement |
 
@@ -82,6 +86,25 @@ within the same second updates in place):
 | `yesterday_idx` / `avg_idx` | `.class-excount .text` | mcmod's own 昨日指数 / 昨日平均指数 |
 | `rating` | `.class-excount .star .up` | 0–5 in 0.5 steps; **43% of mods are 5.0**, so it discriminates poorly |
 | `fill_rate` | `资料填充率` | text, e.g. `100.00%` |
+
+**`modpacks`** — the pack's own metadata. A pack page carries **two independent interaction counts**:
+the site's own 投票 (`votes_for`/`votes_against`) *and* the user action bar's 推荐/收藏, which is the
+**same login-gated `common-fuc-group` a mod page has** — but a pack has no 关注, only 分享.
+
+| column | source on the page | notes |
+|---|---|---|
+| `id` | `/modpack/<id>.html` | **a separate id namespace from `/class/<id>`** — the two collide (7 ids exist as both) |
+| `name` / `name_en` / `short_name` | `.class-title h3` / `h4` / `.short-name` | e.g. `匠造之传` / `The Legend of Tinker` / `[TLT]` |
+| `pack_type` / `run_mode` / `pack_method` | `整合包类型` / `运作方式` / `打包方式` rows | e.g. `魔改整合` / `Forge` / `CurseForge托管 , 其他启动器打包` |
+| `published_at` / `last_edit_at` / `last_rec_at` | `收录时间` / `最后编辑` / `最后推荐` | exact timestamps from `data-original-title` |
+| `votes_for` / `votes_against` | `data-original-title="<n>票"` | the site's approval votes (e.g. `150` : `8`) |
+| `rating` / `rating_label` | `.class-excount .star .up` / `.down` | 0–5 plus mcmod's grade for it (闻所未闻 0.5 … 名扬天下 5.0) |
+| `yesterday_idx` | `.class-excount .text` | mcmod's 昨日指数 — the daily activity index |
+| `avg_idx` | `.class-excount .text` | 昨日平均指数 — **a site-wide constant, not a per-pack value** (packs `81.585`, mods `40.28`); kept only as the index's baseline |
+| `recommend` / `favorite` | `li.push` / `li.like` → `.nums[title]` | **login-gated** — the whole bar is absent anonymously |
+| `views` / `views_display` | `.infos .span[title]` | exact integer + the `97.03万` display form; public |
+| `description` | the first `text-area` that is not the mod list | the section's own heading is stripped (it is in `modpack_texts.title`) |
+| `mod_count` | — | number of members **parsed**; `0` when the page renders no list (44 of 300) |
 
 ## DDL
 
@@ -142,11 +165,60 @@ CREATE TABLE IF NOT EXISTS mod_versions (
 );
 
 CREATE TABLE IF NOT EXISTS modpacks (
-  id         TEXT PRIMARY KEY,
-  name       TEXT,
-  url        TEXT,
-  mod_count  INTEGER,
-  fetched_at TEXT
+  id            TEXT PRIMARY KEY,
+  name          TEXT,
+  name_en       TEXT,
+  short_name    TEXT,
+  url           TEXT,
+  pack_type     TEXT,
+  run_mode      TEXT,
+  pack_method   TEXT,
+  published_at  TEXT,
+  last_edit_at  TEXT,
+  last_rec_at   TEXT,
+  edit_count    INTEGER,
+  votes_for     INTEGER,
+  votes_against INTEGER,
+  views         INTEGER,
+  views_display TEXT,
+  recommend     INTEGER,
+  favorite      INTEGER,
+  rating        REAL,
+  rating_label  TEXT,
+  yesterday_idx INTEGER,
+  avg_idx       REAL,
+  description   TEXT,
+  mod_count     INTEGER,
+  fetched_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS modpack_tags (
+  modpack_id TEXT NOT NULL REFERENCES modpacks(id) ON DELETE CASCADE,
+  tag        TEXT NOT NULL,
+  PRIMARY KEY (modpack_id, tag)
+);
+
+CREATE TABLE IF NOT EXISTS modpack_texts (
+  modpack_id TEXT NOT NULL REFERENCES modpacks(id) ON DELETE CASCADE,
+  section    TEXT NOT NULL,
+  title      TEXT,
+  text       TEXT,
+  PRIMARY KEY (modpack_id, section)
+);
+
+CREATE TABLE IF NOT EXISTS modpack_authors (
+  modpack_id TEXT NOT NULL REFERENCES modpacks(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  role       TEXT,
+  PRIMARY KEY (modpack_id, name, role)
+);
+
+-- The MC versions a pack supports, per loader family (e.g. Forge -> 1.20.1).
+CREATE TABLE IF NOT EXISTS modpack_versions (
+  modpack_id TEXT NOT NULL REFERENCES modpacks(id) ON DELETE CASCADE,
+  loader     TEXT NOT NULL,
+  version    TEXT NOT NULL,
+  PRIMARY KEY (modpack_id, loader, version)
 );
 
 CREATE TABLE IF NOT EXISTS modpack_mods (
@@ -215,4 +287,8 @@ node scripts/mcmod/rank.mjs --top 30
 - **A modpack page lists its mods server-rendered** (265 on pack 684), each with the version pinned in
   the pack; `modpack_mods` stores that pin.
 - **Only scraped mods become rows.** `modpack_mods.mod_id` is deliberately not a foreign key: a pack
-  membership is recorded even for mods we have not scraped yet.
+  membership is recorded even for mods we have not scraped yet, so a pack's member list does **not**
+  imply the member has `mod_stats`. After the 300-pack scrape only 441 of 8,246 distinct member mods had
+  counts; backfilling means scraping those ids (`--mod`) — members carry their own 推荐/收藏 like any mod.
+- **`status='interrupted'` in `runs`** marks a run whose process was killed; `scrape.mjs` sets it at
+  startup (`interruptStaleRuns`) so `status='running'` reliably means "a scrape is live now".
