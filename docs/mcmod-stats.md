@@ -22,14 +22,33 @@ node scripts/mcmod/scrape.mjs --count 300        # first 300 mods of the default
 node scripts/mcmod/scrape.mjs --index 1          # 1st mod of that list
 node scripts/mcmod/scrape.mjs --mod 10175        # one mod (id or /class/<id>.html URL)
 node scripts/mcmod/scrape.mjs --modpack 684      # every mod of a modpack (id or URL)
+node scripts/mcmod/scrape.mjs --modpack 684 --pack-only   # just that pack's own row (2 s, no members)
+node scripts/mcmod/scrape.mjs --pack-list --count 300     # 300 modpacks' metadata+members (~2.5 min)
 
 # rank (reads data/mcmod.db)
 node scripts/mcmod/rank.mjs --top 30
 node scripts/mcmod/rank.mjs --top 10 --json
 ```
 
-Options: `--list <url>` (a different `modlist.html`), `--batch N` (mods per group, default 25),
-`--concurrency N` (parallel fetches, default 6), `--db <file>`, `--no-export`.
+Options: `--list <url>` (a different `modlist.html`), `--pack-list [url]` (a different `modpack.html`),
+`--batch N` (mods per group, default 25), `--concurrency N` (parallel fetches, default 6), `--db <file>`,
+`--no-export`.
+
+`--pack-list` is **metadata-only**: the pack page is server-rendered and `parsePack` is a pure string
+parser, so it needs no page and runs at high concurrency (300 packs in **~2.5 min**, 0 failures). It
+records each pack's members as ids + pinned versions in `modpack_mods` and leaves their own counts to a
+later `--mod` run. `--pack-only` refreshes a single pack's row without touching its members (`--modpack
+684` re-scrapes all 265 members, which is 145 s — pointless when they are already stored).
+
+Like a mod page, a pack page's 推荐/收藏 action bar is **login-gated** (`common-fuc-group` is absent from
+an anonymous fetch — verified: 0 occurrences anonymous, 1 signed in), and a pack **has no 关注**.
+
+A pack page carries five more metrics a mod page also has — 评分 + its grade label (`.class-excount
+.star`), 昨日指数, 昨日平均指数, 制作团队 (`.author`, name + every role a member played) and 支持的MC版本
+(`.mcver .platform-block`, e.g. `Forge -> 1.20.1`). 昨日平均指数 is a **site-wide constant**
+(`81.585` for packs, `40.28` for mods — the same on every page), so it is a baseline, not a per-item
+signal. A pack page has **no 协议/license field** (the only `license` on it is the site footer's
+copyright note).
 
 Every successful scrape also rewrites **`data/mcmod.json`**, a canonical snapshot of the DB — see
 [`mcmod-db.md`](./mcmod-db.md) § "Two artefacts".

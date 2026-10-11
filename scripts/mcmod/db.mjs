@@ -70,11 +70,61 @@ CREATE TABLE IF NOT EXISTS mod_versions (
 );
 
 CREATE TABLE IF NOT EXISTS modpacks (
-  id         TEXT PRIMARY KEY,
-  name       TEXT,
-  url        TEXT,
-  mod_count  INTEGER,
-  fetched_at TEXT
+  id            TEXT PRIMARY KEY,
+  name          TEXT,
+  name_en       TEXT,
+  short_name    TEXT,
+  url           TEXT,
+  pack_type     TEXT,
+  run_mode      TEXT,
+  pack_method   TEXT,
+  published_at  TEXT,
+  last_edit_at  TEXT,
+  last_rec_at   TEXT,
+  edit_count    INTEGER,
+  votes_for     INTEGER,
+  votes_against INTEGER,
+  views         INTEGER,
+  views_display TEXT,
+  recommend     INTEGER,
+  favorite      INTEGER,
+  rating        REAL,
+  rating_label  TEXT,
+  yesterday_idx INTEGER,
+  avg_idx       REAL,
+  description   TEXT,
+  mod_count     INTEGER,
+  fetched_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS modpack_tags (
+  modpack_id TEXT NOT NULL REFERENCES modpacks(id) ON DELETE CASCADE,
+  tag        TEXT NOT NULL,
+  PRIMARY KEY (modpack_id, tag)
+);
+
+-- Every prose/tab section of a modpack page (前言 / 模组列表 / 教程 …), so nothing is lost.
+CREATE TABLE IF NOT EXISTS modpack_texts (
+  modpack_id TEXT NOT NULL REFERENCES modpacks(id) ON DELETE CASCADE,
+  section    TEXT NOT NULL,
+  title      TEXT,
+  text       TEXT,
+  PRIMARY KEY (modpack_id, section)
+);
+
+CREATE TABLE IF NOT EXISTS modpack_authors (
+  modpack_id TEXT NOT NULL REFERENCES modpacks(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  role       TEXT,
+  PRIMARY KEY (modpack_id, name, role)
+);
+
+-- The MC versions a pack supports, per loader family (e.g. Forge -> 1.20.1).
+CREATE TABLE IF NOT EXISTS modpack_versions (
+  modpack_id TEXT NOT NULL REFERENCES modpacks(id) ON DELETE CASCADE,
+  loader     TEXT NOT NULL,
+  version    TEXT NOT NULL,
+  PRIMARY KEY (modpack_id, loader, version)
 );
 
 CREATE TABLE IF NOT EXISTS modpack_mods (
@@ -117,13 +167,36 @@ export function openDb(file = process.env.MCMOD_DB || resolve('data/mcmod.db')) 
   db.exec('PRAGMA busy_timeout = 5000');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(DDL);
+  migrate(db);
   return db;
+}
+
+/**
+ * `CREATE TABLE IF NOT EXISTS` never adds columns to a table that already exists, so new modpack
+ * columns are added here explicitly (idempotent — it only touches what is missing).
+ */
+const MODPACK_COLUMNS = {
+  name_en: 'TEXT', short_name: 'TEXT', pack_type: 'TEXT', run_mode: 'TEXT', pack_method: 'TEXT',
+  published_at: 'TEXT', last_edit_at: 'TEXT', last_rec_at: 'TEXT', edit_count: 'INTEGER',
+  votes_for: 'INTEGER', votes_against: 'INTEGER', views: 'INTEGER', views_display: 'TEXT',
+  recommend: 'INTEGER', favorite: 'INTEGER', rating: 'REAL', rating_label: 'TEXT',
+  yesterday_idx: 'INTEGER', avg_idx: 'REAL', description: 'TEXT',
+};
+
+function migrate(db) {
+  const have = new Set(db.prepare('PRAGMA table_info(modpacks)').all().map((r) => r.name));
+  for (const [col, type] of Object.entries(MODPACK_COLUMNS)) {
+    if (!have.has(col)) db.exec(`ALTER TABLE modpacks ADD COLUMN ${col} ${type}`);
+  }
 }
 
 const nn = (v) => (v === undefined ? null : v);   // SQLite cannot bind `undefined`
 const exact = (v) => nn(v && typeof v === 'object' ? v['精确'] : v);
 const shown = (v) => nn(v && typeof v === 'object' ? v['显示'] : v);
-const int = (v) => (Number.isFinite(+v) ? Math.trunc(+v) : null);
+/** `null`/`undefined`/`''` must stay null: `+null` is 0, which `Number.isFinite` happily accepts. */
+const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(+v) ? null : +v);
+const int = (v) => { const n = num(v); return n === null ? null : Math.trunc(n); };
+const real = (v) => num(v);
 
 /**
  * Upsert one scraped mod: identity/metadata into `mods`, a timestamped row into `mod_stats`, and a
@@ -179,15 +252,62 @@ export function saveMod(db, r, capturedAt = nowStamp()) {
   return id;
 }
 
+/** Upsert a modpack: its own metadata + description, its tags, and its text sections. */
 export function savePack(db, pack, mods, fetchedAt = nowStamp()) {
-  db.prepare(`INSERT INTO modpacks (id,name,url,mod_count,fetched_at) VALUES (?,?,?,?,?)
-    ON CONFLICT(id) DO UPDATE SET name=excluded.name, url=excluded.url, mod_count=excluded.mod_count,
-      fetched_at=excluded.fetched_at`)
-    .run(String(pack.id), pack.name || null, pack.url || null, pack.modCount ?? mods.length, fetchedAt);
+  db.prepare(`INSERT INTO modpacks (id,name,name_en,short_name,url,pack_type,run_mode,pack_method,
+      published_at,last_edit_at,last_rec_at,edit_count,votes_for,votes_against,views,views_display,
+      description,mod_count,fetched_at,recommend,favorite,rating,rating_label,yesterday_idx,
+      avg_idx)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET
+      name=excluded.name, name_en=excluded.name_en, short_name=excluded.short_name, url=excluded.url,
+      pack_type=excluded.pack_type, run_mode=excluded.run_mode, pack_method=excluded.pack_method,
+      published_at=excluded.published_at, last_edit_at=excluded.last_edit_at, last_rec_at=excluded.last_rec_at,
+      edit_count=excluded.edit_count, votes_for=excluded.votes_for, votes_against=excluded.votes_against,
+      views=excluded.views, views_display=excluded.views_display, description=excluded.description,
+      mod_count=excluded.mod_count, fetched_at=excluded.fetched_at,
+      recommend=excluded.recommend, favorite=excluded.favorite, rating=excluded.rating,
+      rating_label=excluded.rating_label, yesterday_idx=excluded.yesterday_idx,
+      avg_idx=excluded.avg_idx`)
+    .run(String(pack.id), nn(pack.name), nn(pack.name_en), nn(pack.short_name), nn(pack.url),
+      nn(pack.pack_type), nn(pack.run_mode), nn(pack.pack_method),
+      nn(pack.published_at), nn(pack.last_edit_at), nn(pack.last_rec_at), int(pack.edit_count),
+      int(pack.votes_for), int(pack.votes_against), int(pack.views), nn(pack.views_display),
+      nn(pack.description), int(pack.modCount ?? mods.length), fetchedAt,
+      int(pack.recommend), int(pack.favorite), real(pack.rating), nn(pack.rating_label),
+      int(pack.yesterday_idx), real(pack.avg_idx));
+
+  db.prepare('DELETE FROM modpack_tags WHERE modpack_id=?').run(String(pack.id));
+  for (const tag of pack.tags || [])
+    db.prepare('INSERT OR IGNORE INTO modpack_tags (modpack_id,tag) VALUES (?,?)').run(String(pack.id), tag);
+
+  db.prepare('DELETE FROM modpack_texts WHERE modpack_id=?').run(String(pack.id));
+  for (const s of pack.texts || [])
+    db.prepare('INSERT OR REPLACE INTO modpack_texts (modpack_id,section,title,text) VALUES (?,?,?,?)')
+      .run(String(pack.id), String(s.section), nn(s.title), nn(s.text));
+
+  db.prepare('DELETE FROM modpack_authors WHERE modpack_id=?').run(String(pack.id));
+  for (const a of pack.authors || [])
+    db.prepare('INSERT OR IGNORE INTO modpack_authors (modpack_id,name,role) VALUES (?,?,?)')
+      .run(String(pack.id), a.name, nn(a.role ?? null));
+
+  db.prepare('DELETE FROM modpack_versions WHERE modpack_id=?').run(String(pack.id));
+  for (const [loader, list] of Object.entries(pack.versions || {}))
+    for (const v of list)
+      db.prepare('INSERT OR IGNORE INTO modpack_versions (modpack_id,loader,version) VALUES (?,?,?)')
+        .run(String(pack.id), String(loader).trim(), v);
+
   db.prepare('DELETE FROM modpack_mods WHERE modpack_id=?').run(String(pack.id));
   for (const m of mods)
     db.prepare('INSERT OR IGNORE INTO modpack_mods (modpack_id,mod_id,version_in_pack) VALUES (?,?,?)')
-      .run(String(pack.id), String(m.id), m.version ?? null);
+      .run(String(pack.id), String(m.id), nn(m.version));
+}
+
+/** A killed process leaves its run row `running` forever. Call once at startup before a new run, so
+ * `status='running'` reliably means "a scrape is live right now" (one scrape at a time, by design). */
+export function interruptStaleRuns(db) {
+  return db.prepare("UPDATE runs SET status='interrupted', updated_at=? WHERE status='running'")
+    .run(nowStamp()).changes;
 }
 
 export function startRun(db, kind, target, total) {

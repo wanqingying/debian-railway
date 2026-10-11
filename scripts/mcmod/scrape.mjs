@@ -12,6 +12,7 @@
  *   scripts/mcmod/scrape.mjs --index 1                   # 1st mod of that list
  *   scripts/mcmod/scrape.mjs --mod 10175                 # one mod by id or /class/<id>.html URL
  *   scripts/mcmod/scrape.mjs --modpack 684               # every mod of a modpack (id or URL)
+ *   scripts/mcmod/scrape.mjs --pack-list --count 300      # 300 modpacks' metadata+members (no mod stats)
  *   options: --list <modlist url> --batch N --concurrency N --db <file> --no-export
  *
  * Progress: one line per mod on stderr, plus a `runs` row in the DB that a second process can poll
@@ -19,18 +20,20 @@
  */
 import { chromium } from 'playwright-core';
 import { resolve } from 'node:path';
-import { openDb, saveMod, savePack, startRun, progressRun, finishRun, nowStamp } from './db.mjs';
+import { openDb, saveMod, savePack, startRun, progressRun, finishRun, interruptStaleRuns, nowStamp } from './db.mjs';
 import { exportJson } from './export.mjs';
 
 const CDP = process.env.CDP || 'http://127.0.0.1:9222';
 const UA = process.env.UA || 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154 Safari/537.36';
 const DEFAULT_LIST = 'https://www.mcmod.cn/modlist.html?mcver=1.18.2&platform=1';
 const CLASS = (id) => `https://www.mcmod.cn/class/${id}.html`;
+const MODPACK_LIST = 'https://www.mcmod.cn/modpack.html';
+const PACK_URL = (id) => `https://www.mcmod.cn/modpack/${id}.html`;
 
 const T = { connect: 15000, request: 20000, nav: 25000, content: 20000, eval: 20000 };
 
 function parseArgs(argv) {
-  const a = { list: DEFAULT_LIST, index: 1, count: 0, mod: null, modpack: null, batch: 25, concurrency: 6, noExport: false };
+  const a = { list: DEFAULT_LIST, index: 1, count: 0, mod: null, modpack: null, batch: 25, concurrency: 6, noExport: false, packOnly: false, packList: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     const next = () => argv[++i];
@@ -43,6 +46,8 @@ function parseArgs(argv) {
     else if (k === '--concurrency') a.concurrency = +next();
     else if (k === '--db') a.db = next();
     else if (k === '--no-export') a.noExport = true;
+    else if (k === '--pack-only') a.packOnly = true;   // refresh just the modpack's own row + description
+    else if (k === '--pack-list') a.packList = (argv[i + 1] && !argv[i + 1].startsWith('--')) ? next() : MODPACK_LIST;
     else if (k === '-h' || k === '--help') { console.log(HEADER); process.exit(0); }
     else { console.error(`unknown argument: ${k}`); process.exit(2); }
   }
@@ -67,6 +72,11 @@ async function fetchText(ctx, url, { attempts = 3 } = {}) {
 
 const idsOf = (html) => html.split('<div class="modlist-block"').slice(1)
   .map((b) => { const m = b.match(/\/class\/(\d+)\.html/); return m ? m[1] : null; })
+  .filter(Boolean);
+
+/** Modpack ids on a /modpack.html page — same `<div class="modlist-block">` list markup as mods. */
+const packIdsOf = (html) => html.split('<div class="modlist-block"').slice(1)
+  .map((b) => { const m = b.match(/\/modpack\/(\d+)\.html/); return m ? m[1] : null; })
   .filter(Boolean);
 
 /** The page-side extractor. Returns null until the mod page is actually rendered. */
@@ -132,10 +142,96 @@ function extract(id) {
   return o;
 }
 
-/** Parse the mod list out of a modpack page (server-rendered). */
-function parsePack(html, url) {
+/** Parse a modpack page (server-rendered): its own metadata + description, and its mod list. */
+export function parsePack(html, url) {
+  const plain = (s) => String(s || '').replace(/&nbsp;/g, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const pick = (re) => (html.match(re) || [])[1];
+  const nn = (v) => (v === undefined || v === '' ? null : v);
+  const exact = (v) => (v && typeof v === 'object' ? v['精确'] : null);
+  const shown = (v) => (v && typeof v === 'object' ? v['显示'] : v);
+
   const id = (url.match(/\/modpack\/(\d+)/) || [])[1] || '';
-  const title = (html.match(/<title>([^<]*)/) || [])[1] || '';
+  const titleTag = (html.match(/<title>([^<]*)/) || [])[1] || '';
+  const head = pick(/<div class="class-title">([\s\S]{0,300}?)<\/div>/);
+  // `.match()` returns [full, group]; take group 1 explicitly (String() on the array would join them)
+  const g1 = (re, src = html) => ((src || '').match(re) || [])[1];
+  const name = plain(g1(/<h3>([^<]*)</, head)) || plain(titleTag.replace(/\s*-\s*MC百科.*$/, ''));
+  const name_en = nn(plain(g1(/<h4>([^<]*)</, head)));
+  const short_name = nn(plain(g1(/class="short-name"[^>]*>([^<]*)</, head)));
+
+  // label/value rows — same shape as a mod page (exact timestamps live in data-original-title)
+  const info = {};
+  for (const m of html.matchAll(/<li class="col-lg-4"([^>]*)>([\s\S]*?)<\/li>/g)) {
+    const kv = plain(m[2]).match(/^([^:：]+)[:：]\s*(.*)$/);
+    if (!kv) continue;
+    const ex = (m[1].match(/data-original-title="([^"]*)"/) || [])[1];
+    info[kv[1].trim()] = ex ? { 显示: kv[2].trim(), 精确: ex } : kv[2].trim();
+  }
+
+  const tags = [];
+  const tagBlock = html.match(/<li class="col-lg-12 tag">([\s\S]*?)<\/ul>/);
+  if (tagBlock) for (const a of tagBlock[1].matchAll(/<a[^>]*>([\s\S]*?)<\/a>/g)) tags.push(plain(a[1]));
+
+  const votes = [...html.matchAll(/data-original-title="(\d+)票"/g)].map((m) => +m[1]);
+  const infosBlock = html.match(/<div class="infos">([\s\S]*?)<\/div>\s*<\/div>/);
+  const views = infosBlock ? (infosBlock[1].match(/title="(\d+)"/) || [])[1] : null;
+  const views_display = infosBlock ? plain((infosBlock[1].match(/<p class="n">([^<]*)</) || [])[1]) : null;
+
+  // 推荐/收藏 — the same login-gated action bar a mod page carries (a modpack has no 关注, only 分享).
+  // Anonymous sessions omit the whole block, so these come back null without a signed-in browser.
+  const acts = {};
+  const fuc = html.match(/<div class="col-lg-12 common-fuc-group"[\s\S]*?<\/ul>/);
+  if (fuc) for (const m of fuc[0].matchAll(/<span>\s*([^<]+?)\s*<\/span><\/div>\s*<div[^>]*title="(\d+)"[^>]*class="nums"/g))
+    acts[m[1]] = +m[2];
+
+  // 指数/评分 — the same `.class-excount` block a mod page has (0–5 score + a descriptive grade)
+  const ex = html.match(/<div class="class-excount">([\s\S]{0,1400}?)<\/div><\/div>/);
+  const rating = ex ? (ex[1].match(/<p class="up">([^<]*)</) || [])[1] || null : null;
+  const rating_label = ex ? plain((ex[1].match(/<p class="down">([^<]*)</) || [])[1]) || null : null;
+  let yesterday_idx = null, avg_idx = null;
+  // no trailing `<` in the pattern: the block ends mid-element, so the last div has no closing tag
+  if (ex) for (const d of ex[1].matchAll(/<div class="text"[^>]*>([^<]*)/g)) {
+    const t = plain(d[1]);
+    if (/昨日平均指数/.test(t)) avg_idx = (t.match(/([\d.]+)\s*$/) || [])[1] ?? null;
+    else if (/昨日指数/.test(t)) yesterday_idx = (t.match(/(\d+)/) || [])[1] ?? null;
+  }
+
+  // 制作团队 — `<span class="member">` with the person's name and every role they played
+  const authors = [];
+  // up to `</ul>`: the block's own `<li>`s would end a non-greedy `</li>` match after the first member
+  const au = html.match(/<li class="col-lg-12 author">([\s\S]*?)<\/ul>/);
+  if (au) for (const m of au[1].matchAll(/class="name"[^>]*>([\s\S]*?)<\/span>[\s\S]*?class="position"[^>]*>([\s\S]*?)<\/span>/g))
+    authors.push({ name: plain(m[1]), role: plain(m[2]) || null });
+
+  // 支持的MC版本 — same `platform-block` shape as a mod page (loader family → versions)
+  const versions = {};
+  const mc = html.match(/<li class="col-lg-12 mcver[^"]*">([\s\S]*?)<\/li>/);
+  if (mc) {
+    let fam = null;
+    for (const el of mc[1].matchAll(/<div class="mcver-title">([\s\S]*?)<\/div>|<div class="mcver-row">([\s\S]*?)<\/div>/g)) {
+      if (el[1] != null) { fam = plain(el[1]).replace(/\(共.*$/, '').replace(/[:：]\s*$/, '').trim(); versions[fam] = []; }
+      else if (fam) for (const a of el[2].matchAll(/<a[^>]*>([^<]+)<\/a>/g)) {
+        const v = plain(a[1]); if (v && !versions[fam].includes(v)) versions[fam].push(v);
+      }
+    }
+  }
+
+  // every tab/section of the page (前言 / 模组列表 / 教程 …) — the first titled one is the description
+  const texts = [];
+  const parts = html.split(/<li data-id="(\d+)" class="text-area[^"]*"[^>]*>/);
+  for (let i = 1; i < parts.length; i += 2) {
+    const raw = parts[i + 1] || '';
+    const t = raw.match(/common-text-title[^"]*">([^<]*)</);
+    const title = t ? plain(t[1]) : null;
+    let text = plain(raw);
+    // `plain()` keeps the section's own heading at the front; it is already in `title`, so drop it.
+    if (title && text.startsWith(title)) text = text.slice(title.length).trim();
+    texts.push({ section: parts[i], title, text, raw });
+  }
+  // The page's first tab is the description (前言). It is not always wrapped in a `common-text-title` —
+  // packs that never set one have bare prose — so take the first section that is not the mod list.
+  const description = (texts.find((s) => !/class-relation-list/.test(s.raw)) || {}).text || null;
+
   const mods = [];
   const seen = new Set();
   const re = /<a[^>]*data-original-title="([^"]*)"[^>]*href="\/class\/(\d+)\.html"[^>]*>.*?<\/a>\s*<\/p>\s*<p>([^<]*)<\/p>/gs;
@@ -146,7 +242,23 @@ function parsePack(html, url) {
     const en = titleAttr.match(/\(([^()]*)\)\s*$/);
     mods.push({ id: cid, name: titleAttr.replace(/\s*\([^()]*\)\s*$/, '').trim(), enName: en ? en[1] : '', version: ver.trim() });
   }
-  return { pack: { id, name: title.replace(/\s*-\s*MC百科.*$/, '').trim(), url, modCount: mods.length }, mods };
+
+  return {
+    pack: {
+      id, name, name_en, short_name, url, modCount: mods.length,
+      pack_type: nn(shown(info['整合包类型'])), run_mode: nn(shown(info['运作方式'])),
+      pack_method: nn(shown(info['打包方式'])), published_at: exact(info['收录时间']),
+      last_edit_at: exact(info['最后编辑']), last_rec_at: exact(info['最后推荐']),
+      edit_count: info['编辑次数'] ? parseInt(String(shown(info['编辑次数'])).replace(/[^0-9]/g, ''), 10) : null,
+      votes_for: votes[0] ?? null, votes_against: votes[1] ?? null,
+      views: views ? +views : null, views_display,
+      recommend: acts['推荐'] ?? null, favorite: acts['收藏'] ?? null,
+      rating, rating_label, yesterday_idx, avg_idx,
+      authors, versions,
+      description, tags, texts,
+    },
+    mods,
+  };
 }
 
 async function runPool(items, limit, fn) {
@@ -161,7 +273,18 @@ async function runPool(items, limit, fn) {
 async function main() {
   const a = parseArgs(process.argv.slice(2));
   const db = openDb(a.db ? resolve(a.db) : undefined);
+  const stale = interruptStaleRuns(db);          // a killed run would otherwise read as live forever
+  if (stale) log(`marked ${stale} stale run(s) interrupted`);
   const stamp = nowStamp();
+
+  // keep the reviewable JSON snapshot (roughly 4x smaller than the DB once git compresses it)
+  const writeSnapshot = () => {
+    if (a.noExport) return;
+    const dbFile = a.db ? resolve(a.db) : (process.env.MCMOD_DB || resolve('data/mcmod.db'));
+    const snap = dbFile.replace(/\.db$/, '.json');
+    try { const e = exportJson(db, snap); log(`snapshot -> ${snap} (${e.mods} mods, ${e.bytes} bytes)`); }
+    catch (err) { log(`WARNING: could not write the JSON snapshot: ${err.message}`); }
+  };
 
   let browser;
   let runId = null;
@@ -170,6 +293,41 @@ async function main() {
     browser = await chromium.connectOverCDP(CDP, { timeout: T.connect });
     const ctx = browser.contexts()[0];
     if (!ctx) throw new Error('the browser has no context — is it the container Chromium?');
+
+    // --pack-list: many modpacks, metadata only. The pack page is server-rendered and parsePack is a
+    // pure string parser, so this needs no page at all — just the request client, at high concurrency.
+    // Members are recorded as ids+versions in modpack_mods and their own stats are left for a later run.
+    if (a.packList) {
+      const want = a.count > 0 ? a.count : 300;
+      const pids = [], seenPack = new Set();
+      for (let p = 1; pids.length < want && p <= 60; p++) {
+        const sep = a.packList.includes('?') ? '&' : '?';
+        const html = await fetchText(ctx, p === 1 ? a.packList : `${a.packList}${sep}page=${p}`);
+        const got = packIdsOf(html);
+        if (!got.length) break;
+        for (const id of got) if (pids.length < want && !seenPack.has(id)) { seenPack.add(id); pids.push(id); }
+      }
+      if (pids.length < want) throw new Error(`the modpack list yielded only ${pids.length} of ${want} ids`);
+      runId = startRun(db, 'packlist', a.packList, pids.length);
+      log(`run #${runId} (packlist) started — ${pids.length} modpacks`);
+      let done = 0, failed = 0;
+      await runPool(pids, a.concurrency, async (pid) => {
+        try {
+          const html = await fetchText(ctx, PACK_URL(pid));
+          const info = parsePack(html, PACK_URL(pid));
+          savePack(db, info.pack, info.mods, stamp);
+          done++;
+          progressRun(db, runId, done, pids.length, info.pack.name);
+          log(`[${done}/${pids.length}] ${pid} ${info.pack.name} (${info.mods.length} mods)`);
+        } catch (e) { failed++; log(`  ${pid} FAILED: ${String(e.message || e).split('\n')[0]}`); }
+      });
+      finishRun(db, runId, failed ? 'partial' : 'done', failed ? `${failed} failed` : null);
+      writeSnapshot();
+      log(`DONE: ${done} modpacks (${failed} failed) -> ${a.db || 'data/mcmod.db'}`);
+      console.log(JSON.stringify({ ok: true, runId, kind: 'packlist', target: a.packList,
+        total: pids.length, saved: done, failed }, null, 1));
+      return;
+    }
 
     // Resolve the targets first (cheap) so the run row can carry an accurate total.
     let ids = [];
@@ -182,6 +340,17 @@ async function main() {
       ids = packInfo.mods.map((m) => m.id);
       kind = 'modpack'; target = `modpack/${packInfo.pack.id}`;
       log(`modpack "${packInfo.pack.name}" has ${ids.length} mods`);
+      if (a.packOnly) {
+        // The member mods are already in the DB; only this pack's own row/description is refreshed.
+        const rid = startRun(db, 'pack', target, ids.length);
+        savePack(db, packInfo.pack, packInfo.mods, stamp);
+        finishRun(db, rid, 'done', 'metadata only');
+        writeSnapshot();
+        log(`pack ${packInfo.pack.id} saved (metadata only) — ${packInfo.pack.name}`);
+        console.log(JSON.stringify({ ok: true, packOnly: true, packId: packInfo.pack.id,
+          name: packInfo.pack.name, mods: ids.length, description: (packInfo.pack.description || '').length }, null, 1));
+        return;
+      }
     } else if (a.mod) {
       const id = String(a.mod).replace(/.*\/class\/(\d+).*/, '$1');
       if (!/^\d+$/.test(id)) throw new Error('--mod expects a class id or a /class/<id>.html URL');
@@ -245,13 +414,7 @@ async function main() {
     await page.close().catch(() => {});
 
     finishRun(db, runId, 'done', blank ? `${blank} empty pages` : null);
-    if (!a.noExport) {
-      // keep the reviewable JSON snapshot (roughly 6x smaller than the DB once git compresses it)
-      const dbFile = a.db ? resolve(a.db) : (process.env.MCMOD_DB || resolve('data/mcmod.db'));
-      const snap = dbFile.replace(/\.db$/, '.json');
-      try { const e = exportJson(db, snap); log(`snapshot -> ${snap} (${e.mods} mods, ${e.bytes} bytes)`); }
-      catch (err) { log(`WARNING: could not write the JSON snapshot: ${err.message}`); }
-    }
+    writeSnapshot();
     log(`DONE: ${done} mods, ${blank} empty -> ${a.db || 'data/mcmod.db'}`);
     console.log(JSON.stringify({ ok: true, runId, kind, target, total: ids.length, saved: done - blank, empty: blank }, null, 1));
   } catch (e) {
@@ -264,4 +427,5 @@ async function main() {
   }
 }
 
-main();
+// Run only when invoked directly, so the parser can be imported and tested.
+if (import.meta.url === `file://${process.argv[1]}`) main();
