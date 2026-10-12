@@ -13,6 +13,8 @@ const TOOLS_CACHE_TTL_MS = 300_000;
 
 // Every listed tool is treated the same: presence is a free PATH scan, and a
 // present tool gets one `--version` process so its version is reported.
+// `label` renames the entry when the binary differs from the tool people know it
+// by (e.g. the KasmVNC X server lives in `Xvnc`).
 const TOOL_PROBES = [
   { name: 'git', args: ['--version'] },
   { name: 'node', args: ['--version'] },
@@ -34,6 +36,16 @@ const TOOL_PROBES = [
   { name: 'opencode', args: ['--version'] },
   { name: 'codegraph', args: ['--version'] },
   { name: 'openchamber', args: ['--version'] },
+  // The rest of this dev container's own toolchain (see scripts/install-tools.sh
+  // and docs/): Python/DB CLIs, the interactive browser, and the agent's web path.
+  { name: 'neon', args: ['--version'] },
+  { name: 'pdftotext', args: ['-v'] },
+  { name: 'tini', args: ['--version'] },
+  { name: 'ttyd', args: ['--version'] },
+  { name: 'chromium', args: ['--version'] },
+  { name: 'Xvnc', args: ['-version'], label: 'kasmvnc' },
+  { name: 'playwright-cli', args: ['--version'] },
+  { name: 'opencli', args: ['--version'] },
 ];
 
 const formatUtcOffset = (minutes) => {
@@ -183,9 +195,10 @@ const collectTools = () => {
   const value = { present: [], missing: [], errored: [] };
   for (const probe of TOOL_PROBES) {
     const result = probeTool(probe.name, probe.args);
-    if (result.status === 'present') value.present.push(result.version ? `${probe.name} ${result.version}` : probe.name);
-    else if (result.status === 'error') value.errored.push(probe.name);
-    else value.missing.push(probe.name);
+    const label = probe.label || probe.name;
+    if (result.status === 'present') value.present.push(result.version ? `${label} ${result.version}` : label);
+    else if (result.status === 'error') value.errored.push(label);
+    else value.missing.push(label);
   }
   toolsCache = { at: now, value };
   return value;
