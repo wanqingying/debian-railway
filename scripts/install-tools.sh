@@ -15,6 +15,7 @@
 #   Doppler CLI       -> official apt installer (v3.76.5), auto-authenticated via DOPPLER_TOKEN
 #   Neon CLI          -> npm (neonctl), authenticated natively via NEON_API_KEY env var
 #   Railway CLI      -> npm (@railway/cli), auth via RAILWAY_API_TOKEN / browserless login
+#   GitHub CLI (gh)   -> apt (GitHub's official apt repo), auth via GH_TOKEN / GITHUB_TOKEN
 #   OpenChamber      -> npm (@openchamber/web), web UI that manages its own OpenCode server
 #   OpenCode CLI     -> npm (@opencode/cli), the v2 `opencode` binary OpenChamber drives
 #   Interactive browser -> apt (chromium, chromium-l10n, fluxbox, fonts-noto-cjk, x11-utils,
@@ -228,6 +229,27 @@ if [ "${BROWSER_ENABLE:-1}" != 0 ]; then
   fi
 fi
 
+# ── GitHub CLI (gh) ─────────────────────────────────────────────────────────────
+# gh is not in the Debian repos, so add GitHub's official apt source (keyring +
+# list under /etc/apt, both ephemeral and re-created on each boot) and install it.
+# Installed per boot because /usr is rebuilt on redeploy; guarded so a re-run is a
+# no-op. Auth needs no login step: gh reads the GH_TOKEN / GITHUB_TOKEN env var
+# (the same GITHUB_TOKEN this container already injects for git HTTPS).
+log "GitHub CLI (gh)"
+if ! command -v gh >/dev/null 2>&1; then
+  mkdir -p -m 755 /etc/apt/keyrings
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list
+  apt-get update -qq
+  apt-get install -y --no-install-recommends gh >/dev/null \
+    || log "warning: gh install failed (continuing)"
+  apt-get clean
+  rm -rf /var/lib/apt/lists/*
+fi
+
 # ── book-to-skill PDF extractors ─────────────────────────────────────────────────
 # The baked book-to-skill skill (opencode-config/opencode/skills/book-to-skill) runs
 # scripts/extract.py, which needs a PDF text extractor. poppler's pdftotext (apt, step 1)
@@ -254,7 +276,7 @@ log "verifying toolchain"
 for tool in uv python3.12 pnpm doppler pdftotext; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after install"
 done
-for tool in neon railway openchamber; do
+for tool in gh neon railway openchamber; do
   command -v "$tool" >/dev/null 2>&1 || log "warning: $tool missing (optional)"
 done
 command -v opencode >/dev/null 2>&1 || log "warning: opencode CLI missing (optional; OpenChamber needs it for its agent)"
@@ -264,6 +286,7 @@ printf 'pnpm      %s\n' "$(pnpm --version)"
 printf 'doppler   %s\n' "$(doppler --version)"
 printf 'neon      %s\n' "$(neon --version 2>/dev/null || echo installed)"
 printf 'railway   %s\n' "$(railway --version 2>/dev/null || echo installed)"
+printf 'gh        %s\n' "$(gh --version 2>/dev/null | head -1 || echo missing)"
 printf 'openchamber %s\n' "$(openchamber --version 2>/dev/null || echo installed)"
 printf 'opencode   %s\n' "$(opencode --version 2>/dev/null | head -1 || echo missing)"
 printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
