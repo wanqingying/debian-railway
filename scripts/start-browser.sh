@@ -154,6 +154,13 @@ done
 #                             --lang=zh-CN with LANG=en_US.UTF-8 keeps the UI English; adding
 #                             LANG=zh_CN.UTF-8 LANGUAGE=zh_CN switches it. chromium-l10n supplies
 #                             the .pak (the glibc locale need not be generated).
+# A persisted --user-data-dir carries Chromium's process-singleton lock, which records the
+# container's HOSTNAME and PID. Both change across a redeploy, so on the next boot Chromium
+# refuses the profile ("another computer ... is using this profile"), pops a modal dialog, and
+# never starts its DevTools server — symptom: `curl 127.0.0.1:9222/json/version` is refused.
+# No chromium is running here (CHROME_UP was 0), so any lock present is stale — clear it.
+rm -f "$BROWSER_PROFILE_DIR/SingletonLock" "$BROWSER_PROFILE_DIR/SingletonSocket" \
+      "$BROWSER_PROFILE_DIR/SingletonCookie" "$BROWSER_PROFILE_DIR/DevToolsActivePort"
 LANG="${LOCALE_UNDERSCORE}.UTF-8" LANGUAGE="$LOCALE_UNDERSCORE" setsid chromium \
     --no-sandbox --disable-dev-shm-usage --disable-gpu \
     --no-first-run --no-default-browser-check --start-maximized \
@@ -171,6 +178,16 @@ for _ in $(seq 1 15); do
     [ "$code" = "200" ] && { log "VNC endpoint responding (HTTP 200)"; break; }
     sleep 1
 done
+CDP_OK=0
+for _ in $(seq 1 15); do
+    curl -s -o /dev/null "http://127.0.0.1:${BROWSER_CDP_PORT}/json/version" 2>/dev/null && { CDP_OK=1; break; }
+    sleep 1
+done
+if [ "$CDP_OK" = 1 ]; then
+    log "CDP responding on 127.0.0.1:${BROWSER_CDP_PORT}"
+else
+    log "warning: CDP not responding on 127.0.0.1:${BROWSER_CDP_PORT} — see /tmp/chromium.log"
+fi
 
 log "ready — reach it from a laptop with:"
 log "  ssh -N -L ${BROWSER_PORT}:127.0.0.1:${BROWSER_PORT} -p <PORT> root@<host>"
