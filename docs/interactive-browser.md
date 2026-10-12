@@ -189,15 +189,14 @@ curl -s http://127.0.0.1:9222/json/list       # -> open pages
 | `Running as root without --no-sandbox` | add `--no-sandbox` |
 | UI stays English despite `--lang=zh-CN` | Chromium on Linux takes the UI locale from the **environment** (`LANG`/`LANGUAGE`), not `--lang`. `start-browser.sh` sets `LANG=zh_CN.UTF-8 LANGUAGE=zh_CN`; `chromium-l10n` must be installed (only `en-US.pak` ships otherwise) |
 | `wss://…/websockify` returns 404 | the request needs a `Sec-WebSocket-Protocol` header; without it the server treats it as a plain HTTP file request. A correct client upgrades with **101** |
-| SSH "REMOTE HOST IDENTIFICATION HAS CHANGED" | container host key is not persisted; each redeploy regenerates it. Verify the fingerprint inside the container (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) then `ssh-keygen -R "[host]:port"` on the laptop. Permanent fix = persist the host key on the volume (see §10) |
+| SSH "REMOTE HOST IDENTIFICATION HAS CHANGED" | **fixed** — `entrypoint.sh` now keeps one ed25519 host key on the volume (`$XDG_CONFIG_HOME/ssh`) and points `sshd_config` at it, so the fingerprint is stable across redeploys. Accept it **once** after the first deploy carrying this change; it then never changes. If it ever recurs: verify inside the container (`ssh-keygen -lf $XDG_CONFIG_HOME/ssh/ssh_host_ed25519_key.pub`), then `ssh-keygen -R "[host]:port"` on the laptop |
 | After a redeploy: browser window shows a modal *"another computer (…) is using this profile"*, and `curl 127.0.0.1:9222/json/version` is **refused** | the persisted `--user-data-dir` still holds the **previous** container's Chromium *process-singleton* lock (`SingletonLock` → `hostname-PID`); both change across a redeploy, so Chromium refuses the profile and never starts its DevTools server. `start-browser.sh` now `rm -f`s `SingletonLock`/`SingletonSocket`/`SingletonCookie`/`DevToolsActivePort` before launch (no chromium is running then, so the lock is always stale). Manually: kill chromium, delete those four files under `BROWSER_PROFILE_DIR`, re-run `start-browser.sh` |
 
 ## 10. Open items
 
-- **Host key persistence** — this container regenerates its SSH host key every redeploy
-  (`sshd_config` has no `HostKey` line). Commit `3ecb0a6` ("fix(ssh): persist host key on the volume",
-  branch `artful-dolphin`) implements the fix but was **never merged to main or deployed**. Merging it
-  removes the recurring known_hosts warning.
+- ~~**Host key persistence**~~ — **resolved**: `entrypoint.sh` generates one ed25519 host key on the
+  volume (`$XDG_CONFIG_HOME/ssh`) and points `sshd_config` at it (merge of `3ecb0a6`), so the
+  fingerprint is stable across redeploys and the recurring known_hosts warning is gone.
 - **WAN latency** — region is `us-west2`; changing the Railway region is the only real lever.
 - **Resolution** — 1024×768 was the default at PoC time; pin 1600×900 (or enable client resize) for a
   usable desktop.
