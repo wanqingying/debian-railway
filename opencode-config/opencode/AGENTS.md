@@ -93,6 +93,7 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 
 ## 附：codegraph（分析代码的首选）
 
+- **所有代码项目都必须用 codegraph 索引代码**：分析前确认目标项目已建索引（有 `.codegraph/`）；若没有，先 `codegraph init` 初始化，再分析。
 - 分析 / 查看代码优先用 `codegraph_explore`；搜索参数和符号用**英文**（代码符号都是英文字母，别用中文搜索）。
 - 执行搜索 / 分析前，先 `codegraph sync` 同步代码变更。
 - 常用命令：`codegraph sync`（增量同步） · `index`（重建） · `status`（状态/统计） · `files`（文件结构） · `init`（初始化并建索引）。
