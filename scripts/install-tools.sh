@@ -17,6 +17,10 @@
 #   Railway CLI      -> npm (@railway/cli), auth via RAILWAY_API_TOKEN / browserless login
 #   OpenChamber      -> npm (@openchamber/web), web UI that manages its own OpenCode server
 #   OpenCode CLI     -> npm (@opencode/cli), the v2 `opencode` binary OpenChamber drives
+#   Interactive browser -> apt (chromium, chromium-l10n, fluxbox, fonts-noto-cjk, x11-utils,
+#                       scrot) + KasmVNC (a pinned GitHub-release .deb, not in Debian). Enabled
+#                       unless BROWSER_ENABLE=0; started by scripts/start-browser.sh.
+#                       See docs/interactive-browser.md.
 #   book-to-skill    -> PDF extractors for the baked book-to-skill skill: poppler-utils (apt) +
 #                       pypdf/pdfminer.six (pip). docling (technical/tables mode) is intentionally omitted.
 #
@@ -184,6 +188,46 @@ fi
 # so this is the line that says which pair this boot is really running).
 log "resolved: openchamber $(openchamber --version 2>/dev/null || echo 'n/a') · opencode $(opencode --version 2>/dev/null || echo 'n/a')"
 
+# ── Interactive browser (Chromium + KasmVNC) ────────────────────────────────────
+# A real, windowed Chromium on a virtual X display, reachable from a laptop browser over an
+# HTML5 VNC client — so manual sign-in (QR code, CAPTCHA, 2FA, device pairing) is possible —
+# and exposing CDP on loopback for the agent to attach to the SAME signed-in session.
+# Enabled unless BROWSER_ENABLE=0. chromium + CJK fonts are apt; KasmVNC is NOT in Debian and
+# comes from a pinned GitHub-release .deb (amd64 only). Runbook: docs/interactive-browser.md
+# Installed per boot because / is rebuilt on redeploy; guarded so a re-run is a no-op.
+if [ "${BROWSER_ENABLE:-1}" != 0 ]; then
+  if command -v kasmvncserver >/dev/null 2>&1 && command -v chromium >/dev/null 2>&1; then
+    log "interactive browser: already installed"
+  else
+    log "interactive browser: chromium + KasmVNC"
+    # The apt lists from step 1 were cleaned up, so refresh them for this second apt run.
+    apt-get update -qq
+    apt-get install -y --no-install-recommends \
+      chromium chromium-l10n fluxbox fonts-noto-cjk x11-utils scrot \
+      >/dev/null
+    KASMVNC_VERSION="${KASMVNC_VERSION:-1.5.0}"
+    case "$(uname -m)" in
+      x86_64|amd64) KASMVNC_ARCH=amd64 ;;
+      *) KASMVNC_ARCH="" ;;
+    esac
+    if [ -z "$KASMVNC_ARCH" ]; then
+      log "warning: KasmVNC .deb is pinned for amd64 — skipping on $(uname -m)"
+    else
+      KASMVNC_DEB="/tmp/kasmvncserver_bookworm_${KASMVNC_VERSION}_${KASMVNC_ARCH}.deb"
+      if curl -fsSL -o "$KASMVNC_DEB" \
+           "https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/kasmvncserver_bookworm_${KASMVNC_VERSION}_${KASMVNC_ARCH}.deb"; then
+        apt-get install -y "$KASMVNC_DEB" >/dev/null \
+          || log "warning: KasmVNC install failed (continuing without the interactive browser)"
+      else
+        log "warning: KasmVNC download failed (continuing without the interactive browser)"
+      fi
+      rm -f "$KASMVNC_DEB"
+    fi
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+  fi
+fi
+
 # ── book-to-skill PDF extractors ─────────────────────────────────────────────────
 # The baked book-to-skill skill (opencode-config/opencode/skills/book-to-skill) runs
 # scripts/extract.py, which needs a PDF text extractor. poppler's pdftotext (apt, step 1)
@@ -226,6 +270,8 @@ printf 'ffmpeg    %s\n' "$(ffmpeg -version 2>/dev/null | head -1)"
 printf 'lsof      %s\n' "$(lsof -v 2>&1 | grep -oE 'revision: [0-9.]+' | head -1)"
 printf 'pdftotext %s\n' "$(pdftotext -v 2>&1 | head -1)"
 printf 'pypdf     %s\n' "$(python3 -c 'import pypdf; print(getattr(pypdf, "__version__", "installed"))' 2>/dev/null || echo missing)"
+printf 'chromium  %s\n' "$(chromium --version 2>/dev/null || echo missing)"
+printf 'kasmvnc   %s\n' "$(dpkg-query -W -f='${Version}' kasmvncserver 2>/dev/null || echo missing)"
 
 cat <<EOF
 

@@ -269,5 +269,16 @@ if command -v openchamber >/dev/null 2>&1; then
         || echo "[entrypoint] warning: OpenChamber failed to start (continuing without web UI)"
 fi
 
+# ---- Interactive browser (KasmVNC): a real Chromium on a virtual display ----
+# Optional; opt out with BROWSER_ENABLE=0. Started AFTER OpenChamber so the browser can never
+# compete with it for the boot window, and it starts no opencode process of its own — OpenChamber
+# stays the sole opencode owner. The browser keeps a DevTools endpoint on loopback (CDP) for the
+# agent and an HTML5 VNC view for manual sign-in (QR/CAPTCHA/2FA); its profile lives on the
+# volume so sign-ins survive a redeploy. Non-fatal: a failure here must not stop the container.
+# See docs/interactive-browser.md.
+if [ "${BROWSER_ENABLE:-1}" != 0 ] && [ -x /scripts/start-browser.sh ]; then
+    /scripts/start-browser.sh || echo "[entrypoint] warning: interactive browser failed to start (continuing)"
+fi
+
 # ---- Keep the container alive ----
 exec tail -f /dev/null
