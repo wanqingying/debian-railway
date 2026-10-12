@@ -145,6 +145,9 @@ curl -s http://127.0.0.1:9222/json/list       # -> open pages
     `chrome-devtools-mcp` with a WebSocket/CDP endpoint.
 - Login persistence for the agent path is handled by the on-volume `--user-data-dir` (or Playwright
   `storageState`).
+- For *what to do* once attached — adapter CLIs (`opencli`) vs raw Playwright/CDP, the credentials
+  bridge, and the OpenCLI `reddit search` pagination gap — see
+  [`agent-web-access.md`](./agent-web-access.md).
 
 ## 7. Security
 
