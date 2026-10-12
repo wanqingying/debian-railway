@@ -190,6 +190,7 @@ curl -s http://127.0.0.1:9222/json/list       # -> open pages
 | UI stays English despite `--lang=zh-CN` | Chromium on Linux takes the UI locale from the **environment** (`LANG`/`LANGUAGE`), not `--lang`. `start-browser.sh` sets `LANG=zh_CN.UTF-8 LANGUAGE=zh_CN`; `chromium-l10n` must be installed (only `en-US.pak` ships otherwise) |
 | `wss://…/websockify` returns 404 | the request needs a `Sec-WebSocket-Protocol` header; without it the server treats it as a plain HTTP file request. A correct client upgrades with **101** |
 | SSH "REMOTE HOST IDENTIFICATION HAS CHANGED" | container host key is not persisted; each redeploy regenerates it. Verify the fingerprint inside the container (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) then `ssh-keygen -R "[host]:port"` on the laptop. Permanent fix = persist the host key on the volume (see §10) |
+| After a redeploy: browser window shows a modal *"another computer (…) is using this profile"*, and `curl 127.0.0.1:9222/json/version` is **refused** | the persisted `--user-data-dir` still holds the **previous** container's Chromium *process-singleton* lock (`SingletonLock` → `hostname-PID`); both change across a redeploy, so Chromium refuses the profile and never starts its DevTools server. `start-browser.sh` now `rm -f`s `SingletonLock`/`SingletonSocket`/`SingletonCookie`/`DevToolsActivePort` before launch (no chromium is running then, so the lock is always stale). Manually: kill chromium, delete those four files under `BROWSER_PROFILE_DIR`, re-run `start-browser.sh` |
 
 ## 10. Open items
 
