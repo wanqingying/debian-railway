@@ -60,6 +60,8 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 - 别指望前台调用里 `cmd &`：工具会等 stdout EOF，仍可能阻塞。要手动脱离：`setsid nohup cmd >/tmp/<job>.log 2>&1 </dev/null &`。
 - 要跨重启（更新 / redeploy 会重启服务）：后台 shell 句柄随服务消失 → 改用 `setsid nohup …`，并回报日志路径。
 
+**批量任务：先小样，再全量。** 全量运行前必须先用小批量（1~5 条 / 1 页 / 单分片）试跑，核对输出字段、数量、边界与写库结果符合预期，确认后再放大到全量。
+
 **可观测（长任务必须）：**
 - stdout+stderr 都重定向到日志，绝不丢输出。
 - 脚本自报进度，**至少每 ~30s** 一行心跳：阶段 / 已完成 / 总数 / 耗时 / 错误数。`tail -f` 一眼看出「在跑」还是「卡死」。
