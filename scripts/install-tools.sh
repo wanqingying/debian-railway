@@ -189,6 +189,29 @@ fi
 # so this is the line that says which pair this boot is really running).
 log "resolved: openchamber $(openchamber --version 2>/dev/null || echo 'n/a') · opencode $(opencode --version 2>/dev/null || echo 'n/a')"
 
+# ── CodeGraph ─────────────────────────────────────────────────────────────────
+# Baked into the image (Dockerfile: `npm i -g @opencode/cli @colbymchenry/codegraph`)
+# and upgraded on every boot so the graph tool tracks upstream. `codegraph upgrade`
+# fetches the latest release itself; if that fails (upstream 5xx / release service
+# unreachable) fall back to the npm route the image already uses.
+# CODEGRAPH_UPGRADE=0 holds the baked version.
+# Non-fatal, like everything else here: a broken release must not take SSH down.
+CODEGRAPH_UPGRADE="${CODEGRAPH_UPGRADE:-1}"
+if command -v codegraph >/dev/null 2>&1; then
+  if [ "$CODEGRAPH_UPGRADE" = "0" ]; then
+    log "CodeGraph upgrade skipped (CODEGRAPH_UPGRADE=0)"
+  else
+    log "CodeGraph upgrade to latest"
+    # `timeout -k 15 … </dev/null`: GNU timeout puts the child in its own process
+    # group, so a child that reads stdin gets SIGTTIN-stopped and then survives
+    # SIGTERM forever — stdin redirection plus a kill-after is the guard.
+    timeout -k 15 300 codegraph upgrade </dev/null >/dev/null 2>&1 \
+      || npm install -g "@colbymchenry/codegraph@latest" >/dev/null 2>&1 \
+      || log "warning: CodeGraph upgrade failed (keeping the current version)"
+  fi
+  log "resolved: codegraph $(codegraph --version 2>/dev/null || echo 'n/a')"
+fi
+
 # ── Interactive browser (Chromium + KasmVNC) ────────────────────────────────────
 # A real, windowed Chromium on a virtual X display, reachable from a laptop browser over an
 # HTML5 VNC client — so manual sign-in (QR code, CAPTCHA, 2FA, device pairing) is possible —
