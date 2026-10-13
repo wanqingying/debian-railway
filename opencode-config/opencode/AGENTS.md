@@ -69,7 +69,7 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 - 早期体检：启动后 ~30s 内确认日志在真实推进，而不是启动即错（参数错、缺依赖、DB 锁）——先修好再放手。
 - 给边界：超时 / 最大条数 / 检查点，避免无限挂起。网络调用显式设 timeout（默认可能是无限）。
 
-**回报：**
+**汇报：**
 - 启动时：报 shell ID、日志路径、怎么看、预计时长。
 - 失败时：贴日志里的真实报错，不许吞。
 - 静默 ~1 分钟 → 主动报状态；绝不留下静默长任务。
