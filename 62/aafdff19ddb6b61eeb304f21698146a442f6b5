@@ -1,0 +1,21 @@
+AGENTS.md
+  s_b2e23253fe6fcb::t_314685d021663e 46
+scripts/install-tools.sh
+  s_b2e23253fe6fcb::t_40a29c37cd4205 187-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "62aafdff19ddb6b61eeb304f21698146a442f6b5",
+  "prompts": {},
+  "sessions": {
+    "s_b2e23253fe6fcb": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "87a16222-ef33-46dc-bef0-e9ea3536c844",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "qywan@trip.com <qywan@trip.com>"
+    }
+  }
+}
