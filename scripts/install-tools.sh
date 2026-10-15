@@ -173,8 +173,12 @@ fi
 # OpenChamber 2.x drives OpenCode 2.x and will not use v1: with `opencode-ai`
 # installed it reports "Configured OpenCode binary not found" and runs without an
 # agent. `@opencode/cli` installs the v2 `opencode` binary that OpenChamber finds
-# on PATH. Its postinstall script downloads the platform binary, so npm 11 needs
-# --allow-scripts (same reason as @railway/cli below).
+# on PATH. npm 11 needs --allow-scripts here too (same flag as @railway/cli
+# below). Note the flag does NOT gate the binary: measured on npm 11.19.1, the
+# platform payload rides along as an optionalDependency that npm itself
+# hard-links into bin/, so `opencode` works with or without the flag. Passing it
+# just silences the install-scripts warning and lets the package's own
+# postinstall (binary resolution / AVX2 selection) run.
 # The Dockerfile bakes this package too, so the guard below normally skips the
 # install; this is the pin knob for a bad release. Installed per boot because
 # /usr/local (npm global) is wiped on redeploy.
@@ -190,8 +194,9 @@ fi
 log "resolved: openchamber $(openchamber --version 2>/dev/null || echo 'n/a') · opencode $(opencode --version 2>/dev/null || echo 'n/a')"
 
 # ── CodeGraph ─────────────────────────────────────────────────────────────────
-# Baked into the image (Dockerfile: `npm i -g @opencode/cli @colbymchenry/codegraph`)
-# and upgraded on every boot so the graph tool tracks upstream. `codegraph upgrade`
+# Baked into the image (Dockerfile: `npm i -g --allow-scripts=@opencode/cli`
+# `@opencode/cli @colbymchenry/codegraph`) and upgraded on every boot so the
+# graph tool tracks upstream. `codegraph upgrade`
 # fetches the latest release itself; if that fails (upstream 5xx / release service
 # unreachable) fall back to the npm route the image already uses.
 # CODEGRAPH_UPGRADE=0 holds the baked version.
