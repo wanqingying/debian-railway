@@ -50,7 +50,19 @@ ENV NODE_ENV=development \
 # scripts/install-tools.sh only installs opencode when it is missing, so its
 # version variable is the fallback/pin knob, not the source of truth. If a bad
 # upstream release has to be kept out, pin it here *and* in that script.
-RUN npm i -g @opencode/cli @colbymchenry/codegraph && npm cache clean --force
+#
+# --allow-scripts=@opencode/cli silences a build warning and keeps the install
+# deterministic under npm 11:
+#   npm warn install-scripts @opencode/cli@<v> (postinstall: node ./postinstall.mjs)
+# Measured (node:24 / npm 11.19.1, two isolated containers): the binary WORKS
+# either way — @opencode/cli ships every platform payload as an optionalDependency
+# and npm itself hard-links it into bin/opencode.exe (same inode, links=2), so
+# postinstall is not what fetches it. With the flag the warning count goes 4 -> 0.
+# The flag is still worth passing: postinstall.mjs is the package's own binary
+# resolution/AVX2-selection step, and letting it run is the supported path rather
+# than depending on a layout that happens to work today.
+RUN npm i -g --allow-scripts=@opencode/cli @opencode/cli @colbymchenry/codegraph \
+    && npm cache clean --force
 
 # ---- Bake non-sensitive opencode config (copied from host global config) ----
 # Sensitive credentials (auth.json / account.json / opencode.db) are NOT baked;
