@@ -15,6 +15,12 @@ mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 export OPENCHAMBER_DATA_DIR="${OPENCHAMBER_DATA_DIR:-$XDG_CONFIG_HOME/openchamber}"
 mkdir -p "$OPENCHAMBER_DATA_DIR"
 
+# ---- answer-me-with-html skill data: pin to the volume ----
+# The skill's bundled `am` CLI writes pages/videos/themes under AM_HOME, which
+# defaults to ~/.answer-me-with-html (ephemeral /root), so point it onto the
+# volume to keep rendered pages across redeploys.
+export AM_HOME="${AM_HOME:-$XDG_DATA_HOME/answer-me-with-html}"
+
 # A few auxiliary writers (managed-process registry, telemetry install id in
 # package-manager.js) resolve ~/.config/openchamber directly and ignore
 # OPENCHAMBER_DATA_DIR. Point the default path at the same volume directory so
