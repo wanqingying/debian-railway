@@ -199,24 +199,6 @@ if [ -x /scripts/install-tools.sh ]; then
     /scripts/install-tools.sh
 fi
 
-# ---- Magic Context housekeeping: delete finished dreamer/historian child sessions ----
-# Every scheduled dreamer/historian run is a real OpenCode session (metadata
-# {"magic_context":"hidden-run"}). Settled ones are supposed to be deleted after
-# the run, but under a plain `opencode serve` host -- which is what OpenChamber
-# starts -- a plugin has no way to delete sessions (upstream #558): the plugin
-# records the finished children instead, and `doctor --fix` performs the deletion,
-# which it only does with both session stores closed and unheld. This point in the
-# boot is exactly that window: OpenChamber has not started its embedded opencode
-# yet. Skipping this lets the sessions pile up in the OpenChamber list at roughly
-# one per project per role per day, because OpenChamber does not read the
-# magic_context marker and has no filter for it.
-# Bounded and non-fatal, like install-tools.sh above: doctor backs opencode.db up
-# before deleting anything and refuses (rather than guessing) when a store is
-# held or the store is not the verified OpenCode 2 schema, so a failure here must
-# not stop the container. Its exit status is reported rather than branched on:
-# doctor also exits nonzero for checks that simply need a running OpenCode host
-# (the hidden-agent model catalog cannot be read before OpenChamber starts), so
-# "exit 1" here is normal and says nothing about whether the cleanup happened.
 # ---- Drop the pinned "@latest" plugin cache so it re-resolves ----
 # opencode pins the version it resolved for an "@latest" plugin inside its npm cache
 # (~/.cache/opencode/npm/<pkg>@latest/<timestamp>/) and never re-resolves it, so the
@@ -234,21 +216,30 @@ for d in "$HOME/.cache/opencode/npm" "${XDG_CACHE_HOME:-$HOME/.cache}/opencode/n
     fi
 done
 
-if [ -f "$OPENCODE_DB_FILE" ] && command -v npx >/dev/null 2>&1; then
-    MC_STATUS=0
-    # `</dev/null` + `-k 15` are deliberate, not decoration:
-    # GNU timeout puts the child in its OWN PROCESS GROUP. Whenever the caller has a
-    # controlling tty (any interactive/vscontainer start) that group is a *background*
-    # group of that tty, so the first read from stdin raises SIGTTIN and STOPS the child
-    # (ps state T, wchan do_signal_stop). timeout's SIGTERM is then only *pending* — a
-    # stopped process cannot act on it (only SIGKILL works) — so the caller waits forever
-    # on a corpse. Observed 2026-10-10: a container boot wedged at doctor for good.
-    # dtach/detached starts (Railway) get stdin = /dev/null so they never hit it; keep
-    # this anyway so the guard does not depend on how the container happens to be started.
-    timeout -k 15 300 npx --yes "@cortexkit/magic-context@${MAGIC_CONTEXT_VERSION:-latest}" \
-        doctor --fix --harness opencode </dev/null || MC_STATUS=$?
-    echo "[entrypoint] magic-context: doctor --fix exit ${MC_STATUS} (non-fatal)"
-fi
+# NOTE: this boot used to run `npx @cortexkit/magic-context doctor --fix --harness
+# opencode` right here, to delete finished dreamer/historian child sessions, which
+# older versions could not remove under a plain `opencode serve` host (upstream
+# cortexkit/magic-context#558) and which therefore piled up in the OpenChamber list
+# at roughly one per project per role per day (OpenChamber does not read the
+# `magic_context: hidden-run` marker and has no filter for it).
+#
+# That is no longer needed. Magic Context now requires OpenCode >= 2.0.22 for hidden
+# runs and removes each run's child through the NATIVE SESSION API when the run ends,
+# "whether or not the host runs as a service". Verified in this container on OpenCode
+# 2.0.32 + magic-context 0.49.12: historian and dreamer both ran after boot (historian
+# ~19 min in, dreamer ~3 h in) and created no new `magic_context: hidden-run` sessions,
+# and `doctor list-hidden-sessions` reports nothing left to collect. The six child
+# sessions still visible in the session list are legacy rows from 2026-09-25 .. 10-12
+# that the boot batches can no longer reach (the doctor's recorded inventory is empty).
+#
+# Dropping the call also removes the ONLY automatic source of an orphaned
+# `opencode serve --service`: doctor's model-catalog check shells out to
+# `opencode api model.list`, the CLI boots its background service for that call, and
+# the service outlives the doctor (reparented to PID 1, ~500 MB, its own codegraph MCP
+# tree, a second magic-context plugin instance, holding opencode.db + context.db).
+# The stop call that used to clean that up went with it. To diagnose by hand instead,
+# run `npx @cortexkit/magic-context@latest doctor --harness opencode` in the container
+# and then `opencode service stop`.
 
 # ---- OpenChamber: web UI that spawns/manages its own OpenCode server ----
 # OpenChamber 2.x drives OpenCode 2.x. It starts the embedded `opencode serve`
