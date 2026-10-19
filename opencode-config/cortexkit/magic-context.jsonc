@@ -1,16 +1,74 @@
 {
-  "$schema": "https://raw.githubusercontent.com/cortexkit/opencode-magic-context/master/assets/magic-context.schema.json",
+  "$schema": "https://raw.githubusercontent.com/cortexkit/magic-context/master/assets/magic-context.schema.json",
   "enabled": true,
+
+  // Magic Context owns the context window; this is MC's own switch, unrelated to
+  // OpenCode's `compaction.auto` in opencode.jsonc (which is off so the two never
+  // both rewrite the prompt prefix). Pinned rather than inherited so an upstream
+  // default change cannot silently hand the window back to native compaction.
+  "compaction": {
+    "enabled": true
+  },
+
+  // MC's own deferral gate: how long a provider's cached prefix is assumed valid.
+  // It does not change the provider's cache lifetime, only when pending drops /
+  // folds are allowed to apply. 5m matches the generic fallback.
   "cache_ttl": {
     "default": "5m"
   },
+
+  // Fire the historian on natural work-unit boundaries (commit clusters), not only
+  // under context pressure. Pinned at the documented defaults.
+  "commit_cluster_trigger": {
+    "enabled": true,
+    "min_clusters": 3
+  },
+
+  // When MC cannot open context.db (schema fence after a version skew), block the
+  // turn with a loud recovery error instead of silently degrading to native
+  // compaction. Loud beats silent: a silently degraded turn is what used to show
+  // up as an unexplained "OpenCode interrupted this reply".
+  "fail_closed_blocking": true,
+
   "history_budget_percentage": 0.1,
   "temporal_awareness": true,
+
+  // Hidden agents have NO built-in fallback chain: without fallback_models a failing
+  // primary is simply retried, never replaced. The historian would fall back to the
+  // active session model as a last resort; the dreamer would not fall back at all.
+  // Aliases of the same backend are useless here, so these are different models.
   "historian": {
-    "opencode": {"model":"commandcode/deepseek-v4-flash"},"pi": {"model":"commandcode/deepseek-v4-flash"}
+    "opencode": {
+      "model": "commandcode/deepseek-v4-flash",
+      "fallback_models": ["commandcode/deepseek-v4-pro", "commandcode/gpt-5-6-luna"]
+    },
+    "pi": {
+      "model": "commandcode/deepseek-v4-flash",
+      "fallback_models": ["commandcode/deepseek-v4-pro", "commandcode/gpt-5-6-luna"]
+    }
   },
   "dreamer": {
-    
+    "opencode": {
+      "model": "commandcode/deepseek-v4-flash",
+      "fallback_models": ["commandcode/deepseek-v4-pro", "commandcode/gpt-5-6-luna"],
+      "tasks": {
+        // verify re-checks the file-mapped memory pool against the codebase; a batch
+        // over the whole pool has timed out at the default budget before.
+        "verify": {
+          "timeout_minutes": 30
+        },
+        "verify-broad": {
+          "timeout_minutes": 30
+        }
+      }
+    },
+    "pi": {
+      "model": "commandcode/deepseek-v4-flash",
+      "fallback_models": ["commandcode/deepseek-v4-pro", "commandcode/gpt-5-6-luna"]
+    },
+    // Every memory-maintenance task is listed explicitly (at the documented default
+    // schedules) so this baked file stays the source of truth: an upstream default
+    // change must not silently alter what runs overnight here. `""` disables a task.
     "tasks": {
       "map-memories": {
         "schedule": "0 2 * * *"
@@ -18,22 +76,41 @@
       "verify": {
         "schedule": "0 3 * * *"
       },
-      "curate": {
+      "verify-broad": {
         "schedule": "0 4 * * 0"
       },
-      "classify-memories": {
-        "schedule": "0 6 * * *"
+      "curate": {
+        "schedule": "0 4 * * 0"
       },
       "retrospective": {
         "schedule": "0 5 * * *"
       },
+      "classify-memories": {
+        "schedule": "0 6 * * *"
+      },
       "evaluate-smart-notes": {
         "schedule": "0 3 * * *"
       },
-      "verify-broad": {
-        "schedule": "0 4 * * 0"
+      "promote-primers": {
+        "schedule": "0 3 * * *"
+      },
+      "refresh-primers": {
+        "schedule": "0 3 * * *"
+      },
+      "review-user-memories": {
+        "schedule": "0 3 * * *"
+      },
+      // Serves only the experimental `mural` feature, which is off. Observed here as
+      // a daily run that skips itself with "mural is not enabled".
+      "compress-cues": {
+        "schedule": ""
+      },
+      // Would propose edits to ARCHITECTURE.md / STRUCTURE.md. Our docs are
+      // hand-maintained in git; off by default upstream, pinned off here.
+      "maintain-docs": {
+        "schedule": ""
       }
-    },"opencode": {"model":"commandcode/deepseek-v4-flash"},"pi": {"model":"commandcode/deepseek-v4-flash"}
+    }
   },
   "embedding": {
     "provider": "openai-compatible",
@@ -55,9 +132,5 @@
       "since_days": 365,
       "max_commits": 2000
     }
-  },
-  "sidekick": {
-    "model": "commandcode/deepseek-v4-flash",
-    "timeout_ms": 30000
   }
 }
