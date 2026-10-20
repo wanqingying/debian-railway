@@ -1,139 +1,240 @@
 ---
 name: code-review
-description: Deep code review of a merge request using codegraph, git blame, and PRD context. Use for merge request review tasks.
+description: Review a pull request, merge request, branch, commit range, or working-tree diff for correctness, security, and fit with the repository's own conventions. Use when asked to review code or a change before merge, when reviewing a revision after feedback, and before shipping a risky change.
 ---
 
-# Code Review Skill
+# Code Review
 
-You are an expert code reviewer performing deep analysis on a merge request.
-You have FULL access to the codebase via codegraph, git, and file tools.
-You work inside the MAIN repository review directory at `<main_repo_path>` (provided in the prompt).
+# Part 1 — The constants
 
-## ⚠️ 禁止运行命令（IMPORTANT）
+## 1.1 Read the project's rules first
 
-This review is **static code analysis ONLY**. Do **NOT** run any commands that:
-- execute, build, run, or test code (`npm test`, `npm run build`, `node script.ts`, `tsc`, `ts-node`, `bun`, etc.)
-- install packages (`npm install`, `pip install`, etc.)
-- run linters / formatters / type-checkers (`eslint`, `prettier`, `tsc --noEmit`, etc.)
-- start servers or run the application
+- `AGENTS.md`, `CONTRIBUTING.md`, `README.md`
+- lint / format / type config, CI config
+- architecture docs (`docs/`, ADRs) and the line-of-business docs for the area
+- the code around the change
 
-Allowed commands are **read-only git queries** only:
-- `git diff`, `git log`, `git show`, `git blame`, `git rev-parse`, `git status`, `git branch`
-- `ls`, `cat`, `find` (reading files)
+**Repository rules beat your taste.** Where the repo is silent, use 1.2.
 
-Reason: the review runs in a prepared clone; executing code could mutate state or fail the pipeline.
-Judge correctness by **reading the code logic**, not by running it.
+## 1.2 The standard
 
-## Repository Layout
+- **Precision over recall.** Three findings that are right beat ten where two are wrong.
+- **Evidence or nothing.** Every finding names the file, the line, and the concrete reason: the failing input, the missing guard, the caller that breaks.
+- **The change, not the codebase.** Judge what the diff touched plus the minimum context needed. Pre-existing problems go in their own section, not the main list.
+- **Whole files, not hunks.** If a change is too hard to follow, report that as a finding.
+- **A verdict, always.** Approve / approve with nits / request changes.
+- **A spec's silence is not permission.** Where it says nothing, judge by what a reasonable user of this code would expect.
 
-The MR's code is prepared by `review-prepare.ts` under:
-`/data/repos/project_<id>/reviews/<mr_id>/repos/<repo_id>-<repo_name>/`
+## 1.3 What not to review
 
-- The **main repo** is your working directory (the MR's changes live here).
-- **Dependency repos** (sibling directories, cross-project analysis) may exist
-  under the same `repos/` parent. Read them via file/codegraph tools when
-  verifying cross-project API contracts.
+- what a tool already enforces: formatting, import order, lint, type errors
+- unchanged code, except where the change depends on it
+- personal preference — say it as `Nit:`, never block on it
+- generated code, vendored dependencies, lockfile content (read its *diff*)
 
-## Review Standards
+## 1.4 Severity
 
-### Severity Levels
-- error: must fix before merge — security vulnerabilities, data corruption, logic errors, breaking API contract changes
-- warning: should fix — performance issues, missing error handling, code smell, deviation from team conventions
-- info: suggestion — code style, naming, documentation gaps
+- **blocker** — must fix before merge: security, data loss, broken contract, wrong result
+- **should-fix** — a real defect or a maintenance cost that will bite
+- **nit** — optional polish, never blocks
+- **pre-existing** — outside this change; at most three, in their own section
 
-### Per-File-Type Focus
-- *.ts/*.tsx: type safety, React hooks rules, component contract changes
-- *.go: goroutine leaks, race conditions, error handling, context propagation
-- *.sql: missing indexes, N+1 queries, migration safety
-- *.proto: backward compatibility, field deprecation
+---
 
-### Team Conventions (from project config)
-- API calls must use the unified request wrapper
-- Error responses must follow {code, message, data} format
-- Auth must use Bearer token via Authorization header
+# Part 2 — The process
 
-## Two-Axis Review
+## 2-1. Understand the intent
 
-Review every changed hunk along TWO independent axes (report both, don't merge them):
+Read the intent before any code. Sources, strongest first:
 
-1. **Spec** — does the code faithfully implement the originating PRD / design doc?
-   - Requirements asked for but missing or partial
-   - Behaviour added that wasn't asked for (scope creep)
-   - Requirements implemented but the implementation is logically wrong
-2. **Standards** — does the code conform to documented conventions AND avoid the smell baseline?
+1. the requirement / spec (`docs/`, `specs/`, `prd/`, issue)
+2. the technical design or ADR
+3. the conversation history — when the change was written in this session, this is the primary record: the requirement as stated, the decisions taken, the constraints, and what was explicitly deferred
+4. the PR/MR description
+5. commit messages
+6. the diff itself — mark it as an inference when it is the only source
 
-### Code Smell Baseline (Fowler, Refactoring ch.3)
+Reviewing a change written in this session: the history supplies the benchmark, not the justification. Deferred items are gaps. Decisions are claims to check against the code, not facts to accept.
 
-A fixed set of smells that applies even when the repo documents nothing.
-Each is a labelled heuristic ("possible Feature Envy"), NEVER a hard violation.
-If a documented repo standard endorses something the baseline would flag, the repo standard wins.
-Skip anything tooling already enforces.
+Pin down the target:
 
-Match each against the diff:
+| Target | How |
+|---|---|
+| PR / MR | `gh pr view <n>`, `gh pr diff <n>` |
+| Branch | `git merge-base origin/main HEAD`, then `git diff <base>...HEAD` |
+| Commit range | `git diff <from>..<to>` |
+| Working tree | `git diff`, `git diff --staged` |
+| Re-review | only the commits added since the last reviewed SHA |
 
-- **Mysterious Name** — function/variable/type name doesn't reveal what it does → rename
-- **Duplicated Code** — same logic shape in more than one hunk/file → extract the shared shape
-- **Feature Envy** — a method reaching into another object's data more than its own → move it onto that data
-- **Data Clumps** — the same few fields/params travel together → bundle into one type
-- **Primitive Obsession** — primitive/string standing in for a domain concept → give it a type
-- **Repeated Switches** — same switch/if-cascade on the same type recurs → replace with polymorphism or a shared map
-- **Shotgun Surgery** — one logical change forces scattered edits → gather into one module
-- **Divergent Change** — one file edited for several unrelated reasons → split
-- **Speculative Generality** — abstraction/hooks added for needs the spec doesn't have → delete
-- **Message Chains** — long `a.b().c().d()` navigation → hide behind one method
-- **Middle Man** — a class/function that mostly delegates onward → cut it
-- **Refused Bequest** — subclass ignores most of what it inherits → use composition
+Set the depth:
 
-## Analysis Process
+- **tiny** (< 50 changed lines, ≤ 3 files): one pass.
+- **normal**: the full process.
+- **large** (> 400 lines or > 20 files): say so, recommend splitting, review the riskiest files first — security, data, contracts, concurrency — and list what you skipped.
 
-1. **Prepare repositories** (only if the main repo directory is missing/empty):
-   Run the review-prepare command provided in the prompt.
-   It clones/fetches the repos and prints a JSON map — use the returned MAIN repo path.
-   **If the returned JSON has `force_pushed: true`** (rebase/force-push rewrote history):
-   the incremental range is invalid → treat this as a FULL review (ignore the range,
-   diff the whole source branch against target) and note "force-push detected" in the summary.
-2. **Read intent context (self-serve)**:
-   - For each PRD ID listed in the prompt, read `docs/prd/<PRD-ID>/prd.md` and `tech-design.md` from the main repo.
-     If missing, infer intent from commit messages + diff.
-   - Read `.review/` knowledge files (conventions/architecture/business-guide) if present.
-3. **Identify review scope (incremental)**:
-   - If an incremental range is provided in the prompt AND prepare did NOT report force_pushed
-     (push 后续提交): `git diff <range> --name-only` → ONLY review the new commits' changes
-   - Else (首次 open 或 force-push): `git diff <target_branch>...<source_branch> --name-only`
-   - Full codebase remains accessible via codegraph/file tools for impact analysis
-4. For each changed file:
-   a. Read the full file with codegraph_explore (or file tool)
-   b. Use codegraph_impact to understand who calls changed functions
-   c. Use codegraph_callees to trace what the changed code depends on
-   d. For API changes: check cross-project dependencies (paths provided)
-5. Evaluate along BOTH axes (Spec vs Standards) per hunk; apply the smell baseline.
-6. For cross-project analysis: use codegraph on the dependency repos with
-   the provided paths to verify API contract compatibility
-7. Review the previous findings statuses (provided in the prompt): identify which are resolved by this
-   change, which are now outdated, and which remain open
+Record the prior state: `gh pr checks <n>` (name the failing job if CI is red; do not re-derive it), and every finding from the previous round as *fixed*, *still open* or *obsolete*.
 
-## Author Attribution
+Write one paragraph: what this change claims to do, and its tier.
 
-For EACH finding, run `git blame -L <line_start>,<line_end> <file_path>` inside the main repo
-and record the author of the responsible commit:
-- author_name: from blame output
-- author_email: from blame output
-- author_commit: the commit SHA from blame
-If a line range spans multiple commits, use the commit that touched the MOST lines (primary author).
+## 2-2. Understand the current state
 
-## Output Format
+- Read the architecture of the area: module boundaries, data flow, the layer this change belongs to, what already exists that it could reuse.
+- Read the related code: what it calls, what calls it, the tests that cover it.
+  `codegraph`: confirm `.codegraph/` (else `codegraph init`), run `codegraph sync`, then `codegraph_explore` for the symbols and their call paths.
+- Read the data: schema, migrations, config keys, env vars the change depends on.
+- Form a model of how this change should fit.
 
-Return findings as JSON matching the schema exactly. Each finding MUST include:
-- file_path, line_start, line_end
-- severity (error|warning|info)
-- category (security|performance|bug|style|convention|cross_project)
-- prd_id (from the PRD IDs provided in the prompt, if applicable)
-- author_name, author_email, author_commit (from git blame)
-- message: SHORT plain-text summary (≤ 20 words, NO markdown, NO line breaks) — used as a list item title
-- suggestion: FULL detailed description as GitLab Markdown — the actionable body:
-  - Start with a bold one-line explanation of WHY it's a problem
-  - Include concrete code examples showing the fix
-  - Use a short bullet list for extra notes (severity rationale, edge cases)
-  - Never use tables; keep each suggestion focused on one issue
+List the contracts the change can break.
 
-**CRITICAL — output JSON string values must never contain ```.**
+## 2-3. Review the change
+
+Read the full changed files. Walk one happy path and one failure path. Check the other side of every boundary the change crosses: API, schema, message, CLI flag, config key.
+
+Answer two questions separately: **does it do the right thing**, and **is it done the right way**.
+
+### A. Intent conformance and functional correctness
+
+- is every required behaviour present, and correct?
+- is anything present that nobody asked for? Extra scope is a finding, not a bonus
+- logic holes: wrong condition, off-by-one, wrong variable, unreachable branch
+- system view: is this a sound way to implement it?
+- user view: is the flow complete, is the feedback correct, are errors presented sensibly?
+
+### B. Tests — review them as code
+
+- does each test assert real behaviour, or tautology / a snapshot of current output?
+- **would it fail if the code broke?** Name the change that would turn it red
+- is over-mocking hiding a broken real path?
+- are error and edge cases covered, not just the happy path?
+- **green is not evidence.** For a change to behaviour, output or cost, require something that proves *this* change
+
+### C. Technical and architectural soundness
+
+- right layer? composes with what exists? missed a reusable piece?
+- more complex than the problem? generic for a need that does not exist?
+- **naming**: does the name reveal what the thing is? **comments**: do they explain *why* — a decision, a constraint — rather than restate *what*?
+- **new core dependency or complex library**: check its docs, its alternatives, whether it is the right choice
+- **smells** — name the smell ("possible Feature Envy"), never just "smelly". Heuristics, not violations; repo standards win; skip what tooling enforces.
+  Mysterious Name · Duplicated Code · Feature Envy · Data Clumps · Primitive Obsession · Repeated Switches · Shotgun Surgery · Divergent Change · Speculative Generality · Message Chains · Middle Man · Refused Bequest
+
+### D. Robustness — check each item
+
+- **exceptions**: every failure path handled? swallowed? turned into an incomprehensible crash? does the caller learn?
+- **boundaries and invalid input**: null, zero, empty, huge, over-limit, malformed, hostile — each handled? is external input (user, API, config) validated?
+- **partial failure and consistency**: a multi-step operation that fails midway — dirty data, half-done state? is a transaction, compensation, retry or idempotency key needed?
+- **resources**: connections, file handles, temp files, timers — released on the failure path too? leak or exhaustion risk?
+- **concurrency**: shared state, async callbacks, concurrent access — races, lost updates, missing locks?
+- **timeouts and cancellation**: external calls time-bounded? retries bounded? work cleaned up when cancelled?
+- **observability** — new flows must be diagnosable from logs alone:
+  - greppable lines at the entry and exit of a new flow, at each meaningful branch or decision, and at each external call (provider, DB write, queue, webhook), carrying the identifiers that tie them together
+  - use the repository's existing observability channel; never add a new telemetry or run table
+  - errors carry actionable context; no silent log-and-continue
+  - no secrets, tokens, credentials or raw personal data in logs
+  - signal, not noise: not a line per loop iteration; info for milestones, warn/error for what needs a human
+
+### E. Security — check what the diff touches
+
+- injection: SQL/NoSQL, shell, template, header, path traversal, SSRF
+- authorisation on every new entry point — ownership, not just login (IDOR)
+- secrets in code, logs, error messages, URLs
+- unsafe deserialisation, XXE, prototype pollution, zip-slip
+- crypto: home-made schemes, weak randomness for tokens, missing verification
+- output encoding for rendered data (XSS); CSRF on state-changing routes
+- new dependencies: maintained, pinned, licence-compatible, lockfile updated
+
+### F. Impact on existing behaviour
+
+- callers and callees: what breaks when this signature, shape or ordering changes?
+- data-format changes: every consumer found and checked?
+- config, env and deployment assumptions
+- migration: reversible? backfilled? does an old instance still work during rollout?
+- contract: breaking change? versioned? do old clients still work?
+
+### Size signals
+
+- a change that pushes a file past ~1000 lines — decompose before piling more on
+- a lockfile edited by hand, or a dependency added without a lockfile update
+
+Record each candidate finding with `file:line`, a proposed severity, and the reason.
+
+## 2-4. Verify the conclusions
+
+Attack every candidate before reporting it. For each blocker, and for any should-fix you are not certain about:
+
+- **re-read the exact line** — is the guard really missing, or two lines above?
+- **check the caller** — does the bad input actually reach this function?
+- **check the config** — is the setting that triggers this actually on? grep the config, read the env, query the runtime
+- **check the test** — does an existing test already prove it works?
+- **check the logs / output** — does the code really run this path?
+- **run the cheapest demonstration** — the failing case, the relevant test file, a two-line script. Not the full suite unless asked
+
+Then classify each one:
+
+- **confirmed** — keep it, with the evidence
+- **downgraded** — real but conditional; fix the severity and state the condition
+- **unverified** — cannot be demonstrated in this review: mark it `unverified` and say what would settle it, or drop it
+- **dropped** — it did not survive contact with the code
+
+Never mutate the reviewed branch or push. For another revision, use a temporary `git worktree`.
+
+---
+
+# Part 3 — The report
+
+At most ~10 findings. Merge duplicates. Rank. If nothing blocks, say so plainly.
+
+```
+## Verdict
+approve | approve with nits | request changes
+
+## Summary
+≤5 lines: what it does, can it ship.
+
+## Findings
+### Blocker
+1. `path/file.ts:42` — <what is wrong>
+   Why: <impact>
+   Evidence: <input / call path / config / test / log>
+   Fix: <concrete change>
+### Should-fix
+...
+### Nit
+...
+
+## Intent gaps
+## Prior findings
+## Pre-existing
+## Not reviewed / assumptions
+## Strengths        (≤3, specific)
+```
+
+- A supplied JSON schema overrides this template — read it first, never invent fields.
+- One issue per finding. No tables inside a finding.
+- Posting to the PR only when the user asks.
+- A contested blocker, or a UX/product behaviour change, goes to the human with the evidence attached.
+
+---
+
+# Part 4 — Before you sign
+
+- Did I read the full changed files, not just the hunks?
+- Did I walk a happy path and a failure path?
+- Does every finding carry `file:line` and evidence, and did it survive 2-4?
+- Did I review the tests as code — would they fail if the code broke?
+- Did I check exceptions, boundaries, partial failure, resources, concurrency, timeouts?
+- Are the new flows diagnosable from logs alone, with no secrets in them?
+- Did I check authz, injection and secrets on each new entry point?
+- Did I check every consumer of a changed format, config or contract?
+- Did I resolve every prior finding?
+
+**Excuses to reject**
+
+| Excuse | Reality |
+|---|---|
+| "Tests pass, so it is correct." | CI proves the tests ran, not that they assert the right thing. |
+| "LGTM." | A verdict needs evidence that you read it. |
+| "The diff is big, I will skim." | Say it is big, review the risky files, and list what you skipped. |
+| "I will call it a nit to be safe." | Nits do not block; committing to a severity is the job. |
+| "The linter will catch it." | Then do not report it at all. |
+| "This is probably a bug." | Trace it, or mark it unverified, or drop it. |
+| "It is in the spec, so it must be fine." | The spec says what must happen, not that this implementation achieves it. |
