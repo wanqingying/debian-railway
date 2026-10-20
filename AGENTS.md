@@ -85,6 +85,7 @@ No build/test/lint toolchain — the Dockerfile + entrypoint script are the whol
 - `docs/reddit-data-access.md` — self-contained migration guide for reading Reddit by driving a logged-in browser over CDP (for a project moving off a third-party Reddit API): steps, pitfalls, measured data, and a migration checklist.
 - `docs/mcmod-stats.md` — runbook for `scripts/mcmod/*.mjs`: usage, the mcmod.cn DOM recipe, the login-gated counts, background runs + the `runs` progress table, the browser-vs-websearch comparison, the pitfalls hit (ad-iframe navigation hijack, process exhaustion, the rotating first list slot, the missing request timeout), and the full definition/rationale of the "worth-playing" ranking.
 - `docs/mcmod-db.md` — the mcmod dataset schema: every table/column documented, the DDL, relationships, and query examples (there is no `sqlite3` CLI in the image; query with `node -e` + `node:sqlite`).
+- `docs/modeltrace/` — ModelTrace (numeric-fingerprint model attribution) reference: `README.md` explains the pipeline, the evaluation runbook, measured results and pitfalls; `data/` holds the DeepSeek-V4.1-Flash official reference rows, its single-model bank and the 19-model unified bank; `scripts/` holds the parameterised enrollment / stability / single-response tools that produced the measurements. Run them with the ModelTrace venv interpreter, not the image's Python.
 - `.railwayignore` — files excluded from `railway up` uploads, with negations for `opencode-config/**`.
 - `assets/` — README images only.
 
