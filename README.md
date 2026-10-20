@@ -74,6 +74,7 @@ OpenChamber **2.0.1** 起，下面三种写法都会走原生 `POST /api/session
 - **Agent 联网 / 登录态取数**：[docs/agent-web-access.md](docs/agent-web-access.md) — 适配器 CLI（`opencli` 走 `OPENCLI_CDP_ENDPOINT`、Agent-Reach）与 Playwright/CDP 两条路的实测对比、把浏览器登录态交给 CLI 的凭证桥，以及 OpenCLI `reddit search` 不分页的上游缺口与本地补丁。
 - **Reddit 取数迁移指南**：[docs/reddit-data-access.md](docs/reddit-data-access.md) — 把"第三方 API 抓 Reddit"迁到"驱动登录态浏览器（CDP）"的独立文档：操作步骤、踩坑、实测数据结论与迁移清单。
 - **MC百科 模组数据**：[docs/mcmod-stats.md](docs/mcmod-stats.md)（取数与排序运行手册：`scripts/mcmod/scrape.mjs` / `rank.mjs`，驱动容器内可见浏览器、后台运行 + `runs` 进度表、DOM 配方、"需登录"结论、踩坑、以及「最值得玩」排序算法的完整定义与依据）· [docs/mcmod-db.md](docs/mcmod-db.md)（数据集结构：`data/mcmod.db` 的 DDL、逐列注释与查询示例）。
+- **模型指纹归因（ModelTrace）**：[docs/modeltrace/](docs/modeltrace/README.md) — 用"无语义整数分布"判断 API 背后到底是哪个模型：原理、完整评测运行手册、实测结论（含"同一个模型换渠道"的量化代价）、踩坑清单，以及本次采集的 **DeepSeek-V4.1-Flash 官方指纹库**（36 条回答 + 单模型库 + 19 模型统一库）与可复用脚本。
 
 ## Railway 配置
 
