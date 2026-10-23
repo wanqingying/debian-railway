@@ -92,6 +92,12 @@ RUN chmod +x /scripts/install-tools.sh
 COPY scripts/start-browser.sh /scripts/start-browser.sh
 RUN chmod +x /scripts/start-browser.sh
 
+# ---- Feishu Q&A bridge supervisor ----
+# Keeps the Feishu topic router alive across crashes; started by entrypoint.sh. The bridge itself
+# lives in the joops repo on the volume (/workspace/joops/feishu-bot), not in this image.
+COPY scripts/start-feishu-bridge.sh /scripts/start-feishu-bridge.sh
+RUN chmod +x /scripts/start-feishu-bridge.sh
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
