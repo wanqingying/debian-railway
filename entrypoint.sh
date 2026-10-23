@@ -297,5 +297,17 @@ if [ "${BROWSER_ENABLE:-1}" != 0 ] && [ -x /scripts/start-browser.sh ]; then
     /scripts/start-browser.sh || echo "[entrypoint] warning: interactive browser failed to start (continuing)"
 fi
 
+# ---- Feishu Q&A bridge ----
+# Routes questions asked in an inspection report's topic to the session that wrote it. Started AFTER
+# OpenChamber because it talks to the embedded opencode server, and detached so a crashing bridge can
+# never take the container (or SSH) down with it. The launcher waits for opencode, holds a lock
+# (only one long connection per Feishu app may exist), installs deps when the lockfile moved, and
+# restarts the bridge with capped backoff. Log:
+#   $XDG_DATA_HOME/feishu-bridge/bridge-supervisor.log
+# Opt out with FEISHU_BRIDGE_ENABLE=0.
+if [ -x /scripts/start-feishu-bridge.sh ]; then
+    nohup /scripts/start-feishu-bridge.sh >/dev/null 2>&1 &
+fi
+
 # ---- Keep the container alive ----
 exec tail -f /dev/null
