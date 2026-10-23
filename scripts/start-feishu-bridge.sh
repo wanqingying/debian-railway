@@ -10,9 +10,9 @@
 # /workspace volume is not). Logs and the supervisor lock live on the volume; the bridge's own state
 # (topic ledger, dedupe, outbox, heartbeat) lives with the tool in /workspace/joops/feishu-bot/.inspect.
 #
-# Env (Railway service variables): FEISHU_APP_ID, FEISHU_APP_SECRET, FEISHU_CHAT_ID (comma-separated
-# allow-list), FEISHU_CHAT_NAME (send-time guard), OPENCODE_PORT (default 4096),
-# OPENCODE_SERVER_PASSWORD, FEISHU_THREAD_RETENTION_DAYS (default 7).
+# Env (Railway service variables): FEISHU_APP_SECRET (the only one required — the app id is baked into
+# the tool), FEISHU_CHAT_NAME (send-time guard), FEISHU_STATE_DIR (shared state), OPENCODE_PORT
+# (default 4096), OPENCODE_SERVER_PASSWORD, FEISHU_THREAD_RETENTION_DAYS (default 7).
 # Opt out with FEISHU_BRIDGE_ENABLE=0.
 set -u
 
@@ -38,8 +38,9 @@ if [ ! -f "$BRIDGE_ROOT/src/bridge.ts" ]; then
     exit 0
 fi
 
-if [ -z "${FEISHU_APP_ID:-}" ] || [ -z "${FEISHU_APP_SECRET:-}" ]; then
-    log "FEISHU_APP_ID / FEISHU_APP_SECRET are not set; bridge not started"
+# Only the secret is configuration: the app id is baked into the tool (feishu-bot/src/feishu.ts).
+if [ -z "${FEISHU_APP_SECRET:-}" ]; then
+    log "FEISHU_APP_SECRET is not set; bridge not started (the app id is baked in)"
     exit 0
 fi
 
