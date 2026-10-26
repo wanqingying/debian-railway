@@ -72,6 +72,25 @@ done
 # Only succeeds when the directory is now empty, so user-added commands survive.
 rmdir "$XDG_CONFIG_HOME/opencode/commands" 2>/dev/null || true
 
+# Retired 2026-10-26: these belonged to v1-era features that OpenCode 2 never
+# reads (verified against 2.1.4). `tools/` is not a tool discovery path in v2 --
+# the sysinfo tool moved to plugins/sysinfo/. tui.jsonc (v2 reads cli.json),
+# dcp.jsonc and smart-voice-notify.jsonc (their plugins are not enabled) and the
+# notify assets would otherwise sit on the volume forever, looking live.
+rm -f "$XDG_CONFIG_HOME/opencode/tools/sysinfo.ts"
+rmdir "$XDG_CONFIG_HOME/opencode/tools" 2>/dev/null || true
+for f in tui.jsonc dcp.jsonc smart-voice-notify.jsonc; do
+    p="$XDG_CONFIG_HOME/opencode/$f"
+    if [ -e "$p" ]; then
+        rm -f "$p"
+        echo "[entrypoint] removed retired config: $f"
+    fi
+done
+for f in Machine-alert-beep-sound-effect.mp3 Soft-high-tech-notification-sound-effect.mp3; do
+    rm -f "$XDG_CONFIG_HOME/opencode/assets/$f"
+done
+rmdir "$XDG_CONFIG_HOME/opencode/assets" 2>/dev/null || true
+
 # ---- Migrate a v1 OpenCode session database to the v2 schema ----
 # OpenCode 2 uses a different schema (session_message/session_inbox) than v1
 # (message/part). A v1 database left on this volume from an earlier deploy is
