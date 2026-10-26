@@ -131,13 +131,19 @@ if ! command -v railway >/dev/null 2>&1; then
 fi
 
 # ── OpenChamber (web UI for OpenCode) + OpenCode v2 ───────────────────────────
-# Both are installed at `latest` (official npm method for each):
+# Both are installed **pinned** (not `latest`), using each project's official npm
+# method:
 #   OpenChamber: github.com/openchamber/openchamber (README / scripts/install.sh)
 #                → `npm install -g @openchamber/web`
 #   OpenCode v2: https://opencode.ai/v2/docs → `npm install -g @opencode/cli`
-# Neither version variable is pinned by default; set OPENCHAMBER_VERSION /
-# OPENCODE_VERSION (env, or edit here) to hold a known-good release while a bad
-# upstream one is out, and mirror an opencode pin in the Dockerfile.
+# Defaults live here (2.5.1 / 2.1.4) and can be overridden with
+# OPENCHAMBER_VERSION / OPENCODE_VERSION. Set either to `latest` only if you
+# deliberately want the old "track upstream" behaviour.
+# Why pinned: with `latest` every redeploy could swap either component, so a bad
+# upstream release silently takes down the whole AI stack (and the two must stay
+# matched — see the version-pair note below). Pinning also means the boot only
+# installs when the binary is *missing*, so nothing changes under you.
+# A Dockerfile opencode pin travels with this one: keep them in sync.
 #
 # Why npm -g rather than the curl installers: `curl -fsSL https://opencode.ai/v2/install | bash`
 # and OpenChamber's install.sh drop the binary under $HOME (or pick pnpm/bun when
@@ -157,11 +163,12 @@ fi
 #
 # Version pairing: OpenChamber 2.x drives OpenCode 2.x only and declares a
 # minimum (2.0.1 → MINIMUM_OPENCODE_VERSION = 2.0.15 in
-# server/lib/opencode/compatibility.js). `latest` for both keeps them matched;
-# v1 `opencode-ai` must never be installed (no-agent mode).
+# server/lib/opencode/compatibility.js). The pinned pair below is verified to
+# work together; bump both together, never one alone. v1 `opencode-ai` must
+# never be installed (no-agent mode).
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
-OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-latest}"
+OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.5.1}"
 log "OpenChamber ${OPENCHAMBER_VERSION}"
 if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
@@ -180,9 +187,10 @@ fi
 # just silences the install-scripts warning and lets the package's own
 # postinstall (binary resolution / AVX2 selection) run.
 # The Dockerfile bakes this package too, so the guard below normally skips the
-# install; this is the pin knob for a bad release. Installed per boot because
+# install; this is the fallback when the baked copy is missing. Keep the pin in
+# sync with the Dockerfile line. Installed per boot because
 # /usr/local (npm global) is wiped on redeploy.
-OPENCODE_VERSION="${OPENCODE_VERSION:-latest}"
+OPENCODE_VERSION="${OPENCODE_VERSION:-2.1.4}"
 log "OpenCode CLI (v2) ${OPENCODE_VERSION}"
 if ! command -v opencode >/dev/null 2>&1; then
   npm install -g --allow-scripts=@opencode/cli "@opencode/cli@${OPENCODE_VERSION}" >/dev/null \
