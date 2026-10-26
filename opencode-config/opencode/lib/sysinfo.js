@@ -115,7 +115,9 @@ const collectEnvFlags = () => {
   const flags = [];
   if (fs.existsSync('/.dockerenv')) flags.push('docker');
   const cgroup = readFileIfPresent('/proc/1/cgroup');
-  if (/kubepods/.test(cgroup)) flags.push('kubernetes');
+  // Under cgroup v2 `/proc/1/cgroup` is a bare `0::/`, so the runtime is only
+  // named by the v1 path or the platform's own environment.
+  if (/kubepods/.test(cgroup) || process.env.KUBERNETES_SERVICE_HOST) flags.push('kubernetes');
   else if (/containerd/.test(cgroup)) flags.push('containerd');
   else if (/docker/.test(cgroup) && !flags.includes('docker')) flags.push('docker');
   if (process.env.container && !flags.includes(process.env.container)) flags.push(process.env.container);
@@ -144,7 +146,10 @@ const collectDisk = (target) => {
 };
 
 const CGROUP_ROOT = '/sys/fs/cgroup';
-const readCgroup = (name) => readFileIfPresent(path.join(CGROUP_ROOT, name)).trim();
+// cgroup v1 reports "no limit" as a near-infinite byte count instead of "max".
+const UNLIMITED_BYTES = 2 ** 60;
+
+const readCgroupFile = (dir, name) => (dir ? readFileIfPresent(path.join(dir, name)).trim() : '');
 
 const formatDuration = (ms) => {
   const totalMinutes = Math.max(0, Math.round(ms / 60_000));
@@ -156,38 +161,93 @@ const formatDuration = (ms) => {
   return `${minutes}m`;
 };
 
-// `os.cpus()` and `os.totalmem()` report the *host*: in a container they can be
-// 20x the real quota, and anything sized from them oversubscribes (a 48-thread
-// build under an 8-core quota ran ~70x slower than one sized to the quota).
-// cgroup v2 states what this machine may actually use, so that wins.
-const collectLimits = () => {
-  if (!fs.existsSync(path.join(CGROUP_ROOT, 'cgroup.controllers'))) return null;
-  const limits = { source: 'cgroup v2' };
+// Which cgroup this process is in, per controller: v2 states it once on the
+// `0::/path` line, v1 on every `N:controller[,controller]:/path` line.
+const ownCgroupPaths = () => {
+  const paths = {};
+  for (const line of readFileIfPresent('/proc/self/cgroup').split('\n')) {
+    const match = /^\d+:([^:]*):(\/.*)$/.exec(line.trim());
+    if (!match) continue;
+    const [, controllers, groupPath] = match;
+    if (controllers === '') paths.v2 = groupPath;
+    for (const controller of controllers.split(',')) paths[controller] = groupPath;
+  }
+  return paths;
+};
 
-  const [quota, period] = readCgroup('cpu.max').split(/\s+/);
-  if (quota && quota !== 'max') {
-    const cores = Number(quota) / Number(period);
-    if (Number.isFinite(cores) && cores > 0) {
-      limits.cpuCores = Math.round(cores * 10) / 10;
-      limits.cpu = `${limits.cpuCores} cores (cpu.max ${quota}/${period})`;
+// With a private cgroup namespace the mount root already is this process's own
+// cgroup (`/`); without one it is the host root and the path must be appended.
+// v1 keeps one hierarchy per controller, hence several candidate names.
+const findCgroupDir = (names, groupPath) => {
+  const suffixes = groupPath && groupPath !== '/' ? [groupPath, '/'] : ['/'];
+  for (const name of names) {
+    for (const suffix of suffixes) {
+      const dir = path.join(CGROUP_ROOT, name, suffix);
+      if (fs.existsSync(dir)) return dir;
     }
   }
+  return null;
+};
 
-  const memoryMax = Number(readCgroup('memory.max'));
-  if (Number.isFinite(memoryMax) && memoryMax > 0) {
-    const used = Number(readCgroup('memory.current')) || 0;
-    const peak = Number(readCgroup('memory.peak')) || 0;
-    limits.memoryBytes = memoryMax;
-    limits.memoryUsedBytes = used;
-    const parts = [`${formatBytes(memoryMax)} limit`, `${formatBytes(used)} used`];
-    if (peak > used) parts.push(`${formatBytes(peak)} peak`);
+// `os.cpus()` and `os.totalmem()` report the *host*: in a container they can be
+// 6-20x the real quota, and anything sized from them oversubscribes (a 48-thread
+// build under an 8-core quota ran ~70x slower than one sized to the quota).
+// The cgroup — v2 (unified) or v1 (one hierarchy per controller) — states what
+// this machine may actually use, so that wins.
+const collectLimits = () => {
+  const paths = ownCgroupPaths();
+  const quota = {};
+  const unifiedDir = findCgroupDir([''], paths.v2);
+
+  if (unifiedDir && fs.existsSync(path.join(unifiedDir, 'cgroup.controllers'))) {
+    quota.source = 'cgroup v2';
+    const [max, period] = readCgroupFile(unifiedDir, 'cpu.max').split(/\s+/);
+    Object.assign(quota, {
+      cpuQuota: max === 'max' ? 0 : Number(max),
+      cpuPeriod: Number(period),
+      memoryBytes: Number(readCgroupFile(unifiedDir, 'memory.max')),
+      memoryUsedBytes: Number(readCgroupFile(unifiedDir, 'memory.current')) || 0,
+      memoryPeakBytes: Number(readCgroupFile(unifiedDir, 'memory.peak')) || 0,
+      pidsMax: Number(readCgroupFile(unifiedDir, 'pids.max')),
+      pidsCurrent: Number(readCgroupFile(unifiedDir, 'pids.current')) || 0,
+    });
+  } else {
+    const memoryDir = findCgroupDir(['memory'], paths.memory);
+    const cpuDir = findCgroupDir(['cpu,cpuacct', 'cpu'], paths.cpu);
+    const pidsDir = findCgroupDir(['pids'], paths.pids);
+    if (!memoryDir && !cpuDir && !pidsDir) return null;
+    const memoryBytes = Number(readCgroupFile(memoryDir, 'memory.limit_in_bytes'));
+    const pidsMax = readCgroupFile(pidsDir, 'pids.max');
+    quota.source = 'cgroup v1';
+    Object.assign(quota, {
+      cpuQuota: Number(readCgroupFile(cpuDir, 'cpu.cfs_quota_us')), // -1 is unlimited
+      cpuPeriod: Number(readCgroupFile(cpuDir, 'cpu.cfs_period_us')),
+      memoryBytes: memoryBytes < UNLIMITED_BYTES ? memoryBytes : 0,
+      memoryUsedBytes: Number(readCgroupFile(memoryDir, 'memory.usage_in_bytes')) || 0,
+      memoryPeakBytes: Number(readCgroupFile(memoryDir, 'memory.max_usage_in_bytes')) || 0,
+      pidsMax: pidsMax === 'max' ? 0 : Number(pidsMax),
+      pidsCurrent: Number(readCgroupFile(pidsDir, 'pids.current')) || 0,
+    });
+  }
+
+  const limits = { source: quota.source };
+
+  if (quota.cpuQuota > 0 && quota.cpuPeriod > 0) {
+    limits.cpuCores = Math.round((quota.cpuQuota / quota.cpuPeriod) * 10) / 10;
+    limits.cpu = `${limits.cpuCores} cores (quota ${quota.cpuQuota}/${quota.cpuPeriod})`;
+  }
+
+  if (quota.memoryBytes > 0) {
+    limits.memoryBytes = quota.memoryBytes;
+    limits.memoryUsedBytes = quota.memoryUsedBytes;
+    const parts = [`${formatBytes(quota.memoryBytes)} limit`, `${formatBytes(quota.memoryUsedBytes)} used`];
+    if (quota.memoryPeakBytes > quota.memoryUsedBytes) parts.push(`${formatBytes(quota.memoryPeakBytes)} peak`);
     limits.memory = parts.join(', ');
   }
 
-  const pidsMax = Number(readCgroup('pids.max'));
-  if (Number.isFinite(pidsMax) && pidsMax > 0) {
-    limits.pidsMax = pidsMax;
-    limits.pids = `${Number(readCgroup('pids.current')) || 0}/${pidsMax}`;
+  if (quota.pidsMax > 0) {
+    limits.pidsMax = quota.pidsMax;
+    limits.pids = `${quota.pidsCurrent}/${quota.pidsMax}`;
   }
 
   const hostCpu = os.cpus().length;
