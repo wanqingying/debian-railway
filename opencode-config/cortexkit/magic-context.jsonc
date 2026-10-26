@@ -30,7 +30,9 @@
   // up as an unexplained "OpenCode interrupted this reply".
   "fail_closed_blocking": true,
 
-  "history_budget_percentage": 0.1,
+  // Upstream's documented default (0.15) since v0.20; pinned so an upstream default
+  // change cannot silently shrink or grow the history block (m[0] identity includes it).
+  "history_budget_percentage": 0.15,
   "temporal_awareness": true,
 
   // Hidden agents have NO built-in fallback chain: without fallback_models a failing
@@ -127,6 +129,8 @@
       "score_threshold": 0.6,
       "min_prompt_chars": 20
     },
+    // Opt-in upstream (default false): index HEAD commits so ctx_search can answer
+    // "why did we change X". Costs embeddings for up to max_commits per project.
     "git_commit_indexing": {
       "enabled": true,
       "since_days": 365,
