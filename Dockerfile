@@ -40,16 +40,19 @@ ENV NODE_ENV=development \
 # the image; opencode serve is NOT started directly — openchamber manages its
 # own embedded opencode server at runtime (see entrypoint.sh).
 #
-# opencode MUST be v2 (@opencode/cli), installed unversioned so each build takes
-# the latest release — the official guide's npm method
-# (https://opencode.ai/v2/docs → `npm install -g @opencode/cli`). The old v1
-# package `opencode-ai` is incompatible — OpenChamber reports "Configured OpenCode
-# binary not found" and degrades to a no-agent mode. The `opencode` binary this
-# package installs is what OpenChamber discovers on PATH.
+# opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
+# official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
+# @opencode/cli`) is what we follow, but the version is held at 2.1.4 on purpose:
+# following `latest` makes the running agent drift with every build, and one bad
+# upstream release takes the whole AI stack down. It is also paired with the
+# OpenChamber pin in scripts/install-tools.sh (see the version-pair note there).
+# The old v1 package `opencode-ai` is incompatible — OpenChamber reports
+# "Configured OpenCode binary not found" and degrades to a no-agent mode. The
+# `opencode` binary this package installs is what OpenChamber discovers on PATH.
 # This install is normally the one that determines the running version:
 # scripts/install-tools.sh only installs opencode when it is missing, so its
-# version variable is the fallback/pin knob, not the source of truth. If a bad
-# upstream release has to be kept out, pin it here *and* in that script.
+# version variable is the fallback knob, not the source of truth — keep the two
+# in sync when bumping.
 #
 # --allow-scripts=@opencode/cli silences a build warning and keeps the install
 # deterministic under npm 11:
@@ -61,7 +64,7 @@ ENV NODE_ENV=development \
 # The flag is still worth passing: postinstall.mjs is the package's own binary
 # resolution/AVX2-selection step, and letting it run is the supported path rather
 # than depending on a layout that happens to work today.
-RUN npm i -g --allow-scripts=@opencode/cli @opencode/cli @colbymchenry/codegraph \
+RUN npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.1.4 @colbymchenry/codegraph \
     && npm cache clean --force
 
 # ---- Bake non-sensitive opencode config (copied from host global config) ----
