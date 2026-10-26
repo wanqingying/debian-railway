@@ -1,0 +1,14 @@
+opencode-config/opencode/opencode.jsonc
+  h_fac5cbaf5b28cf 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "134b7af92bc963dad3f1cbe5bd1bb17a4c0ec9ed",
+  "prompts": {},
+  "humans": {
+    "h_fac5cbaf5b28cf": {
+      "author": "qywan@trip.com <qywan@trip.com>"
+    }
+  }
+}
