@@ -6,7 +6,7 @@
 
 ## Environment awareness
 
-`sysinfo` (provided by the local `plugins/sysinfo/` plugin, not a built-in) reports the machine's facts — time/timezone, OS, container/CI, CPU/mem/disk, installed tools. Use it when a task depends on them.
+`sysinfo` (provided by the local `plugins/sysinfo/` plugin, not a built-in) reports the machine's facts — time/timezone, OS, container/CI, the container's own start time and uptime, the CPU/memory/pids quota it actually gets (cgroup, not the host's core count), disk, listening ports (externally reachable vs loopback) and Railway's public endpoints, installed tools. Use it when a task depends on them.
 
 ## 0. Language: English only
 
