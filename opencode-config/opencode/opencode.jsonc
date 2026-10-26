@@ -13,8 +13,14 @@
   "watcher": {
     "ignore": [
       "node_modules/**",
+      "**/node_modules/**",
       "dist/**",
-      ".git/**"
+      "**/dist/**",
+      ".git/**",
+      ".opencode/**",
+      "**/*.db",
+      "**/*.db-wal",
+      "**/*.db-shm"
     ]
   },
   "permissions": [
@@ -26,6 +32,9 @@
   ],
   "compaction": {
     "auto": false
+  },
+  "experimental": {
+    "location_idle_timeout": false
   },
   "plugins": [
     "@cortexkit/opencode-magic-context@latest"
