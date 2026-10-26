@@ -28,7 +28,7 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 ### 配置来源
 
-`opencode-config/` 存放从本机全局配置复制的**非敏感**配置（`opencode.jsonc`、`AGENTS.md`、`tui.jsonc`、`skills/`、`cortexkit/magic-context.jsonc` 等），构建时打包进镜像，首次启动复制到挂载卷 `$XDG_CONFIG_HOME`（`/workspace/.opencode/config`）。
+`opencode-config/` 存放从本机全局配置复制的**非敏感**配置（`opencode.jsonc`、`AGENTS.md`、`skills/`、`plugins/`、`cortexkit/magic-context.jsonc` 等），构建时打包进镜像，首次启动复制到挂载卷 `$XDG_CONFIG_HOME`（`/workspace/.opencode/config`）。
 
 > ⚠️ **敏感凭据不打包**：API key（`auth.json` / `account.json`）和会话数据库（`opencode.db`）不进入镜像或仓库。容器里需通过环境变量（provider key）或 `opencode auth login` 提供凭据。
 

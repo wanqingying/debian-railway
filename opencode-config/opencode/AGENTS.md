@@ -6,7 +6,7 @@
 
 ## Environment awareness
 
-`sysinfo` reports the machine's facts — time/timezone, OS, container/CI, CPU/mem/disk, installed tools. Use it when a task depends on them.
+`sysinfo` (provided by the local `plugins/sysinfo/` plugin, not a built-in) reports the machine's facts — time/timezone, OS, container/CI, CPU/mem/disk, installed tools. Use it when a task depends on them.
 
 ## 0. Language: English only
 
@@ -53,7 +53,7 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 - 耗时未知；
 - 可能挂起，或以「卡住」方式失败（网络、子进程、DB 锁、原生编译）。
 
-内置工具（read/write/edit/grep/glob/codegraph/sysinfo）很快，正常前台跑。
+内置工具（read/write/edit/grep/glob）、MCP 的 codegraph、本地插件提供的 sysinfo 都很快，正常前台跑。
 
 **怎么跑：**
 - 用 shell 工具的后台模式（`background: true`）：立即返回 shell ID，输出写文件，完成时自动通知。**不要 sleep 轮询。**
