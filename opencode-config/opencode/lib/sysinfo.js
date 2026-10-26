@@ -143,6 +143,159 @@ const collectDisk = (target) => {
   }
 };
 
+const CGROUP_ROOT = '/sys/fs/cgroup';
+const readCgroup = (name) => readFileIfPresent(path.join(CGROUP_ROOT, name)).trim();
+
+const formatDuration = (ms) => {
+  const totalMinutes = Math.max(0, Math.round(ms / 60_000));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+};
+
+// `os.cpus()` and `os.totalmem()` report the *host*: in a container they can be
+// 20x the real quota, and anything sized from them oversubscribes (a 48-thread
+// build under an 8-core quota ran ~70x slower than one sized to the quota).
+// cgroup v2 states what this machine may actually use, so that wins.
+const collectLimits = () => {
+  if (!fs.existsSync(path.join(CGROUP_ROOT, 'cgroup.controllers'))) return null;
+  const limits = { source: 'cgroup v2' };
+
+  const [quota, period] = readCgroup('cpu.max').split(/\s+/);
+  if (quota && quota !== 'max') {
+    const cores = Number(quota) / Number(period);
+    if (Number.isFinite(cores) && cores > 0) {
+      limits.cpuCores = Math.round(cores * 10) / 10;
+      limits.cpu = `${limits.cpuCores} cores (cpu.max ${quota}/${period})`;
+    }
+  }
+
+  const memoryMax = Number(readCgroup('memory.max'));
+  if (Number.isFinite(memoryMax) && memoryMax > 0) {
+    const used = Number(readCgroup('memory.current')) || 0;
+    const peak = Number(readCgroup('memory.peak')) || 0;
+    limits.memoryBytes = memoryMax;
+    limits.memoryUsedBytes = used;
+    const parts = [`${formatBytes(memoryMax)} limit`, `${formatBytes(used)} used`];
+    if (peak > used) parts.push(`${formatBytes(peak)} peak`);
+    limits.memory = parts.join(', ');
+  }
+
+  const pidsMax = Number(readCgroup('pids.max'));
+  if (Number.isFinite(pidsMax) && pidsMax > 0) {
+    limits.pidsMax = pidsMax;
+    limits.pids = `${Number(readCgroup('pids.current')) || 0}/${pidsMax}`;
+  }
+
+  const hostCpu = os.cpus().length;
+  const hostMemory = os.totalmem();
+  if ((limits.cpuCores && limits.cpuCores < hostCpu) || (limits.memoryBytes && limits.memoryBytes < hostMemory)) {
+    limits.hostView = `${hostCpu} cores / ${formatBytes(hostMemory)} (kernel view of the host; not this machine's quota)`;
+  }
+
+  return Object.keys(limits).length > 1 ? limits : null;
+};
+
+// Wall-clock start and age of PID 1 — the container's own lifetime, unlike
+// /proc/uptime, which counts from the *host* boot.
+const collectContainer = () => {
+  const info = {};
+  const init = readFileIfPresent('/proc/1/cmdline').split('\0').filter(Boolean).join(' ');
+  if (init) info.init = init;
+
+  const stat = readFileIfPresent('/proc/1/stat');
+  const boot = /^btime (\d+)$/m.exec(readFileIfPresent('/proc/stat'));
+  const afterComm = stat.slice(stat.lastIndexOf(')') + 1).trim().split(/\s+/);
+  const startTicks = Number(afterComm[19]); // field 22 (`starttime`); fields[0] is field 3
+  if (boot && Number.isFinite(startTicks)) {
+    const startedMs = Number(boot[1]) * 1000 + startTicks * 10; // USER_HZ is always 100
+    if (startedMs > 0 && startedMs <= Date.now()) {
+      info.started = `${new Date(startedMs).toISOString().slice(0, 16).replace('T', ' ')}Z`;
+      info.uptime = formatDuration(Date.now() - startedMs);
+    }
+  }
+
+  return Object.keys(info).length > 0 ? info : null;
+};
+
+// A listening socket's local address, in the kernel's hex form: 4 bytes for
+// IPv4 (little-endian) or 4 little-endian words for IPv6. Only loopback needs
+// recognising — it separates services reachable from outside the container
+// from ones that need a tunnel.
+const isLoopbackAddress = (hex) => {
+  if (hex.length === 8) return hex.slice(6, 8).toUpperCase() === '7F';
+  if (/^0{16}FFFF0000$/i.test(hex.slice(0, 24))) return hex.slice(30, 32).toUpperCase() === '7F';
+  return /^0{24}01000000$/.test(hex); // ::1
+};
+
+const collectListeningPorts = () => {
+  const bound = new Map(); // port -> every listener on it is loopback
+  for (const file of ['/proc/net/tcp', '/proc/net/tcp6']) {
+    for (const line of readFileIfPresent(file).split('\n').slice(1)) {
+      const fields = line.trim().split(/\s+/);
+      if (fields[3] !== '0A') continue; // 0A = LISTEN
+      const [address, portHex] = fields[1].split(':');
+      const port = Number.parseInt(portHex, 16);
+      if (!Number.isInteger(port) || port <= 0) continue;
+      bound.set(port, (bound.get(port) ?? true) && isLoopbackAddress(address));
+    }
+  }
+  const ports = [...bound.keys()].sort((a, b) => a - b);
+  const listening = {};
+  const external = ports.filter((port) => !bound.get(port));
+  const loopback = ports.filter((port) => bound.get(port));
+  if (external.length > 0) listening.external = external;
+  if (loopback.length > 0) listening.loopback = loopback;
+  return listening;
+};
+
+// Ports the process was told to serve on (`PORT`, `SSH_PORT`, …) plus the ones
+// actually listening, split by whether the container may be reached on them.
+const collectPorts = () => {
+  const ports = {};
+  const configured = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!/^(?:[A-Z0-9]+_)*PORT$/.test(key) || key.startsWith('RAILWAY_')) continue;
+    const port = Number(value);
+    if (Number.isInteger(port) && port > 0 && port < 65_536) configured[key] = port;
+  }
+  if (Object.keys(configured).length > 0) ports.configured = configured;
+  const listening = collectListeningPorts();
+  if (Object.keys(listening).length > 0) ports.listening = listening;
+  return Object.keys(ports).length > 0 ? ports : null;
+};
+
+// How this container is exposed publicly: Railway's TCP proxy mapping for the
+// SSH endpoint and the HTTP domain for the web UI.
+const collectRailway = () => {
+  const info = {};
+  const sources = {
+    project: 'RAILWAY_PROJECT_NAME',
+    service: 'RAILWAY_SERVICE_NAME',
+    environment: 'RAILWAY_ENVIRONMENT_NAME',
+    region: 'RAILWAY_REPLICA_REGION',
+    deployment: 'RAILWAY_DEPLOYMENT_ID',
+    volume: 'RAILWAY_VOLUME_MOUNT_PATH',
+  };
+  for (const [key, name] of Object.entries(sources)) {
+    const value = process.env[name];
+    if (value) info[key] = key === 'deployment' ? value.slice(0, 8) : value;
+  }
+
+  const tcpHost = process.env.RAILWAY_TCP_PROXY_DOMAIN;
+  const tcpPort = process.env.RAILWAY_TCP_PROXY_PORT;
+  const target = process.env.RAILWAY_TCP_APPLICATION_PORT;
+  if (tcpHost && tcpPort) info.tcpProxy = target ? `${tcpHost}:${tcpPort} -> ${target}` : `${tcpHost}:${tcpPort}`;
+
+  const domain = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RAILWAY_STATIC_URL;
+  if (domain) info.publicDomain = domain;
+
+  return Object.keys(info).length > 0 ? info : null;
+};
+
 const resolveExecutable = (name) => {
   const platform = os.platform();
   const pathValue = process.env.PATH || process.env.Path || '';
@@ -206,6 +359,7 @@ const collectTools = () => {
 
 export const collectSystemInfo = ({ diskTarget } = {}) => {
   const platform = os.platform();
+  const limits = collectLimits();
   const snapshot = {
     time: collectTime(),
     os: `${os.type()} ${os.arch()}`,
@@ -216,8 +370,14 @@ export const collectSystemInfo = ({ diskTarget } = {}) => {
     host: os.hostname(),
     locale: process.env.LANG || process.env.LC_ALL || null,
     env: collectEnvFlags(),
-    cpu: os.cpus().length,
-    mem: `${formatBytes(os.totalmem())} total, ${formatBytes(os.freemem())} free`,
+    cpu: limits?.cpuCores || os.cpus().length,
+    mem: limits?.memoryBytes
+      ? `${formatBytes(limits.memoryBytes - limits.memoryUsedBytes)} free of ${formatBytes(limits.memoryBytes)}`
+      : `${formatBytes(os.freemem())} free of ${formatBytes(os.totalmem())}`,
+    limits,
+    container: collectContainer(),
+    ports: collectPorts(),
+    railway: collectRailway(),
   };
 
   const disk = collectDisk(diskTarget || process.cwd());
