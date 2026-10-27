@@ -12,9 +12,11 @@
 
 ## 时间线
 
-| BD | 冻结日期 | opencode | OpenChamber | magic-context | 状态 | 备注 |
-| --- | --- | --- | --- | --- | --- | --- |
-| [BD-001](bd/BD-001.md) | 2026-10-27 | 2.1.4 | 2.5.1 | 0.49.21 | `current` | 首次冻结：锁住容器当时实际在跑的组合 |
+| BD | 冻结日期 | opencode | OpenChamber | magic-context | 状态 | 下游同步（devcontainer-demo） | 备注 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [BD-001](bd/BD-001.md) | 2026-10-27 | 2.1.4 | 2.5.1 | 0.49.21 | `current` | ✅ 已同步 | 首次冻结：锁住容器当时实际在跑的组合 |
+
+> 「下游同步」= 同一组锁点已落到 `trn-bff-devcontainer-demo`（顺序与核对项见[手册 §9](README.md)）。没打勾说明该 BD 只在 railway 生效，两个容器行为会不一致。
 
 ## 活跃 Hold（刻意不升级）
 

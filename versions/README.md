@@ -168,6 +168,7 @@ curl -s https://opencode.ai/config.json -o /tmp/oc.schema.json
 5. **验证**：按 §6 清单在容器里过一遍。
 6. **写 BD 文档**：`versions/bd/BD-<nnn>.md`（从 `_TEMPLATE.md` 复制），更新 `versions/BD-INDEX.md`。
 7. **观察期**：部署后 3~7 天。出现回归 → 先回滚 BD，再把原因写进 BD 文档的"已知问题"，避免下个 BD 再踩。
+8. **同步下游**：观察期无回归后，把同一组锁点搬到 `trn-bff-devcontainer-demo`（见 §9），并在 `BD-INDEX.md` 的「下游同步」列打勾。
 
 ### 锁点同步清单
 
@@ -233,7 +234,36 @@ ls -d ~/.cache/opencode/npm/@cortexkit/opencode-magic-context@*/ 2>/dev/null
 
 ---
 
-## 9. 目录与命名
+## 9. 跨项目同步：一个 BD 要落到两个仓库
+
+BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里同时生效**：
+
+| 项目 | 定位 | 谁先动 |
+| --- | --- | --- |
+| `debian-railway`（本仓库） | BD 的**定义**所在：登记册 + 生产容器的镜像与启动脚本 | **先升级这个** |
+| `trn-bff-devcontainer-demo` | 团队开发容器的**下游消费方**（`.devcontainer/`），同一套 opencode / OpenChamber / magic-context | 等这里的 BD 合并、观察期无回归后，再同步过去 |
+
+**顺序不能反**：railway 是 BD 的真值所在，先在这里把版本、锁点、验证、记录全部定下来；devcontainer 只做"照抄锁点"。反过来先改 devcontainer，就会出现"开发容器跑的版本在 BD 里查不到"，下次升级没人知道基线是什么。
+
+### 同步映射（改一处就要改另一处）
+
+| 组件 | `debian-railway` 锁点 | `trn-bff-devcontainer-demo` 锁点 |
+| --- | --- | --- |
+| opencode | `Dockerfile` 安装行 + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | `.devcontainer/init.sh` 的 `OPENCODE_VERSION` |
+| OpenChamber | `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION` |
+| magic-context | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | `.devcontainer/opencode/opencode.jsonc` 的 `plugins` + `.devcontainer/init.sh` 的 `MC_PLUGIN_CACHE_SPEC` |
+| 版本说明 | `README.md` 版本表 + `AGENTS.md` | `README.md` 的「自动升级」行 |
+
+### 同步后的核对
+
+- `plugins` 的 spec **逐字符一致**（含版本号），两边都不能写 `@latest`。
+- 两边都用"删掉非当前 spec 的缓存"实现（不是只删 `@latest` 目录）。
+- 三处版本说明（railway `README.md` / railway `AGENTS.md` / devcontainer `README.md`）与 `BD-INDEX.md` 的当前 BD 一致。
+- 两个仓库的提交各自独立，但**同一个 BD 里要成对出现**；`BD-INDEX.md` 的「下游同步」列记录 devcontainer 是否已跟上。
+
+---
+
+## 10. 目录与命名
 
 ```
 versions/
