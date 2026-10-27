@@ -218,21 +218,25 @@ if [ -x /scripts/install-tools.sh ]; then
     /scripts/install-tools.sh
 fi
 
-# ---- Drop the pinned "@latest" plugin cache so it re-resolves ----
-# opencode pins the version it resolved for an "@latest" plugin inside its npm cache
-# (~/.cache/opencode/npm/<pkg>@latest/<timestamp>/) and never re-resolves it, so the
-# cached copy can go stale indefinitely. Observed on the dev container: magic-context
-# stayed at 0.42.6 while 0.45.0 was out — and anything below 0.43.0 breaks image
-# attachments on OpenCode 2 (upstream cortexkit/magic-context#517: "Schema validation
-# failed" out of SessionModelRequest.prepare, after which every turn in that session
-# fails). There the cache lives on a volume; here /root is rebuilt on redeploy, so the
-# window is only a long-running container. Cheap either way, and non-fatal.
+# ---- Prune cached magic-context builds that are not the pinned one ----
+# opencode caches the plugin it resolved for each configured spec under
+# ~/.cache/opencode/npm/<pkg>@<spec>/<timestamp>/ and never re-resolves a tagged
+# spec, which is why this used to say "@latest" here plus a forced cache drop:
+# observed on the dev container, magic-context stayed at 0.42.6 while 0.45.0 was
+# out (anything below 0.43.0 breaks image attachments on OpenCode 2 — upstream
+# cortexkit/magic-context#517). opencode.jsonc now pins an exact version, so the
+# resolved version cannot drift; this only deletes leftovers — an older pin, or an
+# `@latest` copy from before the pin — so a long-running container cannot keep
+# serving a stale build from disk. Keep the version in sync with opencode.jsonc.
+MC_PLUGIN_CACHE_SPEC="@cortexkit/opencode-magic-context@0.49.21"
 for d in "$HOME/.cache/opencode/npm" "${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm"; do
-    p="$d/@cortexkit/opencode-magic-context@latest"
-    if [ -d "$p" ]; then
-        rm -rf "$p"
-        echo "[entrypoint] dropped the pinned magic-context plugin cache (will re-resolve @latest)"
-    fi
+    for p in "$d"/@cortexkit/opencode-magic-context@*; do
+        [ -e "$p" ] || continue
+        if [ "$(basename "$p")" != "$MC_PLUGIN_CACHE_SPEC" ]; then
+            rm -rf "$p"
+            echo "[entrypoint] pruned stale magic-context plugin cache: $(basename "$p")"
+        fi
+    done
 done
 
 # NOTE: this boot used to run `npx @cortexkit/magic-context doctor --fix --harness
