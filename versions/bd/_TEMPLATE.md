@@ -45,6 +45,15 @@
 | --- | --- | --- | --- | --- | --- |
 | `<组件>` | `<v>` | `<v>` | `<一句话>` | `<issue / PR 链接>` | `<什么情况下可以升>` |
 
+## 跨项目同步
+
+| 项目 | 状态 | 锁点 |
+| --- | --- | --- |
+| `debian-railway` | ✅ 已落地（本仓库） | 见上方版本矩阵 |
+| `trn-bff-devcontainer-demo` | `<已同步 / 待同步>` | `.devcontainer/init.sh`、`.devcontainer/opencode/opencode.jsonc`、`README.md` |
+
+同步核对：两边 `plugins` spec 逐字符一致；两边缓存清理均为「删掉非当前 spec」；三处版本说明与 `BD-INDEX.md` 一致。顺序见[手册 §9](../README.md)。
+
 ## 验证记录
 
 | 项 | 结果 |
