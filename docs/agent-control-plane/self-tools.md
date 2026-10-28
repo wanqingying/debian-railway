@@ -1,6 +1,8 @@
 # Agent self-inspection tools (`self_*`) — design
 
-**Status:** design only; nothing implemented.
+**Status:** design only; nothing implemented. Reviewed in
+[`recall-and-runtime-introspection.md`](./recall-and-runtime-introspection.md) — that file decides which parts of
+this one belong in the control plane.
 **Scope:** read-only. Configuration editing is out of scope (dropped 2026-10-28).
 
 ## 1. Purpose
