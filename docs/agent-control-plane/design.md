@@ -4,8 +4,8 @@
 each decision was made, what prior art we rejected, and what must be measured before code is written. When
 this file and an implementation disagree, the disagreement is a bug in one of them.
 
-**Revisions:** 2026-10-26 first draft (as `joops/feishu-bot/docs/agentd-design.md`); 2026-10-28 expanded here
-— prior-art review, capability model, experience base, delegation, recall.
+**Revisions:** 2026-10-26 first draft (archived in [`history/`](./history/agentd-design-2026-10-26.md));
+2026-10-28 expanded here — prior-art review, capability model, experience base, delegation, recall.
 
 **Scope.** A long-running process that turns external requests (a Feishu message, a schedule, a webhook) into
 **jobs**, executes each job in OpenCode sessions, keeps state across restarts, gates dangerous actions on a
@@ -662,7 +662,7 @@ throwaway environment.
 | `joops/feishu-bot/src/opencode.ts` | session adapter, to grow create/prompt/wait/get/interrupt |
 | `.agents/skills/system-inspection` | policy for `qa` and `maintenance` jobs |
 | `.agents/skills/req-to-ship-en` | policy for `requirement` jobs |
-| `docs/self-tools.md` + `docs/recall-and-runtime-introspection.md` | recall and config introspection (§18) |
+| `self-tools.md` + `recall-and-runtime-introspection.md` (this directory) | recall and config introspection (§18) |
 | this container's `entrypoint.sh` + supervisor script | process supervision, single-instance lock, restart backoff |
 
 ## 23. Open questions
