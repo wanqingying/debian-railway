@@ -2,8 +2,8 @@
 
 **Status:** design decision, 2026-10-28. Reviewed [`self-tools.md`](./self-tools.md) (an untracked draft
 when this was written) and decided which parts belong in the control plane, which belong in this container,
-and which to drop. Companion document: `joops/feishu-bot/docs/agentd-design.md` §18 (tool surface), §19
-(experience base), §20 (delegation) — this file only records the review and the division of ownership.
+and which to drop. Companion: [`agent-control-plane.md`](./agent-control-plane.md) §16 (tool surface), §17 (experience base),
+§18 (this capability), §19 (delegation). This file records only the review and the division of ownership.
 
 Nothing here is implemented.
 
