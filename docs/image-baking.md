@@ -176,12 +176,13 @@ when someone patches a running container.
 
 ### 4.3 Three deviations from the plan above, and why
 
-1. **CodeGraph stays unpinned.** The plan's step 6 said to flip `CODEGRAPH_UPGRADE` to `0`. That
-   would contradict an existing, documented decision: `versions/BD-INDEX.md` records a deliberate
-   **Hold** ("codegraph 未锁 … 属于 L1 工具，故障可见 … 暂不纳入 BD", i.e. keep tracking upstream,
-   because its failures are loud via `codegraph status`). So it is baked (so a boot has a working
-   copy without npm) but `CODEGRAPH_UPGRADE` still defaults to `1`. If it ever moves to an exact pin,
-   that Hold is the thing to lift — flip the default in the same change.
+1. **CodeGraph is now pinned too (revised the same day).** The plan's step 6 said to flip
+   `CODEGRAPH_UPGRADE` to `0`; the first pass left it at `1` because `versions/BD-INDEX.md` recorded a
+   deliberate Hold ("codegraph 未锁 … L1 工具、故障可见 … 暂不纳入 BD"). That Hold was **reversed on
+   2026-10-29 at the owner's request**: an unpinned tool that also upgrades itself at every boot is two
+   moving parts in one container, and "tracks upstream" means a redeploy can silently change how the
+   agent indexes code. It is now pinned at `1.6.2` in the Dockerfile and `CODEGRAPH_UPGRADE` defaults
+   to `0`; `CODEGRAPH_UPGRADE=1` remains as an explicit escape hatch. Bump it through the BD process.
 2. **The KasmVNC `.deb` is downloaded in the Dockerfile, not vendored into the build context.** The
    devcontainer vendored its rpms because its build *could* be offline. Railway builds from git,
    where a git-ignored `debs/` directory does not exist — vendoring would work locally and fail in

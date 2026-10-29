@@ -5,14 +5,7 @@
 FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
 
 # ---- Base + build toolchain + SSH server + locales ----
-# BuildKit cache mounts keep the apt indexes and .deb files OUTSIDE the layer but INSIDE
-# the builder's cache, so a rebuild after any invalidation does not re-download them.
-# Consequence worth knowing: with /var/lib/apt mounted, the usual
-# `rm -rf /var/lib/apt/lists/*` would wipe the cache instead of the layer — so it is
-# deliberately gone from these RUNs.
-RUN --mount=type=cache,id=apt-archives,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lists,target=/var/lib/apt,sharing=locked \
-    apt-get update -o Acquire::Languages=none && apt-get upgrade -y && \
+RUN apt-get update -o Acquire::Languages=none && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         wget curl git ca-certificates \
         build-essential \
@@ -20,7 +13,8 @@ RUN --mount=type=cache,id=apt-archives,target=/var/cache/apt,sharing=locked \
         openssh-server \
         locales bash-completion \
         neofetch \
-        tini
+        tini \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ---- UTF-8 locale (avoids warnings in git/node/etc.) ----
 RUN sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen && \
@@ -29,10 +23,9 @@ ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
 # ---- Node.js 24 (NodeSource) ----
-RUN --mount=type=cache,id=apt-archives,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lists,target=/var/lib/apt,sharing=locked \
-    curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
-    apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ---- ttyd: web terminal fallback (optional, own port) ----
 RUN wget -qO /bin/ttyd https://github.com/tsl0922/ttyd/releases/download/1.7.3/ttyd.x86_64 && \
@@ -102,9 +95,7 @@ ENV NODE_ENV=development \
 # of this layer did — makes every one of those "not installable" even though bookworm has
 # them all.
 ARG KASMVNC_VERSION=1.5.0
-RUN --mount=type=cache,id=apt-archives,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lists,target=/var/lib/apt,sharing=locked \
-    mkdir -p -m 755 /etc/apt/keyrings \
+RUN mkdir -p -m 755 /etc/apt/keyrings \
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
          -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -131,7 +122,8 @@ RUN --mount=type=cache,id=apt-archives,target=/var/cache/apt,sharing=locked \
          echo "${kasm_sha}  /tmp/kasmvnc.deb" | sha256sum -c -; \
          apt-get install -y --no-install-recommends /tmp/kasmvnc.deb; \
          rm -f /tmp/kasmvnc.deb; \
-       fi
+       fi \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ---- uv + Python 3.12 ----
 # The repo requires >=3.12; Debian's system python3 is 3.11.
@@ -182,7 +174,7 @@ RUN npm i -g \
         --allow-scripts=@opencode/cli \
         neon "@railway/cli" \
         "@openchamber/web@${OPENCHAMBER_VERSION}" \
-        "@opencode/cli@2.1.4" "@colbymchenry/codegraph" \
+        "@opencode/cli@2.1.4" "@colbymchenry/codegraph@1.6.2" \
     && npm cache clean --force
 
 # Version notes for the two pinned packages in the line above.
@@ -201,9 +193,13 @@ RUN npm i -g \
 # version variable is the fallback knob, not the source of truth — keep the two
 # in sync when bumping.
 #
-# codegraph is baked here but NOT pinned at an exact version: versions/BD-INDEX.md
-# records a deliberate Hold (L1 tool, failures are visible via `codegraph status`,
-# so it is not in the BD), and `CODEGRAPH_UPGRADE=1` still refreshes it at boot.
+# codegraph is PINNED at 1.6.2 (BD-001) like the other two. It used to be deliberately
+# unpinned — the old `versions/BD-INDEX.md` Hold argued it was an L1 tool whose failures
+# are loud (`codegraph status` errors visibly) — but an unpinned tool that also upgrades
+# itself at every boot is two moving parts in one container, and "tracks upstream" means a
+# redeploy can silently change how the agent indexes code. Decision reversed 2026-10-29:
+# pinned here, and `CODEGRAPH_UPGRADE` now defaults to 0 so the boot keeps the baked
+# version. Bump it through the BD process like everything else.
 #
 # neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
 # @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
@@ -237,6 +233,7 @@ RUN set -eu; \
     pnpm --version | grep -q '11\.22\.0' || fail "pnpm is not 11.22.0"; \
     node --version | grep -q '^v24\.' || fail "node is not 24.x"; \
     opencode --version | grep -q '2\.1\.4' || fail "opencode is not 2.1.4"; \
+    codegraph --version | grep -q '1\.6\.2' || fail "codegraph is not 1.6.2"; \
     openchamber --version 2>/dev/null | grep -q '2\.5\.1' \
       || echo "WARN: openchamber --version did not report 2.5.1 (non-fatal)"; \
     if [ -f /usr/bin/kasmvncserver ] || command -v kasmvncserver >/dev/null 2>&1; then \
