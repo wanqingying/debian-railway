@@ -156,12 +156,15 @@ RUN curl -Ls https://cli.doppler.com/install.sh | sh \
 #                  2.x drives OpenCode 2.x only, and 2.5.2 is deliberately held back
 #                  (it removed the Tree view; see versions/BD-INDEX.md).
 ARG OPENCHAMBER_VERSION=2.5.1
-# TWO npm invocations, deliberately — not one.
-# Measured on Railway (2026-10-29): merging all five packages into a single `npm i -g`
-# made this step 45.0 s, versus 15.7 s + 12.6 s = 28.3 s for the same work split in two.
-# The theory ("one startup, one metadata resolution, so merging must be faster") was
-# wrong, and the split run measured better twice over, so it is what ships. Do not
-# re-merge without re-measuring.
+# TWO npm invocations, kept split — but NOT because a split measures faster.
+# Honest history (2026-10-29): the same 5-package install measured 28.3 s (split),
+# 45.0 s (merged into one call) and 89.4 s (split again) across three builds. That
+# spread is network variance, not layout: npm step times on Railway cannot be compared
+# across deployments. So the split is kept as the layout that had been working, and the
+# merge attempt was reverted because it had no defensible evidence behind it — not
+# because the split is proven faster. To actually compare layouts, measure them
+# back-to-back on the same link, or compare structural counts (invocations, apt
+# `update` runs, bytes downloaded), never adjacent deploy wall-clocks.
 RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
     && npm cache clean --force
 
