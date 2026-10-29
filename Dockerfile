@@ -101,6 +101,12 @@ RUN chmod +x /scripts/start-browser.sh
 COPY scripts/start-feishu-bridge.sh /scripts/start-feishu-bridge.sh
 RUN chmod +x /scripts/start-feishu-bridge.sh
 
+# ---- Worktrees on the volume ----
+# `wt` wrapper (symlinked to /usr/local/bin/wt by entrypoint.sh): creates git worktrees
+# under $WORKTREE_ROOT and refuses any root a redeploy would wipe. See docs/worktrees.md.
+COPY scripts/worktree.sh /scripts/worktree.sh
+RUN chmod +x /scripts/worktree.sh
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

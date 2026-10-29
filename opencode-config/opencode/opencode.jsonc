@@ -30,6 +30,16 @@
       "effect": "allow"
     }
   ],
+  // New worktrees land on the mounted volume, not in the server's data dir and
+  // certainly not in an ephemeral path. A worktree is a session's working
+  // directory: /tmp, /root and the rest of the root filesystem are rebuilt from
+  // the image on every redeploy, so a worktree created there disappears and its
+  // session then fails with "Directory not found" and cannot be resumed.
+  // Absolute, so it holds for every project regardless of where its checkout is.
+  // Existing worktrees are not moved. Agents create worktrees with `wt`.
+  "worktree": {
+    "directory": "/workspace/worktrees"
+  },
   "compaction": {
     "auto": false
   },
