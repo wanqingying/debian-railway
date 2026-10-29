@@ -11,11 +11,15 @@
  * container: Railway sets `XDG_DATA_HOME=/workspace/.opencode/data`, a devcontainer leaves it unset.
  *
  * Performance rule — SQL `LIKE` prefilters the raw JSON and only matching rows are parsed. Parsing
- * all ~9k messages takes 2.2 s; the prefiltered path 55–180 ms (cold page cache ~550 ms). Do not
- * "simplify" this back into a full parse.
+ * all ~9k messages takes 2.2 s; the prefiltered path 55–180 ms. Do not "simplify" this back into a
+ * full parse. The keyword is JSON-escaped before it becomes a LIKE pattern, because the stored row
+ * is JSON: without that step a query like `"foo"` or `a\b` matched nothing and the tool answered
+ * "no such session".
  *
  * Coverage: user text and assistant `text` parts. Tool output is deliberately excluded — it is
- * ~19x the text volume and the densest place for secrets. Snippets still pass through `redact()`.
+ * ~19x the text volume and the densest place for secrets. Every returned title and snippet is
+ * redacted, and the snippet is cut from already-redacted text so a secret straddling the window
+ * edge cannot slip out in half.
  *
  * Also runs as a CLI: `node lib/session-search.js <keyword> [--json] [--limit N] ...`.
  */
@@ -29,15 +33,19 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 const SNIPPET_PAD = 60;
 const BUSY_TIMEOUT_MS = 2_000;
+const DEFAULT_BUDGET_MS = 2_000;
+const DEADLINE_CHECK_EVERY = 512;
 
-// Same list the control-plane design mandates for anything returning session text.
+// Anything returned to a model passes through here. The env-style rule swallows a quoted value
+// whole — `PASSWORD="two words"` used to leak everything after the first space.
 const SECRET_PATTERNS = [
-  [/\b([A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD))=\S+/g, '$1=***'],
-  [/\bsk-[A-Za-z0-9_-]{12,}/g, 'sk-***'],
-  [/\b(ghp|gho|ghu|ghs)_[A-Za-z0-9]{20,}/g, '$1_***'],
-  [/\bgithub_pat_[A-Za-z0-9_]{20,}/g, 'github_pat_***'],
-  [/\bxox[baprs]-[A-Za-z0-9-]{10,}/g, 'xox-***'],
+  [/\b([A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD))\s*[=:]\s*("[^"]*"|'[^']*'|[^\s,;]+)/gi, '$1=***'],
+  [/\bsk-[A-Za-z0-9_-]{8,}/g, 'sk-***'],
+  [/\b(ghp|gho|ghu|ghs)_[A-Za-z0-9]{10,}/g, '$1_***'],
+  [/\bgithub_pat_[A-Za-z0-9_]{10,}/g, 'github_pat_***'],
+  [/\bxox[baprs]-[A-Za-z0-9-]{8,}/g, 'xox-***'],
   [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/g, 'eyJ***'],
+  [/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi, '$1 ***'],
   [/(https?:\/\/)[^/\s:@]+:[^/\s@]+@/g, '$1***:***@'],
 ];
 
@@ -52,13 +60,32 @@ export function resolveDbPath() {
   return path.join(dataHome, 'opencode', 'opencode.db');
 }
 
+const tooSlow = (rowsRead, t0) => ({
+  status: 'too-slow',
+  scanned: rowsRead,
+  elapsed_ms: Date.now() - t0,
+  message: `超过预算（${DEFAULT_BUDGET_MS}ms），已扫 ${rowsRead} 行后中止；缩小范围（--days / --dir / 更具体的关键词）后重试`,
+});
+
+// Snippet is derived from redacted text, then cut: redacting a slice let a token that straddled the
+// window boundary survive as a short fragment, which no pattern could recognise.
+function buildSnippet(safeText, needle, firstOffset) {
+  const lower = safeText.toLowerCase();
+  const at = lower.indexOf(needle);
+  const pos = at >= 0 ? at : Math.min(firstOffset, safeText.length);
+  const start = Math.max(0, pos - SNIPPET_PAD);
+  const end = Math.min(safeText.length, pos + needle.length + SNIPPET_PAD);
+  return safeText.slice(start, end).replace(/\s+/g, ' ').trim();
+}
+
 /**
  * @param {object} options
- * @param {string} options.query            keyword (case-insensitive; CJK unaffected)
+ * @param {string} options.query            keyword (case-insensitive for ASCII; CJK as written)
  * @param {'title'|'content'|'both'} [options.match]  default 'content'
  * @param {string} [options.directory]      substring filter on the session directory
- * @param {number} [options.days]           only sessions updated in the last N days
- * @param {number} [options.limit]          hits returned, default 20, max 100
+ * @param {number} [options.days]           only sessions updated in the last N days (must be > 0)
+ * @param {number} [options.limit]          hits returned, default 20, clamped to 100
+ * @param {number} [options.budgetMs]       wall-clock budget, default 2000 (tests shrink it)
  * @param {boolean} [options.includeArchived]
  * @param {boolean} [options.includeChildren]
  * @param {boolean} [options.includeTmp]    include sessions under /tmp
@@ -71,6 +98,12 @@ export async function searchSessions(options = {}) {
   const match = options.match || 'content';
   if (!['title', 'content', 'both'].includes(match)) {
     return { status: 'error', message: "match must be 'title', 'content' or 'both'" };
+  }
+
+  if (options.days !== undefined && options.days !== null) {
+    const days = Number(options.days);
+    // A negative window silently matched nothing, which reads exactly like "no such session".
+    if (!Number.isFinite(days) || days <= 0) return { status: 'error', message: 'days must be a positive number' };
   }
 
   const nodeMajor = Number(process.versions.node.split('.')[0]);
@@ -88,6 +121,7 @@ export async function searchSessions(options = {}) {
   }
 
   const limit = Math.min(Math.max(Number(options.limit ?? DEFAULT_LIMIT) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+  const budgetMs = Number.isFinite(Number(options.budgetMs)) ? Number(options.budgetMs) : DEFAULT_BUDGET_MS;
   const t0 = Date.now();
   const db = new DatabaseSync(dbPath, { readOnly: true });
   db.exec(`pragma busy_timeout = ${BUSY_TIMEOUT_MS}`);
@@ -109,32 +143,40 @@ export async function searchSessions(options = {}) {
     const byId = new Map(sessions.map((s) => [s.id, s]));
 
     const needle = query.toLowerCase();
-    const hits = new Map(); // session id -> { matches, snippet, titleMatch }
+    // Full text is kept per hit so the snippet can be cut from redacted text, but only for sessions
+    // that actually hit — never for every row scanned.
+    const hits = new Map(); // session id -> { matches, text, first, titleMatch }
     let rowsRead = 0;
 
     if (match === 'title' || match === 'both') {
       for (const s of sessions) {
         if ((s.title || '').toLowerCase().includes(needle)) {
-          hits.set(s.id, { matches: 0, snippet: '', titleMatch: true });
+          hits.set(s.id, { matches: 0, text: '', first: 0, titleMatch: true });
         }
       }
     }
 
     if (match === 'content' || match === 'both') {
-      // LIKE runs in C over the raw JSON: ASCII case-insensitivity is what we want here and CJK is
-      // unaffected. Rows whose JSON merely contains the field names still fall through the
-      // occurrence count below, so they cost one parse and no false hit.
-      const escaped = query.replace(/[\\%_]/g, (c) => `\\${c}`);
+      // The stored row is JSON, so `"` and `\` appear escaped there. Escape the keyword the same way
+      // before building the LIKE pattern: a raw pattern for `"浅合并"` would match nothing and the
+      // tool would answer "no such session" instead of scanning. JSON.stringify also leaves CJK
+      // alone, which is why CJK queries need no special case.
+      const jsonEscaped = JSON.stringify(query).slice(1, -1);
+      const escaped = jsonEscaped.replace(/[\\%_]/g, (c) => `\\${c}`);
+      const selectRows = `select m.session_id, m.type, m.data from session_message m
+             join session_v2 s on s.id = m.session_id ${whereSql}`;
       const rows = db
-        .prepare(
-          `select m.session_id, m.type, m.data from session_message m
-             join session_v2 s on s.id = m.session_id
-             ${whereSql ? `${whereSql} and` : 'where'} m.data like ? escape '\\'`,
-        )
+        .prepare(`${selectRows}${whereSql ? ' and' : ' where'} m.data like ? escape '\\'`)
         .all(...params, `%${escaped}%`);
       rowsRead = rows.length;
 
+      let sinceCheck = 0;
       for (const row of rows) {
+        if (++sinceCheck >= DEADLINE_CHECK_EVERY && Date.now() - t0 > budgetMs) {
+          // The SQL scan itself is uninterruptible; the parse loop is where we can still bail.
+          return tooSlow(rowsRead, t0);
+        }
+
         let text = '';
         try {
           const data = JSON.parse(row.data);
@@ -161,15 +203,11 @@ export async function searchSessions(options = {}) {
         if (count === 0) continue;
 
         const existing = hits.get(row.session_id);
-        if (existing) existing.matches += count;
-        else {
-          const start = Math.max(0, first - SNIPPET_PAD);
-          const end = Math.min(text.length, first + needle.length + SNIPPET_PAD);
-          hits.set(row.session_id, {
-            matches: count,
-            snippet: redact(text.slice(start, end).replace(/\s+/g, ' ').trim()),
-            titleMatch: false,
-          });
+        if (existing) {
+          existing.matches += count;
+          if (!existing.text) { existing.text = text; existing.first = first; }
+        } else {
+          hits.set(row.session_id, { matches: count, text, first, titleMatch: false });
         }
       }
     }
@@ -186,14 +224,17 @@ export async function searchSessions(options = {}) {
         at: new Date(session.time_updated).toISOString().slice(0, 16).replace('T', ' '),
         matches: hit.matches,
         title_match: hit.titleMatch,
-        snippet: hit.snippet,
+        snippet: hit.text ? buildSnippet(redact(hit.text), needle, hit.first) : '',
       });
     }
     // Heaviest coverage first: a session that mentions the term 30 times is a better lead than one
     // that mentions it once, regardless of age.
     results.sort((a, b) => b.matches - a.matches || (a.at < b.at ? 1 : -1));
 
+    if (Date.now() - t0 > budgetMs) return tooSlow(rowsRead, t0);
+
     return {
+      status: 'ok',
       query,
       match,
       candidates: sessions.length,
@@ -208,8 +249,8 @@ export async function searchSessions(options = {}) {
 }
 
 // ---- CLI ---------------------------------------------------------------------------------------
-// Same code path as the tool, so a failure here is a failure there. `sqlite` is unavailable below
-// Node 22 and the import above is deferred for exactly that reason.
+// Same code path as the tool, so a failure here is a failure there. `node:sqlite` is imported
+// dynamically above because it does not exist below Node 22.
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const VALUE_OPTS = new Set(['--match', '--dir', '--days', '--limit']);
   const FLAG_OPTS = new Set(['--include-archived', '--include-children', '--include-tmp', '--json']);
@@ -237,6 +278,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 
   if (result.status === 'error') { console.error(result.message); process.exit(1); }
   if (result.status === 'unsupported-node' || result.status === 'no-db') { console.error(result.message); process.exit(3); }
+  if (result.status === 'too-slow') { console.error(result.message); process.exit(4); }
 
   if (opts.json) {
     console.log(JSON.stringify(result, null, 2));
