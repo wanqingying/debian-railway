@@ -90,23 +90,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # otherwise fail in the middle of an apt transaction. Both amd64 and arm64 are
 # published; other architectures skip the browser instead of failing the build.
 ARG KASMVNC_VERSION=1.5.0
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# NOTE the ordering inside this layer: the apt lists must still exist when the .deb is
+# installed, because its dependencies (libunwind8, libxfont2, xauth, x11-xkb-utils, and
+# a few Perl modules) are resolved from them. Cleaning up first — as an earlier version of
+# this layer did — makes every one of those "not installable" even though bookworm has all
+# of them. So: update → install packages → install .deb → clean, all in one RUN.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
         chromium chromium-l10n fluxbox fonts-noto-cjk x11-utils scrot \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && set -eu; \
-       arch="$(dpkg --print-architecture)"; \
-       case "$arch" in \
-         amd64) sha=770fd3df51510beecc89666879d82faf411276e68c6e11df612f736b891b5f71 ;; \
-         arm64) sha=aa83a1a6c9069d1a02239988b07a3a2a082a433042b4d4ee2b9e9f6b2df9643c ;; \
-         *) echo "kasmvnc: no .deb for $arch — skipping the interactive browser"; exit 0 ;; \
-       esac; \
-       url="https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/kasmvncserver_bookworm_${KASMVNC_VERSION}_${arch}.deb"; \
-       echo "kasmvnc: $url"; \
-       curl -fsSL --retry 3 -o /tmp/kasmvnc.deb "$url"; \
-       echo "${sha}  /tmp/kasmvnc.deb" | sha256sum -c -; \
-       apt-get install -y --no-install-recommends /tmp/kasmvnc.deb; \
-       rm -f /tmp/kasmvnc.deb; \
-       apt-get clean; rm -rf /var/lib/apt/lists/*
+    && arch="$(dpkg --print-architecture)" \
+    && case "$arch" in \
+         amd64) kasm_sha=770fd3df51510beecc89666879d82faf411276e68c6e11df612f736b891b5f71 ;; \
+         arm64) kasm_sha=aa83a1a6c9069d1a02239988b07a3a2a082a433042b4d4ee2b9e9f6b2df9643c ;; \
+         *)     kasm_sha="" ; echo "kasmvnc: no .deb for $arch — skipping the interactive browser" ;; \
+       esac \
+    && if [ -n "$kasm_sha" ]; then \
+         url="https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/kasmvncserver_bookworm_${KASMVNC_VERSION}_${arch}.deb"; \
+         echo "kasmvnc: $url"; \
+         curl -fsSL --retry 3 -o /tmp/kasmvnc.deb "$url"; \
+         echo "${kasm_sha}  /tmp/kasmvnc.deb" | sha256sum -c -; \
+         apt-get install -y --no-install-recommends /tmp/kasmvnc.deb; \
+         rm -f /tmp/kasmvnc.deb; \
+       fi \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ---- GitHub CLI (gh) — not in Debian repos, GitHub's own apt source ----
 # Auth needs no login step: gh reads GH_TOKEN / GITHUB_TOKEN, which this container
