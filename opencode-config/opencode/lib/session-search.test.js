@@ -163,7 +163,10 @@ test('limit is clamped and success carries a status', async () => {
   }
 });
 
-test('a tiny budget reports too-slow rather than running unbounded', async () => {
+test('a tiny budget returns partial hits instead of discarding them', async () => {
+  // Regression: the first version checked the deadline after doing all the work and then threw the
+  // results away, so a cold-cache 83-hit search answered "nothing". A budget that stops the parse
+  // early must still return what it found, marked truncated.
   const sessions = Array.from({ length: 40 }, (_, i) => ({
     id: `ses_slow_${i}`,
     title: `s${i}`,
@@ -172,8 +175,10 @@ test('a tiny budget reports too-slow rather than running unbounded', async () =>
   const fx = buildFixture(sessions);
   try {
     const r = await searchSessions({ query: 'busy', budgetMs: 0, dbPath: fx.dbPath });
-    assert.equal(r.status, 'too-slow');
-    assert.ok(r.elapsed_ms >= 0);
+    assert.equal(r.status, 'ok');
+    assert.equal(r.truncated, true);
+    assert.ok(r.total > 0, 'partial hits should still be returned');
+    assert.ok(r.total < 40, 'the budget should have stopped the scan early');
   } finally {
     fx.cleanup();
   }

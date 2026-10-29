@@ -48,12 +48,11 @@ export function resolveDbPath() {
   return path.join(dataHome, 'opencode', 'opencode.db');
 }
 
-const tooSlow = (rowsRead, t0) => ({
-  status: 'too-slow',
-  scanned: rowsRead,
-  elapsed_ms: Date.now() - t0,
-  message: `超过预算（${DEFAULT_BUDGET_MS}ms），已扫 ${rowsRead} 行后中止；缩小范围（--days / --dir / 更具体的关键词）后重试`,
-});
+// The budget guards the parse loop, never the answer: a slow scan that has already produced hits is
+// still worth returning, and discarding it (the first version did) turned a usable 83-hit search
+// into "nothing" purely because the page cache was cold. The LIKE scan runs inside one synchronous
+// SQLite call and cannot be interrupted anyway, so the only thing a deadline can usefully cut is the
+// JSON parsing that follows.
 
 // A short window around the first match: enough to recognise the session, small enough not to flood
 // a context window.
@@ -135,6 +134,7 @@ export async function searchSessions(options = {}) {
     // after sorting — but only for sessions that hit, never for every row scanned.
     const hits = new Map(); // session id -> { matches, text, first, titleMatch }
     let rowsRead = 0;
+    let truncated = false;
 
     if (match === 'title' || match === 'both') {
       for (const s of sessions) {
@@ -161,8 +161,8 @@ export async function searchSessions(options = {}) {
       let sinceCheck = 0;
       for (const row of rows) {
         if (++sinceCheck >= DEADLINE_CHECK_EVERY && Date.now() - t0 > budgetMs) {
-          // The SQL scan itself is uninterruptible; the parse loop is where we can still bail.
-          return tooSlow(rowsRead, t0);
+          truncated = true;
+          break;
         }
 
         let text = '';
@@ -219,8 +219,6 @@ export async function searchSessions(options = {}) {
     // that mentions it once, regardless of age.
     results.sort((a, b) => b.matches - a.matches || (a.at < b.at ? 1 : -1));
 
-    if (Date.now() - t0 > budgetMs) return tooSlow(rowsRead, t0);
-
     return {
       status: 'ok',
       query,
@@ -228,6 +226,9 @@ export async function searchSessions(options = {}) {
       candidates: sessions.length,
       rows_read: rowsRead,
       total: results.length,
+      // True when the parse loop hit the budget and stopped early: the answer is real but built from
+      // only part of the matching rows, which is worth saying rather than reporting as complete.
+      truncated,
       elapsed_ms: Date.now() - t0,
       hits: results.slice(0, limit),
     };
@@ -266,7 +267,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 
   if (result.status === 'error') { console.error(result.message); process.exit(1); }
   if (result.status === 'unsupported-node' || result.status === 'no-db') { console.error(result.message); process.exit(3); }
-  if (result.status === 'too-slow') { console.error(result.message); process.exit(4); }
+  if (result.truncated) console.error(`注意：解析在 ${result.elapsed_ms}ms 处达预算上限，结果只覆盖了部分命中行（${result.rows_read} 行已扫）`);
 
   if (opts.json) {
     console.log(JSON.stringify(result, null, 2));
