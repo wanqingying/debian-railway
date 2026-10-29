@@ -221,17 +221,18 @@ fi
 log "resolved: openchamber $(openchamber --version 2>/dev/null || echo 'n/a') · opencode $(opencode --version 2>/dev/null || echo 'n/a')"
 
 # ── CodeGraph ─────────────────────────────────────────────────────────────────
-# Baked into the image (Dockerfile: `npm i -g --allow-scripts=@opencode/cli`
-# `@opencode/cli @colbymchenry/codegraph`) and upgraded on every boot so the
-# graph tool tracks upstream. `codegraph upgrade`
-# fetches the latest release itself; if that fails (upstream 5xx / release service
-# unreachable) fall back to the npm route the image already uses.
-# CODEGRAPH_UPGRADE=0 holds the baked version.
-# Non-fatal, like everything else here: a broken release must not take SSH down.
-CODEGRAPH_UPGRADE="${CODEGRAPH_UPGRADE:-1}"
+# Baked into the image at a **pinned** version (Dockerfile: `@colbymchenry/codegraph@1.6.2`,
+# BD-001). The boot no longer upgrades it: CODEGRAPH_UPGRADE defaults to 0.
+# Why the change: this used to track upstream on every start, so a redeploy could silently
+# change how the agent indexes code, on top of the baked version drifting per build. Two
+# moving parts in one container. Now the image is the source of truth; set
+# CODEGRAPH_UPGRADE=1 deliberately to track latest again (that path is kept as an escape
+# hatch, and it is non-fatal like everything else here).
+CODEGRAPH_VERSION="${CODEGRAPH_VERSION:-1.6.2}"
+CODEGRAPH_UPGRADE="${CODEGRAPH_UPGRADE:-0}"
 if command -v codegraph >/dev/null 2>&1; then
   if [ "$CODEGRAPH_UPGRADE" = "0" ]; then
-    log "CodeGraph upgrade skipped (CODEGRAPH_UPGRADE=0)"
+    log "CodeGraph upgrade skipped (pinned; CODEGRAPH_UPGRADE=0)"
   else
     log "CodeGraph upgrade to latest"
     # `timeout -k 15 … </dev/null`: GNU timeout puts the child in its own process
@@ -241,7 +242,11 @@ if command -v codegraph >/dev/null 2>&1; then
       || npm install -g "@colbymchenry/codegraph@latest" >/dev/null 2>&1 \
       || log "warning: CodeGraph upgrade failed (keeping the current version)"
   fi
-  log "resolved: codegraph $(codegraph --version 2>/dev/null || echo 'n/a')"
+  log "resolved: codegraph $(codegraph --version 2>/dev/null || echo 'n/a') (pin ${CODEGRAPH_VERSION})"
+elif [ "$CODEGRAPH_UPGRADE" != "0" ]; then
+  # Repair path: baked copy is gone and the caller opted into tracking latest.
+  npm install -g "@colbymchenry/codegraph@${CODEGRAPH_VERSION}" >/dev/null 2>&1 \
+    || log "warning: CodeGraph install failed (continuing)"
 fi
 
 # ── Interactive browser (Chromium + KasmVNC) ────────────────────────────────────

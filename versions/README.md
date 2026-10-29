@@ -58,11 +58,11 @@
 | OpenCode（agent 本体） | `@opencode/cli` | `2.1.4` | `Dockerfile` 的 `npm i -g …@opencode/cli@<v>` + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | L0 |
 | OpenChamber（Web UI / 托管 opencode） | `@openchamber/web` | `2.5.1` | `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` | L0 |
 | magic-context（上下文/记忆插件） | `@cortexkit/opencode-magic-context` | `0.49.21` | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | L0 |
-| codegraph（代码索引 MCP） | `@colbymchenry/codegraph` | **未锁**（构建取 latest；`CODEGRAPH_UPGRADE=1` 时每次启动再升级） | `Dockerfile` / `scripts/install-tools.sh` | L1 |
+| codegraph（代码索引 MCP） | `@colbymchenry/codegraph` | `1.6.2` | `Dockerfile` 的 `@colbymchenry/codegraph@<v>` + `scripts/install-tools.sh` 的 `CODEGRAPH_VERSION` | L1 |
 | pnpm | corepack | `11.22.0` | `scripts/install-tools.sh` 的 `corepack prepare pnpm@<v>` | L1 |
 | Python / uv | apt + uv installer | Python `3.12.x` / uv 取 latest | `scripts/install-tools.sh` | L1 |
 | Node.js | NodeSource `setup_24.x` | `24.x`（构建时最新 minor） | `Dockerfile` | L2 |
-| Debian 基础镜像 | `debian:bookworm-slim` | 未钉 digest | `Dockerfile` `FROM` | L2 |
+| Debian 基础镜像 | `debian:bookworm-slim` | 按 digest 钉住（`@sha256:99c0b25c…`） | `Dockerfile` `FROM` | L2 |
 | ttyd | GitHub release 二进制 | `1.7.3` | `Dockerfile` | L2 |
 | KasmVNC | GitHub release `.deb` | `1.5.0` | `scripts/install-tools.sh` 的 `KASMVNC_VERSION` | L2 |
 | Doppler / Railway CLI / gh / neon | 各家 npm / apt | 启动时 latest | `scripts/install-tools.sh` | L2 |
