@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#
+# pw —— 把 Playwright CLI 固定接到容器里那个「人正在用」的浏览器上。
+#
+# 为什么需要这层包装（2026-10-29 实测 playwright 1.64.1）：
+#   · `playwright cli attach` 必须显式给 --cdp，**不读** ~/.playwright/cli.config.json；
+#   · `playwright cli open` 会读配置里的 browser.cdpEndpoint，但它是「打开」语义 ——
+#     会执行 page.goto()，把用户当前那个标签页导航走（实测把用户的页面冲成了 about:blank）；
+#   · 环境变量 PLAYWRIGHT_MCP_CDP_ENDPOINT 同样只影响 open，不影响 attach。
+# 所以这里先做一次幂等的 attach，再执行真正的命令；agent 直接 `pw <cmd>` 即可。
+#
+# 用法（子命令与官方 playwright-cli 完全一致，见 skill `playwright-cli`）：
+#   pw eval "document.title"
+#   pw snapshot
+#   pw click e15
+#   pw goto https://example.com
+#   pw tab-list
+#   pw detach                # 断开但保留浏览器进程
+#
+# 环境变量：
+#   PW_CDP      默认 http://127.0.0.1:${BROWSER_CDP_PORT:-9222}
+#   PW_SESSION  默认 default
+set -uo pipefail
+
+CDP="${PW_CDP:-http://127.0.0.1:${BROWSER_CDP_PORT:-9222}}"
+SESS="${PW_SESSION:-default}"
+
+command -v playwright >/dev/null 2>&1 || { echo "playwright 未安装（镜像里应该有）" >&2; exit 127; }
+
+cmd="${1:-help}"
+
+# 这些子命令本身管会话/安装，原样透传
+case "$cmd" in
+  open|attach|detach|close|list|close-all|kill-all|install|config-print|delete-data|help)
+    exec playwright cli "$@" ;;
+esac
+
+# 已 attach 就直接用，否则先 attach（幂等）
+if ! playwright cli -s="$SESS" tab-list >/dev/null 2>&1; then
+  if ! playwright cli -s="$SESS" attach --cdp="$CDP" >/dev/null 2>&1; then
+    echo "无法连接到浏览器 CDP：$CDP" >&2
+    echo "  浏览器起了吗？容器里看：vncserver -list / curl -s $CDP/json/version" >&2
+    exit 1
+  fi
+fi
+
+exec playwright cli -s="$SESS" "$@"

@@ -209,10 +209,18 @@ RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
 #               (BD-001 = 2.5.1) and paired with the OpenCode pin — OpenChamber 2.x
 #               drives OpenCode 2.x only, and 2.5.2 is deliberately held back (it
 #               removed the Tree view; see versions/BD-INDEX.md).
+# playwright  : CLI + library for driving the in-container KasmVNC Chromium over CDP.
+#               **No browser download** — `playwright` only fetches browsers when you run
+#               `playwright install`, which we never do: we attach to the Chromium that
+#               scripts/start-browser.sh already runs (`attach --cdp` / connectOverCDP).
+#               PINNED, and the image also gets a `playwright-cli` shim (1.x exposes the
+#               CLI only as `playwright cli`) so the upstream skill's commands work as written.
 RUN npm i -g \
         --allow-scripts=@railway/cli \
         --allow-scripts=@opencode/cli \
-        "@railway/cli" "@opencode/cli@2.1.4" "@colbymchenry/codegraph@1.6.2" \
+        "@railway/cli" "@opencode/cli@2.1.4" "@colbymchenry/codegraph@1.6.2" "playwright@1.64.1" \
+    && printf '#!/bin/sh\nexec playwright cli "$@"\n' > /usr/local/bin/playwright-cli \
+    && chmod +x /usr/local/bin/playwright-cli \
     && npm cache clean --force
 
 # Version notes for the two pinned packages in the line above.
