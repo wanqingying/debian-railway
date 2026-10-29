@@ -156,6 +156,30 @@ curl -s http://127.0.0.1:9222/json/list       # -> open pages
   runs `page.goto()` and navigates the user's current tab away (it wiped a live page to
   `about:blank`). `attach --cdp` is the takeover verb but does not read the config file, which is
   exactly why `pw` exists.
+
+### OAuth sign-in flows (callback on `localhost`)
+
+The browser runs **inside** the container, so its `localhost` is the container's. Measured
+2026-10-29 against a local IdP simulator:
+
+| Step | Result |
+| --- | --- |
+| 302 to `http://127.0.0.1:PORT/callback` | works (browser follows, query intact) |
+| cookie across the redirect | works |
+| `window.open` popup + `postMessage` back to opener | works |
+| CLI listening on a random container port, `xdg-open` opens the consent page, callback delivers `code` | works end-to-end (exit 0) |
+
+So **run the OAuth CLI inside the container** (`railway login`, `gh auth login --web`,
+`doppler login`): its callback lands on the container's `localhost` and the VNC browser reaches it
+in one hop.
+
+- **A CLI running on the laptop does not work this way**: its callback and the container's
+  `localhost` are different network namespaces, so the browser's redirect lands in the container and
+  never reaches the host listener. Use that tool's device-code / `--browserless` flow instead
+  (prints a link + short code to type in the VNC browser) rather than reaching for port mapping.
+- `xdg-open` must not be the distro one: this image symlinks `/scripts/xdg-open` over it so a CLI's
+  "open the browser" lands as a new tab in the running Chromium (`PUT /json/new?<url>`), falling
+  back to launching `chromium-browser` when CDP is down.
 - Login persistence for the agent path is handled by the on-volume `--user-data-dir` (or Playwright
   `storageState`).
 - For *what to do* once attached — adapter CLIs (`opencli`) vs raw Playwright/CDP, the credentials
