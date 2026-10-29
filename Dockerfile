@@ -5,7 +5,14 @@
 FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
 
 # ---- Base + build toolchain + SSH server + locales ----
-RUN apt-get update && apt-get upgrade -y && \
+# BuildKit cache mounts keep the apt indexes and .deb files OUTSIDE the layer but INSIDE
+# the builder's cache, so a rebuild after any invalidation does not re-download them.
+# Consequence worth knowing: with /var/lib/apt mounted, the usual
+# `rm -rf /var/lib/apt/lists/*` would wipe the cache instead of the layer — so it is
+# deliberately gone from these RUNs.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -o Acquire::Languages=none && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         wget curl git ca-certificates \
         build-essential \
@@ -13,8 +20,7 @@ RUN apt-get update && apt-get upgrade -y && \
         openssh-server \
         locales bash-completion \
         neofetch \
-        tini \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+        tini
 
 # ---- UTF-8 locale (avoids warnings in git/node/etc.) ----
 RUN sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen && \
@@ -23,9 +29,10 @@ ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
 # ---- Node.js 24 (NodeSource) ----
-RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
+    apt-get install -y nodejs
 
 # ---- ttyd: web terminal fallback (optional, own port) ----
 RUN wget -qO /bin/ttyd https://github.com/tsl0922/ttyd/releases/download/1.7.3/ttyd.x86_64 && \
@@ -58,46 +65,59 @@ ENV NODE_ENV=development \
 # so a running container can still be repaired. On a healthy image it is a no-op.
 # ════════════════════════════════════════════════════════════════════════════════
 
-# ---- App toolchain (formerly install-tools.sh step 1) ----
+# ---- ONE apt transaction: app toolchain + interactive browser + GitHub CLI ----
+# Measured on the cold build (2026-10-29, Railway amd64): these used to be three
+# separate layers — 56.4 s (app toolchain) + 4.4 s (gh) + 51.2 s (browser) = 112 s,
+# i.e. 66 % of the whole build. Every layer repeated `apt-get update` and its own
+# dpkg configure pass. A single stage runs strictly sequentially (each RUN builds on
+# the previous layer), so merging them is a real saving, not a style preference.
+# Cost, accepted knowingly: a change to any one group now rebuilds all three. All of
+# them change rarely, and the browser is pinned.
+#
+# What is in here and why:
 # ffmpeg          : LangGraph runtime (core/langgraph.json) + media pipeline
 # lsof            : `./dev` preflight and `./dev stop` (port detection)
 # unzip / jq      : tool installers, JSON parsing in shell helpers
 # build-essential : source-built Python deps (e.g. forbiddenfruit)
 # poppler-utils   : pdftotext for the book-to-skill skill
 # fontconfig + fonts-liberation : font rendering for overlay/render workers
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# chromium / chromium-l10n : the interactive browser. -l10n makes the UI language
+#                          switchable (Linux Chromium takes it from LANG)
+# fluxbox         : window manager (tabs/dialogs need one; without it the window is
+#                          unmapped and the VNC view is a grey screen)
+# fonts-noto-cjk  : without it every Chinese page renders as tofu
+# x11-utils/scrot : xwininfo/xdpyinfo and screenshots, for verification
+# gh              : GitHub CLI, from GitHub's own apt source (not in Debian). Auth needs
+#                          no login step: it reads GH_TOKEN / GITHUB_TOKEN, which this
+#                          container already injects for git HTTPS.
+#
+# KasmVNC is not in Debian: it is a pinned GitHub-release .deb, downloaded here and
+# verified against a checksum baked into this file — it is the one artifact no distro
+# vouches for. Both amd64 and arm64 are published; other architectures skip the browser
+# instead of failing the build.
+#
+# Ordering inside the layer matters: the apt lists must still exist when the .deb is
+# installed, because its dependencies (libunwind8, libxfont2, xauth, x11-xkb-utils and a
+# few Perl modules) are resolved from them. Cleaning up first — which an earlier version
+# of this layer did — makes every one of those "not installable" even though bookworm has
+# them all.
+ARG KASMVNC_VERSION=1.5.0
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    mkdir -p -m 755 /etc/apt/keyrings \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+         -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+         > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update -o Acquire::Languages=none \
+    && apt-get install -y --no-install-recommends \
         ffmpeg lsof unzip jq \
         build-essential \
         poppler-utils \
         fontconfig fonts-liberation \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# ---- Interactive browser: Chromium + KasmVNC (formerly install-tools.sh, last step) ----
-# A real windowed Chromium on a virtual X display, so a human can do what an agent
-# cannot (QR-code scan, CAPTCHA, 2FA, device pairing) and the agent then attaches to
-# the SAME signed-in session over CDP. Runbook: docs/interactive-browser.md
-#
-# chromium/chromium-l10n : Debian packages. chromium-l10n is what makes the UI
-#                          language switchable (Linux Chromium takes it from LANG).
-# fluxbox                : window manager (tabs/dialogs need one; without it the
-#                          window is unmapped and the VNC view is a grey screen)
-# fonts-noto-cjk         : without it every Chinese page renders as tofu
-# x11-utils / scrot      : xwininfo/xdpyinfo and screenshots, for verification
-#
-# KasmVNC is not in Debian: it is a pinned GitHub-release .deb, downloaded here and
-# verified against a checksum baked into this file. Verifying matters: this .deb is
-# the one artifact with no distro to vouch for it, and a truncated download would
-# otherwise fail in the middle of an apt transaction. Both amd64 and arm64 are
-# published; other architectures skip the browser instead of failing the build.
-ARG KASMVNC_VERSION=1.5.0
-# NOTE the ordering inside this layer: the apt lists must still exist when the .deb is
-# installed, because its dependencies (libunwind8, libxfont2, xauth, x11-xkb-utils, and
-# a few Perl modules) are resolved from them. Cleaning up first — as an earlier version of
-# this layer did — makes every one of those "not installable" even though bookworm has all
-# of them. So: update → install packages → install .deb → clean, all in one RUN.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
         chromium chromium-l10n fluxbox fonts-noto-cjk x11-utils scrot \
+        gh \
     && arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
          amd64) kasm_sha=770fd3df51510beecc89666879d82faf411276e68c6e11df612f736b891b5f71 ;; \
@@ -111,21 +131,7 @@ RUN apt-get update \
          echo "${kasm_sha}  /tmp/kasmvnc.deb" | sha256sum -c -; \
          apt-get install -y --no-install-recommends /tmp/kasmvnc.deb; \
          rm -f /tmp/kasmvnc.deb; \
-       fi \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# ---- GitHub CLI (gh) — not in Debian repos, GitHub's own apt source ----
-# Auth needs no login step: gh reads GH_TOKEN / GITHUB_TOKEN, which this container
-# already injects for git HTTPS.
-RUN mkdir -p -m 755 /etc/apt/keyrings \
-    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-         -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-         > /etc/apt/sources.list.d/github-cli.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends gh \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+       fi
 
 # ---- uv + Python 3.12 ----
 # The repo requires >=3.12; Debian's system python3 is 3.11.
@@ -158,21 +164,35 @@ RUN curl -Ls https://cli.doppler.com/install.sh | sh \
 #                  2.x drives OpenCode 2.x only, and 2.5.2 is deliberately held back
 #                  (it removed the Tree view; see versions/BD-INDEX.md).
 ARG OPENCHAMBER_VERSION=2.5.1
-RUN npm i -g neon \
-    && npm i -g --allow-scripts=@railway/cli @railway/cli \
-    && npm i -g "@openchamber/web@${OPENCHAMBER_VERSION}" \
+# One npm invocation for every global package (measured: two separate layers cost
+# 15.7 s + 12.6 s; most of that is npm startup + registry metadata resolution, which
+# is paid per invocation, not per package).
+# `--allow-scripts` is given per package that ships an install script; both are known
+# to work without it (the binary rides along as an optionalDependency), so this flag
+# is about running the package's own resolution step, not about getting a binary.
+# Measured (node:24 / npm 11.19.1, two isolated containers) for @opencode/cli: the
+# binary WORKS either way — every platform payload ships as an optionalDependency that
+# npm hard-links into bin/ (same inode, links=2), so postinstall is not what fetches
+# it; the flag silences `npm warn install-scripts` and lets postinstall.mjs run its
+# binary resolution / AVX2 selection, which is the supported path.
+# (Also: opencode serve is NOT started here — openchamber manages its own embedded
+# opencode server at runtime, see entrypoint.sh.)
+RUN npm i -g \
+        --allow-scripts=@railway/cli \
+        --allow-scripts=@opencode/cli \
+        neon "@railway/cli" \
+        "@openchamber/web@${OPENCHAMBER_VERSION}" \
+        "@opencode/cli@2.1.4" "@colbymchenry/codegraph" \
     && npm cache clean --force
 
-# opencode + codegraph are installed here (baked) so the AI stack is present in
-# the image; opencode serve is NOT started directly — openchamber manages its
-# own embedded opencode server at runtime (see entrypoint.sh).
+# Version notes for the two pinned packages in the line above.
 #
 # opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
 # official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
 # @opencode/cli`) is what we follow, but the version is held at 2.1.4 on purpose:
 # following `latest` makes the running agent drift with every build, and one bad
 # upstream release takes the whole AI stack down. It is also paired with the
-# OpenChamber pin above (see the version-pair note there).
+# OpenChamber pin (see the version-pair note there).
 # The old v1 package `opencode-ai` is incompatible — OpenChamber reports
 # "Configured OpenCode binary not found" and degrades to a no-agent mode. The
 # `opencode` binary this package installs is what OpenChamber discovers on PATH.
@@ -181,22 +201,16 @@ RUN npm i -g neon \
 # version variable is the fallback knob, not the source of truth — keep the two
 # in sync when bumping.
 #
-# --allow-scripts=@opencode/cli silences a build warning and keeps the install
-# deterministic under npm 11:
-#   npm warn install-scripts @opencode/cli@<v> (postinstall: node ./postinstall.mjs)
-# Measured (node:24 / npm 11.19.1, two isolated containers): the binary WORKS
-# either way — @opencode/cli ships every platform payload as an optionalDependency
-# and npm itself hard-links it into bin/opencode.exe (same inode, links=2), so
-# postinstall is not what fetches it. With the flag the warning count goes 4 -> 0.
-# The flag is still worth passing: postinstall.mjs is the package's own binary
-# resolution/AVX2-selection step, and letting it run is the supported path rather
-# than depending on a layout that happens to work today.
-#
 # codegraph is baked here but NOT pinned at an exact version: versions/BD-INDEX.md
 # records a deliberate Hold (L1 tool, failures are visible via `codegraph status`,
 # so it is not in the BD), and `CODEGRAPH_UPGRADE=1` still refreshes it at boot.
-RUN npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.1.4 @colbymchenry/codegraph \
-    && npm cache clean --force
+#
+# neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
+# @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
+# openchamber : the web UI that manages its own embedded OpenCode server. PINNED
+#               (BD-001 = 2.5.1) and paired with the OpenCode pin — OpenChamber 2.x
+#               drives OpenCode 2.x only, and 2.5.2 is deliberately held back (it
+#               removed the Tree view; see versions/BD-INDEX.md).
 
 # ---- book-to-skill PDF extractors ----
 # The baked book-to-skill skill runs scripts/extract.py, which needs a PDF text
@@ -252,27 +266,18 @@ ENV OPENCODE_SERVER_USERNAME=opencode \
 WORKDIR /workspace
 
 # ---- Boot scripts (repair path + service bring-up; deliberately NOT baked as logic) ----
+# One COPY + one chmod instead of four pairs: each COPY/RUN is its own layer, and the
+# split bought nothing (0.1 s each) while making four places to edit.
 # install-tools.sh: on a healthy image it is a no-op; it exists so a running
 # container can be repaired without a rebuild.
-COPY scripts/install-tools.sh /scripts/install-tools.sh
-RUN chmod +x /scripts/install-tools.sh
-
-# ---- Interactive browser bring-up (KasmVNC + Chromium) ----
-# Called by entrypoint.sh when BROWSER_ENABLE is set (default on). See docs/interactive-browser.md.
-COPY scripts/start-browser.sh /scripts/start-browser.sh
-RUN chmod +x /scripts/start-browser.sh
-
-# ---- Feishu Q&A bridge supervisor ----
-# Keeps the Feishu topic router alive across crashes; started by entrypoint.sh. The bridge itself
-# lives in the joops repo on the volume (/workspace/joops/feishu-bot), not in this image.
-COPY scripts/start-feishu-bridge.sh /scripts/start-feishu-bridge.sh
-RUN chmod +x /scripts/start-feishu-bridge.sh
-
-# ---- Worktrees on the volume ----
-# `wt` wrapper (symlinked to /usr/local/bin/wt by entrypoint.sh): creates git worktrees
-# under $WORKTREE_ROOT and refuses any root a redeploy would wipe. See docs/worktrees.md.
-COPY scripts/worktree.sh /scripts/worktree.sh
-RUN chmod +x /scripts/worktree.sh
+# start-browser.sh: interactive browser bring-up (KasmVNC + Chromium), called by
+# entrypoint.sh when BROWSER_ENABLE is set (default on). See docs/interactive-browser.md.
+# start-feishu-bridge.sh: keeps the Feishu topic router alive across crashes; the bridge
+# itself lives in the joops repo on the volume, not in this image.
+# worktree.sh: the `wt` wrapper (symlinked to /usr/local/bin/wt by entrypoint.sh) which
+# creates worktrees under $WORKTREE_ROOT and refuses any root a redeploy would wipe.
+COPY scripts/ /scripts/
+RUN chmod +x /scripts/*.sh
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
