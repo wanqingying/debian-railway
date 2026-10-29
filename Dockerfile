@@ -156,25 +156,60 @@ RUN curl -Ls https://cli.doppler.com/install.sh | sh \
 #                  2.x drives OpenCode 2.x only, and 2.5.2 is deliberately held back
 #                  (it removed the Tree view; see versions/BD-INDEX.md).
 ARG OPENCHAMBER_VERSION=2.5.1
-# One npm invocation for every global package (measured: two separate layers cost
-# 15.7 s + 12.6 s; most of that is npm startup + registry metadata resolution, which
-# is paid per invocation, not per package).
-# `--allow-scripts` is given per package that ships an install script; both are known
-# to work without it (the binary rides along as an optionalDependency), so this flag
-# is about running the package's own resolution step, not about getting a binary.
-# Measured (node:24 / npm 11.19.1, two isolated containers) for @opencode/cli: the
-# binary WORKS either way — every platform payload ships as an optionalDependency that
-# npm hard-links into bin/ (same inode, links=2), so postinstall is not what fetches
-# it; the flag silences `npm warn install-scripts` and lets postinstall.mjs run its
-# binary resolution / AVX2 selection, which is the supported path.
+# TWO npm invocations, deliberately — not one.
+# Measured on Railway (2026-10-29): merging all five packages into a single `npm i -g`
+# made this step 45.0 s, versus 15.7 s + 12.6 s = 28.3 s for the same work split in two.
+# The theory ("one startup, one metadata resolution, so merging must be faster") was
+# wrong, and the split run measured better twice over, so it is what ships. Do not
+# re-merge without re-measuring.
+RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
+    && npm cache clean --force
+
+# `--allow-scripts` is given per package that ships an install script. Both are known to
+# work without it (the binary rides along as an optionalDependency), so the flag is about
+# running the package's own resolution step, not about getting a binary.
+# Measured (node:24 / npm 11.19.1, two isolated containers) for @opencode/cli: the binary
+# WORKS either way — every platform payload ships as an optionalDependency that npm
+# hard-links into bin/ (same inode, links=2), so postinstall is not what fetches it; the
+# flag silences `npm warn install-scripts` and lets postinstall.mjs run its binary
+# resolution / AVX2 selection, which is the supported path.
 # (Also: opencode serve is NOT started here — openchamber manages its own embedded
 # opencode server at runtime, see entrypoint.sh.)
+#
+# Version notes for the two pinned packages below.
+#
+# opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
+# official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
+# @opencode/cli`) is what we follow, but the version is held at 2.1.4 on purpose:
+# following `latest` makes the running agent drift with every build, and one bad
+# upstream release takes the whole AI stack down. It is also paired with the
+# OpenChamber pin (see the version-pair note there).
+# The old v1 package `opencode-ai` is incompatible — OpenChamber reports
+# "Configured OpenCode binary not found" and degrades to a no-agent mode. The
+# `opencode` binary this package installs is what OpenChamber discovers on PATH.
+# This install is normally the one that determines the running version:
+# scripts/install-tools.sh only installs opencode when it is missing, so its
+# version variable is the fallback knob, not the source of truth — keep the two
+# in sync when bumping.
+#
+# codegraph is PINNED at 1.6.2 (BD-001) like the other two. It used to be deliberately
+# unpinned — the old `versions/BD-INDEX.md` Hold argued it was an L1 tool whose failures
+# are loud (`codegraph status` errors visibly) — but an unpinned tool that also upgrades
+# itself at every boot is two moving parts in one container, and "tracks upstream" means a
+# redeploy can silently change how the agent indexes code. Decision reversed 2026-10-29:
+# pinned here, and `CODEGRAPH_UPGRADE` now defaults to 0 so the boot keeps the baked
+# version. Bump it through the BD process like everything else.
+#
+# neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
+# @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
+# openchamber : the web UI that manages its own embedded OpenCode server. PINNED
+#               (BD-001 = 2.5.1) and paired with the OpenCode pin — OpenChamber 2.x
+#               drives OpenCode 2.x only, and 2.5.2 is deliberately held back (it
+#               removed the Tree view; see versions/BD-INDEX.md).
 RUN npm i -g \
         --allow-scripts=@railway/cli \
         --allow-scripts=@opencode/cli \
-        neon "@railway/cli" \
-        "@openchamber/web@${OPENCHAMBER_VERSION}" \
-        "@opencode/cli@2.1.4" "@colbymchenry/codegraph@1.6.2" \
+        "@railway/cli" "@opencode/cli@2.1.4" "@colbymchenry/codegraph@1.6.2" \
     && npm cache clean --force
 
 # Version notes for the two pinned packages in the line above.
