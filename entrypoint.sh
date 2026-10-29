@@ -21,6 +21,17 @@ mkdir -p "$OPENCHAMBER_DATA_DIR"
 # volume to keep rendered pages across redeploys.
 export AM_HOME="${AM_HOME:-$XDG_DATA_HOME/answer-me-with-html}"
 
+# ---- Worktrees: pin to the volume ----
+# A worktree is a session's working directory, so it has to outlive a redeploy.
+# The root filesystem (/tmp, /root, /var/tmp) is rebuilt from the image on every
+# start: a worktree created there disappears and the session pointing at it then
+# fails with "Directory not found" and cannot be resumed. `worktree.directory`
+# in opencode.jsonc sends OpenChamber's own "New worktree" here as well, and
+# `wt` (scripts/worktree.sh) is the only sanctioned way for an agent to make one.
+export WORKTREE_ROOT="${WORKTREE_ROOT:-/workspace/worktrees}"
+mkdir -p "$WORKTREE_ROOT"
+ln -sfn /scripts/worktree.sh /usr/local/bin/wt
+
 # A few auxiliary writers (managed-process registry, telemetry install id in
 # package-manager.js) resolve ~/.config/openchamber directly and ignore
 # OPENCHAMBER_DATA_DIR. Point the default path at the same volume directory so
