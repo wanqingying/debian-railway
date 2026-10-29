@@ -194,18 +194,45 @@ when someone patches a running container.
    both `bookworm` debs (verified 2026-10-29), so both are pinned and an unknown architecture skips
    the browser instead of failing the build.
 
-### 4.4 Verification
+### 4.4 Verification and what the build numbers do and do not say
 
 Build-time assertions (the last `RUN` in the Dockerfile) fail the **build** if: any promised tool is
 missing from `PATH`; `chromium` does not execute; `python3.12` is not 3.12; `pypdf`/`pdfminer` do not
-import; `pnpm` is not `11.22.0`; `node` is not 24.x; `opencode` is not `2.1.4`. `openchamber`'s
-version is reported but only warns — its `--version` output is not a contract worth breaking a deploy
-over.
+import; `pnpm` is not `11.22.0`; `node` is not 24.x; `opencode` is not `2.1.4`; `codegraph` is not
+`1.6.2`. `openchamber`'s version is reported but only warns — its `--version` output is not a contract
+worth breaking a deploy over.
 
 The real check is the deploy itself: build the image, watch the build log for the assertion line
 (`baked toolchain OK`), then watch the container log for the boot smoke test (`toolchain ready` plus
 the version table). Because every repair path is still present, a missed item degrades to "the boot
 installed it again" rather than "the container has no agent".
+
+**On measuring build time — read this before optimising.** The numbers were gathered the hard way and
+they do not support fine-grained claims:
+
+* Per-step timings exist only in Railway's JSON build logs (`railway logs -b <id> --json`): BuildKit
+  vertex records carry `started`/`completed`. Plain `railway up -c` output has step headers only,
+  so attribution by line order is impossible (steps are printed in bursts).
+* The log API returns at most ~2046 lines per deployment, which truncates a cold build — a "total
+  build time" derived from the visible window is wrong. One such number (169 s) was wrong for exactly
+  this reason and has been retracted here.
+* **Download-bound steps cannot be compared across deployments.** The same five-package `npm i -g`
+  measured 28.3 s, 45.0 s and 89.4 s on three builds; apt layers swing similarly. Any "merge X into Y
+  and it got faster" claim built on adjacent deploys is noise.
+* What *is* defensible are structural counts and same-link A/B: how many `apt-get update` runs exist
+  (3 now), how many dpkg configure passes, `Get:` byte volume (0 on a cache hit), and layer count
+  (28 → 20). The one change with a real structural basis is the three-apt-layer merge: it removes two
+  index fetches and two full configure passes, which are network-independent.
+
+What was tried and rejected: **BuildKit cache mounts** (`--mount=type=cache` for `/var/cache/apt` and
+`/var/lib/apt`). Railway's Dockerfile validator rejects them — first "missing an id argument", then,
+with `id=` supplied, "missing the cacheKey prefix from its id". They would have been the single best
+lever for rebuild-after-invalidation; the platform does not allow the plain form.
+
+What remains untouched, deliberately: `apt-get upgrade -y` in the base layer (it costs real time but
+it is the only consumer of bookworm security patches in a digest-pinned base — a trade-off for the
+owner, not a clean win), and image size (`fonts-noto-cjk` ~110 MB, `chromium-l10n`, `ffmpeg`), which
+drives the export/push step (17.6–63 s).
 
 ### 4.5 What must not move into the image
 
