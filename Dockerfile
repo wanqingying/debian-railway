@@ -10,8 +10,8 @@ FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde
 # Consequence worth knowing: with /var/lib/apt mounted, the usual
 # `rm -rf /var/lib/apt/lists/*` would wipe the cache instead of the layer — so it is
 # deliberately gone from these RUNs.
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=apt-archives,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists,target=/var/lib/apt,sharing=locked \
     apt-get update -o Acquire::Languages=none && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         wget curl git ca-certificates \
@@ -29,8 +29,8 @@ ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
 # ---- Node.js 24 (NodeSource) ----
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=apt-archives,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists,target=/var/lib/apt,sharing=locked \
     curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y nodejs
 
@@ -102,8 +102,8 @@ ENV NODE_ENV=development \
 # of this layer did — makes every one of those "not installable" even though bookworm has
 # them all.
 ARG KASMVNC_VERSION=1.5.0
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=apt-archives,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists,target=/var/lib/apt,sharing=locked \
     mkdir -p -m 755 /etc/apt/keyrings \
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
          -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
