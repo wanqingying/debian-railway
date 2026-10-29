@@ -42,6 +42,14 @@ if [ -f /scripts/pw ]; then
     ln -sfn /scripts/pw /usr/local/bin/pw
 fi
 
+# `xdg-open` — route "the CLI wants to open a browser" (railway login, gh auth login --web)
+# to the in-container KasmVNC Chromium via CDP instead of a no-op. Debian's xdg-open would
+# try x-www-browser and never reach the VNC session; /usr/local/bin wins on PATH.
+if [ -f /scripts/xdg-open ]; then
+    chmod +x /scripts/xdg-open 2>/dev/null || true
+    ln -sfn /scripts/xdg-open /usr/local/bin/xdg-open
+fi
+
 # A few auxiliary writers (managed-process registry, telemetry install id in
 # package-manager.js) resolve ~/.config/openchamber directly and ignore
 # OPENCHAMBER_DATA_DIR. Point the default path at the same volume directory so
