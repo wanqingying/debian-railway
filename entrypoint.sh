@@ -102,6 +102,20 @@ for f in Machine-alert-beep-sound-effect.mp3 Soft-high-tech-notification-sound-e
 done
 rmdir "$XDG_CONFIG_HOME/opencode/assets" 2>/dev/null || true
 
+# Retired 2026-10-29: a v1-era global config left at the XDG root by an earlier
+# image. OpenCode still parses it (every config resolution), and every key in it
+# is retired -- `server`, `permission`, `provider`, `small_model`, `autoupdate`,
+# `disabled_providers`, plus `plugin: [...@latest]`, an UNPINNED magic-context
+# spec that competes with the pinned one. It produced 6 "configuration
+# normalization diagnostic" warnings per resolution and could re-bind the
+# opencode server to 0.0.0.0:4096 behind OpenChamber's back. The live global
+# config is $XDG_CONFIG_HOME/opencode/opencode.jsonc (baked, above).
+p="$XDG_CONFIG_HOME/opencode.jsonc"
+if [ -e "$p" ]; then
+    rm -f "$p"
+    echo "[entrypoint] removed retired v1 root config: opencode.jsonc"
+fi
+
 # ---- Migrate a v1 OpenCode session database to the v2 schema ----
 # OpenCode 2 uses a different schema (session_message/session_inbox) than v1
 # (message/part). A v1 database left on this volume from an earlier deploy is
