@@ -17,9 +17,16 @@
  * "no such session".
  *
  * Coverage: user text and assistant `text` parts. Tool output is deliberately excluded — it is
- * ~19x the text volume and the densest place for secrets. Every returned title and snippet is
- * redacted, and the snippet is cut from already-redacted text so a secret straddling the window
- * edge cannot slip out in half.
+ * ~19x the text volume and the densest place for secrets, so searching it is the one change that
+ * would make redaction worth its cost; revisit that decision if it is ever enabled.
+ *
+ * Output is NOT redacted, decided 2026-10-28 after measuring. It protected nothing here: the corpus
+ * held no real credentials (0 of 6,909 messages matched a provider-token, JWT, url-credential or
+ * private-key pattern), `session.messages` hands out the same text unredacted so the rule was never
+ * a boundary, and both providers are internal gateways (ada-cli-golang.ctripcorp.com,
+ * aigw.fx.ctripcorp.com) rather than a third-party API. What it did do was mask config values in
+ * snippets with `***` — the exact text a "how is GITHUB_TOKEN set" search exists to read. Snippets
+ * stay short (~120 chars) for legibility, not for safety.
  *
  * Also runs as a CLI: `node lib/session-search.js <keyword> [--json] [--limit N] ...`.
  */
@@ -36,25 +43,6 @@ const BUSY_TIMEOUT_MS = 2_000;
 const DEFAULT_BUDGET_MS = 2_000;
 const DEADLINE_CHECK_EVERY = 512;
 
-// Anything returned to a model passes through here. The env-style rule swallows a quoted value
-// whole — `PASSWORD="two words"` used to leak everything after the first space.
-const SECRET_PATTERNS = [
-  [/\b([A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD))\s*[=:]\s*("[^"]*"|'[^']*'|[^\s,;]+)/gi, '$1=***'],
-  [/\bsk-[A-Za-z0-9_-]{8,}/g, 'sk-***'],
-  [/\b(ghp|gho|ghu|ghs)_[A-Za-z0-9]{10,}/g, '$1_***'],
-  [/\bgithub_pat_[A-Za-z0-9_]{10,}/g, 'github_pat_***'],
-  [/\bxox[baprs]-[A-Za-z0-9-]{8,}/g, 'xox-***'],
-  [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/g, 'eyJ***'],
-  [/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi, '$1 ***'],
-  [/(https?:\/\/)[^/\s:@]+:[^/\s@]+@/g, '$1***:***@'],
-];
-
-export function redact(text) {
-  let out = String(text ?? '');
-  for (const [pattern, replacement] of SECRET_PATTERNS) out = out.replace(pattern, replacement);
-  return out;
-}
-
 export function resolveDbPath() {
   const dataHome = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local/share');
   return path.join(dataHome, 'opencode', 'opencode.db');
@@ -67,15 +55,15 @@ const tooSlow = (rowsRead, t0) => ({
   message: `超过预算（${DEFAULT_BUDGET_MS}ms），已扫 ${rowsRead} 行后中止；缩小范围（--days / --dir / 更具体的关键词）后重试`,
 });
 
-// Snippet is derived from redacted text, then cut: redacting a slice let a token that straddled the
-// window boundary survive as a short fragment, which no pattern could recognise.
-function buildSnippet(safeText, needle, firstOffset) {
-  const lower = safeText.toLowerCase();
+// A short window around the first match: enough to recognise the session, small enough not to flood
+// a context window.
+function buildSnippet(text, needle, firstOffset) {
+  const lower = text.toLowerCase();
   const at = lower.indexOf(needle);
-  const pos = at >= 0 ? at : Math.min(firstOffset, safeText.length);
+  const pos = at >= 0 ? at : Math.min(firstOffset, text.length);
   const start = Math.max(0, pos - SNIPPET_PAD);
-  const end = Math.min(safeText.length, pos + needle.length + SNIPPET_PAD);
-  return safeText.slice(start, end).replace(/\s+/g, ' ').trim();
+  const end = Math.min(text.length, pos + needle.length + SNIPPET_PAD);
+  return text.slice(start, end).replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -143,8 +131,8 @@ export async function searchSessions(options = {}) {
     const byId = new Map(sessions.map((s) => [s.id, s]));
 
     const needle = query.toLowerCase();
-    // Full text is kept per hit so the snippet can be cut from redacted text, but only for sessions
-    // that actually hit — never for every row scanned.
+    // The full text is kept for the first hit in each session so the snippet can be cut from it
+    // after sorting — but only for sessions that hit, never for every row scanned.
     const hits = new Map(); // session id -> { matches, text, first, titleMatch }
     let rowsRead = 0;
 
@@ -218,13 +206,13 @@ export async function searchSessions(options = {}) {
       if (!session) continue;
       results.push({
         session: id,
-        title: redact(session.title || ''),
+        title: session.title || '',
         directory: session.directory,
         project: path.basename(session.directory),
         at: new Date(session.time_updated).toISOString().slice(0, 16).replace('T', ' '),
         matches: hit.matches,
         title_match: hit.titleMatch,
-        snippet: hit.text ? buildSnippet(redact(hit.text), needle, hit.first) : '',
+        snippet: hit.text ? buildSnippet(hit.text, needle, hit.first) : '',
       });
     }
     // Heaviest coverage first: a session that mentions the term 30 times is a better lead than one
