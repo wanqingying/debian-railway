@@ -11,7 +11,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { redact, searchSessions } from './session-search.js';
+import { searchSessions } from './session-search.js';
 
 // The two tables the tool touches, with only the columns it selects or filters on.
 const SCHEMA = `
@@ -69,43 +69,6 @@ function buildFixture(sessions) {
   return { dbPath, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
-test('redact masks a quoted value whole, not just its first word', () => {
-  // Regression: `\S+` stopped at the space and leaked ` secret pass"`.
-  assert.equal(redact('PASSWORD="my secret pass"'), 'PASSWORD=***');
-  assert.equal(redact("db_password: 'also two words'"), 'db_password=***');
-  assert.equal(redact('GITHUB_TOKEN=ghp_abcdefghijklmnopqrstuvwxyz01'), 'GITHUB_TOKEN=***');
-});
-
-test('redact covers provider tokens, bearer headers and url credentials', () => {
-  const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijkl';
-  // The JWT rule fires before the Bearer rule, so the mask keeps a harmless prefix; what matters is
-  // that no usable part of the token survives.
-  const masked = redact(`Authorization: Bearer ${jwt}`);
-  assert.match(masked, /^Authorization: Bearer /);
-  assert.ok(!masked.includes('eyJhbGciOiJIUzI1NiJ9'), masked);
-  assert.ok(!masked.includes('abcdefghijkl'), masked);
-  assert.equal(redact('https://user:pass@example.com/x'), 'https://***:***@example.com/x');
-  assert.equal(redact('key sk-abcdefghijklmnopqrstuvwxyz'), 'key sk-***');
-});
-
-test('a secret straddling the snippet window never comes out in half', async () => {
-  // The token sits ~70 chars into a long message, so a 60-char window cuts it; redacting the slice
-  // used to leave a `sk-…` fragment too short for any pattern to catch.
-  const long = `${'x'.repeat(70)} sk-abcdefghijklmnopqrstuvwxyz012345 tail`;
-  const fx = buildFixture([
-    { id: 'ses_half', title: 'with a secret', messages: [{ type: 'user', data: userText(`prefix ${long}`) }] },
-  ]);
-  try {
-    const r = await searchSessions({ query: 'prefix', dbPath: fx.dbPath });
-    assert.equal(r.status, 'ok');
-    const snippet = r.hits[0].snippet;
-    assert.ok(!snippet.includes('sk-abcdefghij'), `snippet leaked a token fragment: ${snippet}`);
-    assert.ok(!/sk-[A-Za-z0-9]{3,}/.test(snippet), `snippet leaked token-ish text: ${snippet}`);
-  } finally {
-    fx.cleanup();
-  }
-});
-
 test('a query containing a double quote still finds the text', async () => {
   // Regression: `"` is JSON-escaped in the stored row, so the LIKE prefilter matched nothing and the
   // tool answered "no such session" instead of scanning.
@@ -117,6 +80,25 @@ test('a query containing a double quote still finds the text', async () => {
     assert.equal(r.status, 'ok');
     assert.equal(r.total, 1);
     assert.match(r.hits[0].snippet, /浅合并/);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test('snippets keep config values readable', async () => {
+  // Decided 2026-10-28: output is not redacted, so a "how was this configured" search must return
+  // the value itself rather than `***`. This test pins that decision.
+  const fx = buildFixture([
+    {
+      id: 'ses_cfg',
+      title: 'config',
+      messages: [{ type: 'user', data: userText('set GITHUB_TOKEN=abc123def in the env') }],
+    },
+  ]);
+  try {
+    const r = await searchSessions({ query: 'GITHUB_TOKEN', dbPath: fx.dbPath });
+    assert.equal(r.total, 1);
+    assert.match(r.hits[0].snippet, /GITHUB_TOKEN=abc123def/);
   } finally {
     fx.cleanup();
   }
