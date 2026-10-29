@@ -59,6 +59,7 @@
 | OpenChamber（Web UI / 托管 opencode） | `@openchamber/web` | `2.5.1` | `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` | L0 |
 | magic-context（上下文/记忆插件） | `@cortexkit/opencode-magic-context` | `0.49.21` | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | L0 |
 | codegraph（代码索引 MCP） | `@colbymchenry/codegraph` | `1.6.2` | `Dockerfile` 的 `@colbymchenry/codegraph@<v>` + `scripts/install-tools.sh` 的 `CODEGRAPH_VERSION` | L1 |
+| playwright（浏览器自动化：CLI + library） | `playwright` | `1.64.1` | `Dockerfile` 的 `playwright@<v>` + `playwright-cli` shim；接管入口 `scripts/pw` | L1 |
 | pnpm | corepack | `11.22.0` | `scripts/install-tools.sh` 的 `corepack prepare pnpm@<v>` | L1 |
 | Python / uv | apt + uv installer | Python `3.12.x` / uv 取 latest | `scripts/install-tools.sh` | L1 |
 | Node.js | NodeSource `setup_24.x` | `24.x`（构建时最新 minor） | `Dockerfile` | L2 |
