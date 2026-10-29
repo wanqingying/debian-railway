@@ -97,3 +97,6 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 - 分析 / 查看代码优先用 `codegraph_explore`；搜索参数和符号用**英文**（代码符号都是英文字母，别用中文搜索）。
 - 执行搜索 / 分析前，先 `codegraph sync` 同步代码变更。
 - 常用命令：`codegraph sync`（增量同步） · `index`（重建） · `status`（状态/统计） · `files`（文件结构） · `init`（初始化并建索引）。
+
+## 浏览器
+- 本容器已经预装了用户可以远程操作的浏览器。用户通过vnc远程连接到容器的浏览器，可进行所有操作-访问的是完整的浏览器功能，方便扫码登录，输验证码，oauth验证回调，等等需要请求用户做操作的场景。 容器内的agent和ai可以通过playwright skill 直接通过cdp连接到这个打开的浏览器，执行各种自动化操作
