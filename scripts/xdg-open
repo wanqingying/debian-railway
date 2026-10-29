@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# xdg-open —— 让「CLI 想打开浏览器」的请求落到容器里那个 KasmVNC Chromium 上。
+#
+# 为什么需要：基础镜像的 /usr/local/bin/xdg-open 是个只有 `#!/bin/sh` 的空壳，调用它
+# 返回成功但**什么都不做**（实测：`xdg-open <url>` 退出 0，Chromium 里没有新标签）。
+# 于是 `railway login`、`gh auth login --web`、`doppler login` 这类「打开浏览器做 OAuth」
+# 的 CLI 会静默卡住或直接走不通。
+#
+# 做法：先问 CDP（由 scripts/start-browser.sh 起的 Chromium）开一个新标签，失败再退回
+# 直接拉起 chromium-browser（浏览器没起时的兜底）。
+#
+# 环境变量：BROWSER_CDP_PORT（默认 9222）
+set -u
+
+url="${1:-}"
+[ -n "$url" ] || exit 2
+
+CDP="http://127.0.0.1:${BROWSER_CDP_PORT:-9222}"
+
+if curl -sf -m 2 -o /dev/null "$CDP/json/version" 2>/dev/null; then
+    # 整个 URL 做 percent-encode 再拼进 query，CDP 会解码（避免 & ? # 破坏查询串）
+    enc=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$url" 2>/dev/null)
+    if [ -n "$enc" ]; then
+        code=$(curl -s -m 5 -o /dev/null -w '%{http_code}' -X PUT "$CDP/json/new?$enc" 2>/dev/null)
+        [ "$code" = "200" ] && exit 0
+    fi
+fi
+
+# 兜底：没有 CDP 就自己开一个窗口（容器里 chromium 的二进制叫 chromium-browser）
+for bin in /usr/bin/chromium-browser /usr/bin/chromium; do
+    [ -x "$bin" ] && exec "$bin" --new-window "$url" >/dev/null 2>&1
+done
+
+# 术语保真：xdg-open 打不开东西时返回 4
+exit 4
