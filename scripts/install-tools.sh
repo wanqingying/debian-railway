@@ -1,29 +1,32 @@
 #!/usr/bin/env bash
 #
-# scripts/install-tools.sh — idempotent dev-toolchain bootstrap for the dev container.
+# scripts/install-tools.sh — toolchain VERIFIER + repair path (was: the installer)
 #
-# WHY THIS EXISTS
-#   The dev container is ephemeral: anything installed outside the persistent /workspace volume is
-#   wiped on every redeploy (the root filesystem is not persisted). This script re-installs the whole
-#   toolchain at container start. It is idempotent and safe to re-run at any time.
+# WHAT CHANGED (2026-10-29)
+#   The whole toolchain is now baked into the image (see the "BAKED TOOLCHAIN"
+#   section of the Dockerfile). This script used to install all of it on every
+#   boot, because the root FS is not persisted. That made every redeploy a fresh
+#   chance to come up without a browser or without an agent, and every failure was
+#   non-fatal by design — so it was silent. Reasoning, measurements and the rules:
+#   docs/image-baking.md
 #
-# WHAT IT INSTALLS (tools only — see "NOT handled here" below)
-#   System packages (apt): ffmpeg · lsof · unzip · jq · build-essential · fontconfig + fonts-liberation
-#   uv                -> /usr/local/bin        (Python package + interpreter manager)
-#   Python 3.12       -> uv-managed            (repo requires >=3.12; system python3 is 3.11)
-#   pnpm              -> corepack, pinned 11.22.0
-#   Doppler CLI       -> official apt installer (v3.76.5), auto-authenticated via DOPPLER_TOKEN
-#   Neon CLI          -> npm (neonctl), authenticated natively via NEON_API_KEY env var
-#   Railway CLI      -> npm (@railway/cli), auth via RAILWAY_API_TOKEN / browserless login
-#   GitHub CLI (gh)   -> apt (GitHub's official apt repo), auth via GH_TOKEN / GITHUB_TOKEN
-#   OpenChamber      -> npm (@openchamber/web), web UI that manages its own OpenCode server
-#   OpenCode CLI     -> npm (@opencode/cli), the v2 `opencode` binary OpenChamber drives
-#   Interactive browser -> apt (chromium, chromium-l10n, fluxbox, fonts-noto-cjk, x11-utils,
-#                       scrot) + KasmVNC (a pinned GitHub-release .deb, not in Debian). Enabled
-#                       unless BROWSER_ENABLE=0; started by scripts/start-browser.sh.
-#                       See docs/interactive-browser.md.
-#   book-to-skill    -> PDF extractors for the baked book-to-skill skill: poppler-utils (apt) +
-#                       pypdf/pdfminer.six (pip). docling (technical/tables mode) is intentionally omitted.
+#   It is NOT removed. It is the repair path: on a healthy image every step below
+#   finds the tool present and skips, so a boot touches no package mirror at all.
+#   On a container where something was removed or a bake did not land, it still
+#   installs it. Keep that property — never make an install unconditional again.
+#
+# WHAT IT STILL DOES AT RUNTIME (this is boot work, not packaging)
+#   · Doppler token configuration from DOPPLER_TOKEN (per-machine secret)
+#   · Neon: report that NEON_API_KEY is present (the CLI reads it natively)
+#   · CodeGraph: upgrade to latest unless CODEGRAPH_UPGRADE=0 (deliberate Hold —
+#     see versions/BD-INDEX.md; move to an exact pin to change this)
+#   · repair the persisted core/.venv against this boot's interpreter (uv sync)
+#   · smoke test + version report
+#
+# Verified tools (installed by the image): apt system packages, uv + Python 3.12,
+# pnpm (11.22.0), Doppler CLI, Neon CLI, Railway CLI, OpenChamber (2.5.1),
+# OpenCode CLI (2.1.4), CodeGraph, the interactive browser (Chromium + KasmVNC),
+# gh, and the book-to-skill PDF extractors.
 #
 # NOT HANDLED HERE (per-developer, interactive — keep out of the startup script)
 #   - Doppler token:  set DOPPLER_TOKEN env var -> auto-configured below (no interactive login)
@@ -48,7 +51,7 @@ SKIP_VENV=0
 
 [ "$(id -u)" -eq 0 ] || die "must run as root (the dev container runs as root)"
 
-# ── 1. System packages ──────────────────────────────────────────────────────────
+# ── 1. System packages (repair only) ────────────────────────────────────────────
 # ffmpeg          : required by the LangGraph runtime (core/langgraph.json) + media pipeline
 # lsof            : required by `./dev` preflight and `./dev stop` (port detection)
 # unzip           : used by a few tool installers
@@ -56,18 +59,23 @@ SKIP_VENV=0
 # build-essential : source-built Python deps (e.g. forbiddenfruit) compile against it
 # poppler-utils   : pdftotext for the baked book-to-skill skill (PDF text extraction)
 # fontconfig + fonts-liberation : font rendering for overlay/render workers
+# Baked into the image; this block only runs if one of them is gone.
 log "1/5 system packages (apt)"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y --no-install-recommends \
-  ffmpeg lsof unzip jq \
-  build-essential \
-  poppler-utils \
-  fontconfig fonts-liberation \
-  ca-certificates curl wget git \
-  >/dev/null
-apt-get clean
-rm -rf /var/lib/apt/lists/*
+missing_pkgs=""
+for pkg in ffmpeg lsof unzip jq build-essential poppler-utils fontconfig fonts-liberation; do
+  dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q 'install ok installed' \
+    || missing_pkgs="$missing_pkgs $pkg"
+done
+if [ -z "$missing_pkgs" ]; then
+  log "  already in image — skipped"
+else
+  log "  missing:$missing_pkgs — repairing"
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y --no-install-recommends $missing_pkgs >/dev/null
+  apt-get clean
+  rm -rf /var/lib/apt/lists/*
+fi
 
 # ── 2. uv + Python 3.12 ─────────────────────────────────────────────────────────
 # uv self-installs to /usr/local/bin (root-FS; reinstalled each boot). Its managed pythons live
@@ -79,17 +87,28 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 log "3/5 Python 3.12"
-uv python install 3.12   # idempotent: skips if already managed
-# Expose the uv-managed interpreter on PATH as python3.12 (uv's managed pythons are NOT on PATH by
-# default). /usr/local/bin is root-FS, so the symlink is recreated on every boot.
-ln -sf "$(uv python find 3.12)" /usr/local/bin/python3.12
+# Baked into the image (uv-managed, under /usr/local/share/uv/python). Only rebuild the
+# symlink if it is gone; the interpreter itself is already there.
+if command -v python3.12 >/dev/null 2>&1; then
+  log "  already in image — skipped"
+else
+  uv python install 3.12   # idempotent: skips if already managed
+  # Expose the uv-managed interpreter on PATH as python3.12 (uv's managed pythons are NOT on PATH
+  # by default). uv's data dir follows XDG_DATA_HOME, which points at the volume, so this is the
+  # repair path for a container whose baked symlink was lost.
+  ln -sf "$(uv python find 3.12)" /usr/local/bin/python3.12
+fi
 
 # ── 3. pnpm (pinned, via corepack) ──────────────────────────────────────────────
-# corepack shims live in the node bin dir (root-FS; re-enabled each boot). The pinned version is
-# downloaded on first use and cached in corepack's cache (HOME-based -> persistent volume).
+# Baked into the image. corepack shims live in the node bin dir; re-enabling is
+# cheap and offline once the version is prepared, but skip it when pnpm resolves.
 log "4/5 pnpm"
-corepack enable pnpm
-corepack prepare pnpm@11.22.0 --activate
+if command -v pnpm >/dev/null 2>&1; then
+  log "  already in image — skipped"
+else
+  corepack enable pnpm
+  corepack prepare pnpm@11.22.0 --activate
+fi
 
 # ── 4. Doppler CLI ──────────────────────────────────────────────────────────────
 log "5/5 Doppler CLI"
@@ -202,17 +221,18 @@ fi
 log "resolved: openchamber $(openchamber --version 2>/dev/null || echo 'n/a') · opencode $(opencode --version 2>/dev/null || echo 'n/a')"
 
 # ── CodeGraph ─────────────────────────────────────────────────────────────────
-# Baked into the image (Dockerfile: `npm i -g --allow-scripts=@opencode/cli`
-# `@opencode/cli @colbymchenry/codegraph`) and upgraded on every boot so the
-# graph tool tracks upstream. `codegraph upgrade`
-# fetches the latest release itself; if that fails (upstream 5xx / release service
-# unreachable) fall back to the npm route the image already uses.
-# CODEGRAPH_UPGRADE=0 holds the baked version.
-# Non-fatal, like everything else here: a broken release must not take SSH down.
-CODEGRAPH_UPGRADE="${CODEGRAPH_UPGRADE:-1}"
+# Baked into the image at a **pinned** version (Dockerfile: `@colbymchenry/codegraph@1.6.2`,
+# BD-001). The boot no longer upgrades it: CODEGRAPH_UPGRADE defaults to 0.
+# Why the change: this used to track upstream on every start, so a redeploy could silently
+# change how the agent indexes code, on top of the baked version drifting per build. Two
+# moving parts in one container. Now the image is the source of truth; set
+# CODEGRAPH_UPGRADE=1 deliberately to track latest again (that path is kept as an escape
+# hatch, and it is non-fatal like everything else here).
+CODEGRAPH_VERSION="${CODEGRAPH_VERSION:-1.6.2}"
+CODEGRAPH_UPGRADE="${CODEGRAPH_UPGRADE:-0}"
 if command -v codegraph >/dev/null 2>&1; then
   if [ "$CODEGRAPH_UPGRADE" = "0" ]; then
-    log "CodeGraph upgrade skipped (CODEGRAPH_UPGRADE=0)"
+    log "CodeGraph upgrade skipped (pinned; CODEGRAPH_UPGRADE=0)"
   else
     log "CodeGraph upgrade to latest"
     # `timeout -k 15 … </dev/null`: GNU timeout puts the child in its own process
@@ -222,7 +242,11 @@ if command -v codegraph >/dev/null 2>&1; then
       || npm install -g "@colbymchenry/codegraph@latest" >/dev/null 2>&1 \
       || log "warning: CodeGraph upgrade failed (keeping the current version)"
   fi
-  log "resolved: codegraph $(codegraph --version 2>/dev/null || echo 'n/a')"
+  log "resolved: codegraph $(codegraph --version 2>/dev/null || echo 'n/a') (pin ${CODEGRAPH_VERSION})"
+elif [ "$CODEGRAPH_UPGRADE" != "0" ]; then
+  # Repair path: baked copy is gone and the caller opted into tracking latest.
+  npm install -g "@colbymchenry/codegraph@${CODEGRAPH_VERSION}" >/dev/null 2>&1 \
+    || log "warning: CodeGraph install failed (continuing)"
 fi
 
 # ── Interactive browser (Chromium + KasmVNC) ────────────────────────────────────
@@ -243,12 +267,16 @@ if [ "${BROWSER_ENABLE:-1}" != 0 ]; then
       chromium chromium-l10n fluxbox fonts-noto-cjk x11-utils scrot \
       >/dev/null
     KASMVNC_VERSION="${KASMVNC_VERSION:-1.5.0}"
+    # Upstream publishes both amd64 and arm64 bookworm .debs (verified 2026-10-29).
+    # This repair path does NOT verify a checksum (the image build does); it is
+    # best-effort and non-fatal by design.
     case "$(uname -m)" in
       x86_64|amd64) KASMVNC_ARCH=amd64 ;;
+      aarch64|arm64) KASMVNC_ARCH=arm64 ;;
       *) KASMVNC_ARCH="" ;;
     esac
     if [ -z "$KASMVNC_ARCH" ]; then
-      log "warning: KasmVNC .deb is pinned for amd64 — skipping on $(uname -m)"
+      log "warning: no KasmVNC .deb published for $(uname -m) — skipping"
     else
       KASMVNC_DEB="/tmp/kasmvncserver_bookworm_${KASMVNC_VERSION}_${KASMVNC_ARCH}.deb"
       if curl -fsSL -o "$KASMVNC_DEB" \

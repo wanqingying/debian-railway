@@ -21,6 +21,27 @@ mkdir -p "$OPENCHAMBER_DATA_DIR"
 # volume to keep rendered pages across redeploys.
 export AM_HOME="${AM_HOME:-$XDG_DATA_HOME/answer-me-with-html}"
 
+# ---- Worktrees: pin to the volume ----
+# A worktree is a session's working directory, so it has to outlive a redeploy.
+# The root filesystem (/tmp, /root, /var/tmp) is rebuilt from the image on every
+# start: a worktree created there disappears and the session pointing at it then
+# fails with "Directory not found" and cannot be resumed. `worktree.directory`
+# in opencode.jsonc sends OpenChamber's own "New worktree" here as well, and
+# `wt` (scripts/worktree.sh) is the only sanctioned way for an agent to make one.
+export WORKTREE_ROOT="${WORKTREE_ROOT:-/workspace/worktrees}"
+mkdir -p "$WORKTREE_ROOT"
+ln -sfn /scripts/worktree.sh /usr/local/bin/wt
+
+# `pw` (scripts/pw) — Playwright CLI pinned onto the in-container KasmVNC browser:
+# it attaches over CDP (idempotently) instead of launching, so an agent drives the
+# SAME signed-in session a human just logged into. `playwright cli open` is avoided
+# on purpose: it honours ~/.playwright/cli.config.json's cdpEndpoint but navigates the
+# user's current tab away (measured 2026-10-29 on playwright 1.64.1).
+if [ -f /scripts/pw ]; then
+    chmod +x /scripts/pw 2>/dev/null || true
+    ln -sfn /scripts/pw /usr/local/bin/pw
+fi
+
 # A few auxiliary writers (managed-process registry, telemetry install id in
 # package-manager.js) resolve ~/.config/openchamber directly and ignore
 # OPENCHAMBER_DATA_DIR. Point the default path at the same volume directory so
@@ -90,6 +111,20 @@ for f in Machine-alert-beep-sound-effect.mp3 Soft-high-tech-notification-sound-e
     rm -f "$XDG_CONFIG_HOME/opencode/assets/$f"
 done
 rmdir "$XDG_CONFIG_HOME/opencode/assets" 2>/dev/null || true
+
+# Retired 2026-10-29: a v1-era global config left at the XDG root by an earlier
+# image. OpenCode still parses it (every config resolution), and every key in it
+# is retired -- `server`, `permission`, `provider`, `small_model`, `autoupdate`,
+# `disabled_providers`, plus `plugin: [...@latest]`, an UNPINNED magic-context
+# spec that competes with the pinned one. It produced 6 "configuration
+# normalization diagnostic" warnings per resolution and could re-bind the
+# opencode server to 0.0.0.0:4096 behind OpenChamber's back. The live global
+# config is $XDG_CONFIG_HOME/opencode/opencode.jsonc (baked, above).
+p="$XDG_CONFIG_HOME/opencode.jsonc"
+if [ -e "$p" ]; then
+    rm -f "$p"
+    echo "[entrypoint] removed retired v1 root config: opencode.jsonc"
+fi
 
 # ---- Migrate a v1 OpenCode session database to the v2 schema ----
 # OpenCode 2 uses a different schema (session_message/session_inbox) than v1

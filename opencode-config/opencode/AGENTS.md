@@ -8,6 +8,15 @@
 
 `sysinfo` (provided by the local `plugins/sysinfo/` plugin, not a built-in) reports the machine's facts — time/timezone, OS, container/CI, the container's own start time and uptime, the CPU/memory/pids quota it actually gets (cgroup, not the host's core count), disk, listening ports (externally reachable vs loopback) and Railway's public endpoints, installed tools. Use it when a task depends on them.
 
+## Environment: worktrees belong on the volume
+
+`/workspace` is the only mounted volume. **Everything else is rebuilt from the image on every redeploy** — `/tmp`, `/var/tmp`, `/root`, `/run`, `/usr`. A worktree is a session's working directory, so a worktree created on the root filesystem disappears, and the session pointing at it then dies with `Directory not found: <path>` and cannot be resumed (this has already cost a session 13 hours of work).
+
+- Create worktrees **only** with `wt new <branch> [base-ref]` → `$WORKTREE_ROOT/<branch>` (default `/workspace/worktrees`). `wt list` / `wt remove <branch>` / `wt prune` for the rest.
+- Never `git worktree add /tmp/...` (or `/root/...`, `/var/tmp/...`), and never `session_move` into such a path. `wt` refuses a root outside `/workspace` for exactly this reason.
+- Scratch files (logs, probe scripts, build output) may live in `/tmp` — they are throwaway by definition. Anything a later session must find again goes under `/workspace`.
+- Clone/copy a repository onto the volume too when the work has to outlive the deploy: a repo checked out in `/tmp` loses its own history as well.
+
 ## 0. Language: English only
 
 All code comments and documentation (README, docs, commit messages, PR descriptions) are written in **English**. Keep existing content in its current language unless asked to translate.
