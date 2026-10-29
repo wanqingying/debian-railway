@@ -189,6 +189,26 @@ else
     log "warning: CDP not responding on 127.0.0.1:${BROWSER_CDP_PORT} — see /tmp/chromium.log"
 fi
 
+# Point the Playwright CLI's global default at this browser.
+# `browser.cdpEndpoint` in ~/.playwright/cli.config.json is loaded automatically, so any
+# tool that follows the upstream docs (`playwright cli open`) also lands on this signed-in
+# browser instead of launching a fresh one. Measured 2026-10-29 on playwright 1.64.1:
+# `open` HONOURS this key, `attach` DOES NOT (it needs an explicit --cdp). `open` is also
+# destructive — it runs page.goto() and navigates the user's current tab away. For taking
+# over without disturbing tabs use `pw` (scripts/pw). See the playwright-cli skill.
+if command -v playwright >/dev/null 2>&1 && [ "$CDP_OK" = 1 ]; then
+    mkdir -p "$HOME/.playwright"
+    cat > "$HOME/.playwright/cli.config.json" <<JSON
+{
+  "browser": {
+    "cdpEndpoint": "http://127.0.0.1:${BROWSER_CDP_PORT}",
+    "cdpTimeout": 30000
+  }
+}
+JSON
+    log "playwright cli default endpoint -> http://127.0.0.1:${BROWSER_CDP_PORT}"
+fi
+
 log "ready — reach it from a laptop with:"
 log "  ssh -N -L ${BROWSER_PORT}:127.0.0.1:${BROWSER_PORT} -p <PORT> root@<host>"
 log "  then open https://127.0.0.1:${BROWSER_PORT}/vnc.html  (accept the self-signed cert; user root)"
