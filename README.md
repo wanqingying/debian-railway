@@ -75,6 +75,7 @@ OpenChamber **2.0.1** 起，下面三种写法都会走原生 `POST /api/session
 - **容器内可交互浏览器（KasmVNC）**：[docs/interactive-browser.md](docs/interactive-browser.md) — 在无 UI 的容器里跑真实 Chromium、从笔记本浏览器远程手动操作（含扫码/验证码登录），并把同一浏览器通过 CDP 交给 agent；含安装、配置、启动、访问、安全与排错，已端到端验证。
 - **工作区（worktree）固定落盘**：[docs/worktrees.md](docs/worktrees.md) — worktree 就是会话的工作目录，所以必须建在卷上的 `/workspace/worktrees`：`wt` 封装（`new/list/remove/prune`，拒绝 `/workspace` 之外的根）、OpenChamber「新建 worktree」走同一目录的机制，以及目录被重部署删掉后如何把会话接回来。
 - **浏览器方案选型记录**：[docs/container-browser-gui.md](docs/container-browser-gui.md) — 各方案（自建 HTML5 桌面 / 无头 CDP 投屏 / 云浏览器 / ssh -X）的对比与决策依据。
+- **把工具链烘进镜像（改造本项目的计划）**：[docs/image-baking.md](docs/image-baking.md) — 来自 devcontainer 的一次真实迁移：运行时安装为什么会静默失败（镜像源 <1KB/s、发行版编译的浏览器需要更新的基础库）、由此得出的 7 条规则，以及**把本项目 `install-tools.sh` 的工作搬进 Dockerfile 的分步计划**（§4）。动 Dockerfile 的安装层之前先读它。
 - **Agent 联网 / 登录态取数**：[docs/agent-web-access.md](docs/agent-web-access.md) — 适配器 CLI（`opencli` 走 `OPENCLI_CDP_ENDPOINT`、Agent-Reach）与 Playwright/CDP 两条路的实测对比、把浏览器登录态交给 CLI 的凭证桥，以及 OpenCLI `reddit search` 不分页的上游缺口与本地补丁。
 - **Reddit 取数迁移指南**：[docs/reddit-data-access.md](docs/reddit-data-access.md) — 把"第三方 API 抓 Reddit"迁到"驱动登录态浏览器（CDP）"的独立文档：操作步骤、踩坑、实测数据结论与迁移清单。
 - **MC百科 模组数据**：[docs/mcmod-stats.md](docs/mcmod-stats.md)（取数与排序运行手册：`scripts/mcmod/scrape.mjs` / `rank.mjs`，驱动容器内可见浏览器、后台运行 + `runs` 进度表、DOM 配方、"需登录"结论、踩坑、以及「最值得玩」排序算法的完整定义与依据）· [docs/mcmod-db.md](docs/mcmod-db.md)（数据集结构：`data/mcmod.db` 的 DDL、逐列注释与查询示例）。
