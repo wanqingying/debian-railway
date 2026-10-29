@@ -140,9 +140,22 @@ curl -s http://127.0.0.1:9222/json/list       # -> open pages
 
 - **Keep it on loopback.** CDP can read cookies and drive the browser; never expose 9222.
 - Human logs in through the VNC view → the agent then attaches to the **same** browser:
-  - Playwright: `chromium.connectOverCDP('http://127.0.0.1:9222')`
+  - `pw <command>` — the wrapper in `scripts/pw`, symlinked to `/usr/local/bin/pw` at boot.
+    It attaches over CDP idempotently and then runs the Playwright CLI subcommand:
+    `pw eval "document.title"`, `pw snapshot` → `pw click e15`, `pw goto <url>`, `pw tab-list`.
+    This is the sanctioned path; the `playwright-cli` skill (baked into the image's opencode
+    skills) documents it as this container's fixed setup.
+  - Playwright library: `chromium.connectOverCDP('http://127.0.0.1:9222', { noDefaults: true, isLocal: true })`
+    (`playwright` 1.64.1 is installed globally and needs **no** browser download; `NODE_PATH`
+    points at the global packages).
   - or `microsoft/playwright-mcp --cdp-endpoint http://127.0.0.1:9222`,
     `chrome-devtools-mcp` with a WebSocket/CDP endpoint.
+- **Do not use `playwright cli open` to take over.** Measured 2026-10-29 on 1.64.1: it honours
+  `~/.playwright/cli.config.json`'s `browser.cdpEndpoint` (written at boot by
+  `scripts/start-browser.sh`), so it does attach to this browser — but the verb is "open", so it
+  runs `page.goto()` and navigates the user's current tab away (it wiped a live page to
+  `about:blank`). `attach --cdp` is the takeover verb but does not read the config file, which is
+  exactly why `pw` exists.
 - Login persistence for the agent path is handled by the on-volume `--user-data-dir` (or Playwright
   `storageState`).
 - For *what to do* once attached — adapter CLIs (`opencli`) vs raw Playwright/CDP, the credentials

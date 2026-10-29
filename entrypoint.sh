@@ -32,6 +32,16 @@ export WORKTREE_ROOT="${WORKTREE_ROOT:-/workspace/worktrees}"
 mkdir -p "$WORKTREE_ROOT"
 ln -sfn /scripts/worktree.sh /usr/local/bin/wt
 
+# `pw` (scripts/pw) — Playwright CLI pinned onto the in-container KasmVNC browser:
+# it attaches over CDP (idempotently) instead of launching, so an agent drives the
+# SAME signed-in session a human just logged into. `playwright cli open` is avoided
+# on purpose: it honours ~/.playwright/cli.config.json's cdpEndpoint but navigates the
+# user's current tab away (measured 2026-10-29 on playwright 1.64.1).
+if [ -f /scripts/pw ]; then
+    chmod +x /scripts/pw 2>/dev/null || true
+    ln -sfn /scripts/pw /usr/local/bin/pw
+fi
+
 # A few auxiliary writers (managed-process registry, telemetry install id in
 # package-manager.js) resolve ~/.config/openchamber directly and ignore
 # OPENCHAMBER_DATA_DIR. Point the default path at the same volume directory so
