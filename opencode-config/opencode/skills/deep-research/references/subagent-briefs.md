@@ -103,6 +103,9 @@ and the quote the gatherer recorded. Then:
    ("proves" where the source says "suggests"), version drift, and quotes taken out of context.
 3. Look once for a newer source or a credible counter-claim.
 4. Record the verdict: `node <evidence.mjs> verify <dir> --claim C0xx --verdict <v> --note "<why>"`
+5. If the claim itself was wrong (misattributed, wrong version, quote from a different page), correct it
+   with `node <evidence.mjs> edit <dir> --claim C0xx '<json>'` rather than a text editor; the edit
+   revalidates the record and recomputes its source family if the URL moved.
 
 Verdicts: supported | partial | not_supported | superseded | unverifiable.
 Never mark something supported on a page you could not read — `unverifiable` plus the error is the
