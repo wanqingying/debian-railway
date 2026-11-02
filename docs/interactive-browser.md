@@ -243,9 +243,15 @@ in one hop.
 
 ## 11. Verification checklist (what "working" means)
 
+For a runnable version of this — one block, `PASS`/`FAIL` per signal, plus the failure catalogue
+(headless browser, stale profile lock, `pw` missing on a stale image) — use
+[`browser-self-check.md`](./browser-self-check.md).
+
 - [ ] `kasmvncserver -list` shows `:1`
 - [ ] `xdpyinfo -display :1` reports the display
 - [ ] `scrot -o /tmp/x.png` on `:1` shows the Chromium window
+- [ ] the browser command line has **no** `--headless` (a headless instance looks healthy over CDP
+      while no human can see or sign in to it)
 - [ ] `curl http://127.0.0.1:9222/json/version` → a `Chrome/…` version
 - [ ] `curl -k -u root:$PASSWORD https://127.0.0.1:<port>/vnc.html` → `200`
 - [ ] `wss://…/websockify` with a `Sec-WebSocket-Protocol` header → `101`
