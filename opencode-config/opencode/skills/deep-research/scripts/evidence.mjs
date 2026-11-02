@@ -14,6 +14,8 @@
 // Usage:
 //   node evidence.mjs init   <dir> [--slug s]
 //   node evidence.mjs append <dir> '<json>'|--stdin     (object or array)
+//   node evidence.mjs edit   <dir> --claim C001 '<json>'   (fields to change)
+//   node evidence.mjs edit   <dir> --claim C001 --delete
 //   node evidence.mjs stats  <dir> [--json]
 //   node evidence.mjs slice  <dir> --node N1 [--max 4000]
 //   node evidence.mjs verify <dir> --claim C001 --verdict supported [--note "…"]
@@ -124,9 +126,14 @@ function save(rows) {
   writeFileSync(evidencePath, rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
 }
 
+// Highest id + 1, not length + 1: after a delete, length restarts below the
+// highest id and would hand out an id that is already taken.
 function nextClaimId(rows) {
-  const n = rows.length + 1;
-  return 'C' + String(n).padStart(3, '0');
+  const max = rows.reduce((m, r) => {
+    const n = Number(String(r.claim_id || '').replace(/^C/, ''));
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0);
+  return 'C' + String(max + 1).padStart(3, '0');
 }
 
 // ---------------------------------------------------------------- commands
@@ -291,6 +298,75 @@ function cmdVerify() {
   );
 }
 
+const EDITABLE = [
+  'node',
+  'claim',
+  'source_title',
+  'url',
+  'quote',
+  'tier',
+  'access',
+  'source_family',
+  'retrieved',
+  'confidence',
+  'load_bearing',
+  'verdict',
+  'note',
+];
+
+function cmdEdit() {
+  if (!flags.claim) die('edit needs --claim C001');
+  const rows = load();
+  const idx = rows.findIndex((r) => r.claim_id === flags.claim);
+  if (idx < 0) die(`no claim ${flags.claim}`);
+
+  if (flags.delete) {
+    rows.splice(idx, 1);
+    save(rows);
+    console.log(`deleted ${flags.claim} · ${rows.length} records remain · next id will be ${nextClaimId(rows)}`);
+    return;
+  }
+
+  const raw = args.slice(2).find((a) => a.trim().startsWith('{'));
+  if (!raw) die('edit needs a JSON object of the fields to change, or --delete');
+  let patch;
+  try {
+    patch = JSON.parse(raw);
+  } catch (e) {
+    die(`invalid JSON: ${e.message}`);
+  }
+  const unknown = Object.keys(patch).filter((k) => !EDITABLE.includes(k));
+  if (unknown.length) die(`not editable: ${unknown.join(', ')} (editable: ${EDITABLE.join(', ')})`);
+  if ('claim_id' in patch) die('claim_id is an identity, not a field — edit the content instead');
+
+  const row = rows[idx];
+  const before = { ...row };
+  const merged = { ...row, ...patch };
+  // Re-apply the same validation and normalization `append` uses, so an edit
+  // can neither introduce a record the register would have rejected nor leave
+  // a stale derived field behind.
+  if (!String(merged.claim || '').trim()) die('claim cannot be empty');
+  if (!String(merged.url || '').trim()) die('url cannot be empty');
+  merged.tier = normalizeTier(merged.tier) || 'T4';
+  merged.access = normalizeAccess(merged.access);
+  if (patch.url && !patch.source_family) merged.source_family = familyOf(merged);
+  merged.load_bearing = merged.load_bearing !== false;
+
+  rows[idx] = merged;
+  save(rows);
+
+  const changed = Object.keys(patch).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(merged[k]));
+  console.log(`updated ${merged.claim_id}: ${changed.join(', ') || 'nothing (identical values)'}`);
+  for (const k of changed) {
+    const short = (v) => (typeof v === 'string' && v.length > 70 ? v.slice(0, 67) + '…' : v);
+    console.log(`  ${k}: ${short(before[k])} → ${short(merged[k])}`);
+  }
+  if (changed.includes('verdict') || changed.includes('load_bearing')) {
+    const acc = accuracy(rows);
+    console.log(`  accuracy now ${acc.ratio === null ? 'n/a' : (acc.ratio * 100).toFixed(1) + '%'} (${acc.supported}/${acc.decided})`);
+  }
+}
+
 function cmdRender() {
   const rows = load();
   const sources = new Map();
@@ -351,7 +427,7 @@ function cmdRender() {
   }
 }
 
-const commands = { init: cmdInit, append: cmdAppend, stats: cmdStats, slice: cmdSlice, verify: cmdVerify, render: cmdRender };
+const commands = { init: cmdInit, append: cmdAppend, edit: cmdEdit, stats: cmdStats, slice: cmdSlice, verify: cmdVerify, render: cmdRender };
 if (!commands[cmd]) {
   console.error(`usage: node evidence.mjs <${Object.keys(commands).join('|')}> <dir> [flags]`);
   process.exit(1);
