@@ -116,6 +116,8 @@ Write `report.md` from `references/report-template.md`, pulling quotes by node f
 
 Open the cited URL for **every** load-bearing claim and decide, per claim, whether the page as it stands supports the claim as written. Not a sample — the sample is the version of this step that never finds the two wrong citations. Where the page no longer matches, mark the verdict, then re-source, weaken, or delete, in that order.
 
+Fixing a record goes through the register, never through a text editor: `node scripts/evidence.mjs edit <dir> --claim C0xx '<json of the fields to change>'` corrects a claim in place — recomputing its source family when the `url` moves — and `--delete` removes one outright. Hand-editing `evidence.jsonl` is how ids and derived fields drift apart from the numbers the report quotes. When one claim needs two pages to stand up, do not give it two URLs: edit it down to the first, and `append` the second as its own record.
+
 `node scripts/evidence.mjs stats <dir>` then gives you the number that goes in the report header:
 
 ```
