@@ -108,4 +108,8 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 - 常用命令：`codegraph sync`（增量同步） · `index`（重建） · `status`（状态/统计） · `files`（文件结构） · `init`（初始化并建索引）。
 
 ## 浏览器
-- 本容器已经预装了用户可以远程操作的浏览器。用户通过vnc远程连接到容器的浏览器，可进行所有操作-访问的是完整的浏览器功能，方便扫码登录，输验证码，oauth验证回调，等等需要请求用户做操作的场景。 容器内的agent和ai可以通过playwright skill 直接通过cdp连接到这个打开的浏览器，执行各种自动化操作
+
+本容器只有一个浏览器：窗口化 Chromium（`DISPLAY=:1`，VNC `8444` 经 SSH 隧道给人看和操作；CDP `127.0.0.1:9222` 给 agent 用）。扫码、验证码、OAuth 回调这类步骤让用户在 VNC 里完成。
+
+- 接同一个实例：`pw <子命令>`，或 `connectOverCDP("http://127.0.0.1:9222", {noDefaults:true,isLocal:true})`。别用 `playwright cli open`（会导航走用户当前标签页）。
+- 不要另起浏览器：不 `--headless`、不换 profile / 端口、不删 `SingletonLock` —— 会顶掉可视浏览器。卡住先按 `/workspace/debian-railway/docs/browser-self-check.md` 自检，重启用 `/scripts/start-browser.sh`。
