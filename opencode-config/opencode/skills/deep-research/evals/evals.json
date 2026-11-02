@@ -1,0 +1,43 @@
+{
+  "skill_name": "deep-research",
+  "notes": "Iteration 1. Two prompts chosen because they stress different new mechanisms: eval 1 the comparison + freshness + public-API lane, eval 2 the recency + issue-tracking lane where I already know the ground truth (OpenCode 2.1.x support starts at magic-context 0.49.17; hidden runs need OpenCode >= 2.0.22; we pin 0.49.21). Runs are single-agent and budget-capped so the fan-out itself is not what is being measured.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "rust-http-framework-selection",
+      "prompt": "帮我查一下 2026 年 Rust 的 HTTP 框架 axum 和 actix-web 现在该怎么选，我要给一个新的内部服务做选型。需要：各自最新版本号和发布时间、维护活跃度的证据、性能数据的出处，最后给一个明确建议。产物写到 /workspace/debian-railway/.skill-workspace/deep-research/iteration-1/eval-0-rust-http-framework-selection/RUN_DIR/outputs/ 目录下。",
+      "expected_output": "A cited report comparing axum and actix-web with version numbers + release dates, maintenance evidence (commits/releases/issues), performance claims with sources, a comparison table, and one concrete recommendation. Artifact set on disk: report.md with a citation-accuracy figure, outline.json, evidence.jsonl, sources.json.",
+      "assertions": [
+        "report.md exists in the outputs directory",
+        "outline.json, evidence.jsonl and sources.json exist beside the report",
+        "report header states a citation accuracy figure",
+        "report contains a comparison table with one row per framework",
+        "every record in evidence.jsonl carries url, quote, tier, access and retrieved date",
+        "every load-bearing claim has a verification verdict",
+        "the report names an explicit version number for each framework",
+        "the recommendation is concrete and states the condition under which it would change",
+        "no single domain supplies more than half of the cited sources",
+        "no claim is presented without an inline source id",
+        "tries a machine-readable fallback before dropping a dimension the question asked for"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "magic-context-recent-changes",
+      "prompt": "调研一下 opencode 的 magic-context 插件最近（2026年10月到11月）的更新，我最关心它和 OpenCode 2.1.x 的兼容性要求，以及有没有人报告过升级后的问题。给我一份带出处的结论。产物写到 /workspace/debian-railway/.skill-workspace/deep-research/iteration-1/eval-1-magic-context-recent-changes/RUN_DIR/outputs/ 目录下。",
+      "expected_output": "A cited report on magic-context releases in the window, naming the first version that supports OpenCode 2.1.x (0.49.17) and the OpenCode minimum for hidden runs (2.0.22), with GitHub release/commit evidence and any reported issues, plus gaps stated where the evidence is thin.",
+      "assertions": [
+        "report.md exists in the outputs directory",
+        "outline.json, evidence.jsonl and sources.json exist beside the report",
+        "report header states a citation accuracy figure",
+        "report states a recency cutoff date for the window searched",
+        "report names the specific magic-context version that first supports OpenCode 2.1.x",
+        "claims about versions are tied to a source URL, not asserted from memory",
+        "gaps or unverifiable items are listed explicitly",
+        "every record in evidence.jsonl carries url, quote, tier, access and retrieved date",
+        "every load-bearing claim has a verification verdict",
+        "no single domain supplies more than half of the cited sources"
+      ]
+    }
+  ]
+}

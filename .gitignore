@@ -6,3 +6,4 @@ tmp/
 node_modules/
 data/*.db-wal
 data/*.db-shm
+.skill-workspace/
