@@ -152,10 +152,12 @@ RUN curl -Ls https://cli.doppler.com/install.sh | sh \
 #   neon         : neonctl — authenticates natively via NEON_API_KEY, no login step
 #   @railway/cli : ships a postinstall -> needs --allow-scripts under npm 11
 #   openchamber  : the web UI that manages its own embedded OpenCode server. PINNED
-#                  (BD-001 = 2.5.1) and paired with the OpenCode pin below — OpenChamber
-#                  2.x drives OpenCode 2.x only, and 2.5.2 is deliberately held back
-#                  (it removed the Tree view; see versions/BD-INDEX.md).
-ARG OPENCHAMBER_VERSION=2.5.1
+#                  (BD-002 = 2.5.3) and paired with the OpenCode pin below — OpenChamber
+#                  2.x drives OpenCode 2.x only. 2.6.0 is NOT taken: it dropped the
+#                  question submit button (#6131) and churns ~3 git/s per project (#6084).
+#                  The 2.5.2 sidebar redesign (no Tree view) is accepted from BD-002 on;
+#                  see versions/BD-INDEX.md.
+ARG OPENCHAMBER_VERSION=2.5.3
 # TWO npm invocations, kept split — but NOT because a split measures faster.
 # Honest history (2026-10-29): the same 5-package install measured 28.3 s (split),
 # 45.0 s (merged into one call) and 89.4 s (split again) across three builds. That
@@ -183,7 +185,7 @@ RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
 #
 # opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
 # official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
-# @opencode/cli`) is what we follow, but the version is held at 2.1.4 on purpose:
+# @opencode/cli`) is what we follow, but the version is pinned at 2.2.5 on purpose:
 # following `latest` makes the running agent drift with every build, and one bad
 # upstream release takes the whole AI stack down. It is also paired with the
 # OpenChamber pin (see the version-pair note there).
@@ -195,7 +197,7 @@ RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
 # version variable is the fallback knob, not the source of truth — keep the two
 # in sync when bumping.
 #
-# codegraph is PINNED at 1.6.2 (BD-001) like the other two. It used to be deliberately
+# codegraph is PINNED at 1.6.2 (BD-002) like the other two. It used to be deliberately
 # unpinned — the old `versions/BD-INDEX.md` Hold argued it was an L1 tool whose failures
 # are loud (`codegraph status` errors visibly) — but an unpinned tool that also upgrades
 # itself at every boot is two moving parts in one container, and "tracks upstream" means a
@@ -206,9 +208,11 @@ RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
 # neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
 # @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
 # openchamber : the web UI that manages its own embedded OpenCode server. PINNED
-#               (BD-001 = 2.5.1) and paired with the OpenCode pin — OpenChamber 2.x
-#               drives OpenCode 2.x only, and 2.5.2 is deliberately held back (it
-#               removed the Tree view; see versions/BD-INDEX.md).
+#               (BD-002 = 2.5.3) and paired with the OpenCode pin — OpenChamber 2.x
+#               drives OpenCode 2.x only. 2.6.0 is NOT taken: it dropped the question
+#               submit button (#6131) and churns ~3 git/s per project (#6084). The 2.5.2
+#               sidebar redesign (no Tree view) is accepted from BD-002 on; see
+#               versions/BD-INDEX.md.
 # playwright  : CLI + library for driving the in-container KasmVNC Chromium over CDP.
 #               **No browser download** — `playwright` only fetches browsers when you run
 #               `playwright install`, which we never do: we attach to the Chromium that
@@ -218,7 +222,7 @@ RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
 RUN npm i -g \
         --allow-scripts=@railway/cli \
         --allow-scripts=@opencode/cli \
-        "@railway/cli" "@opencode/cli@2.1.4" "@colbymchenry/codegraph@1.6.2" "playwright@1.64.1" \
+        "@railway/cli" "@opencode/cli@2.2.5" "@colbymchenry/codegraph@1.6.2" "playwright@1.64.1" \
     && printf '#!/bin/sh\nexec playwright cli "$@"\n' > /usr/local/bin/playwright-cli \
     && chmod +x /usr/local/bin/playwright-cli \
     && npm cache clean --force
@@ -227,7 +231,7 @@ RUN npm i -g \
 #
 # opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
 # official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
-# @opencode/cli`) is what we follow, but the version is held at 2.1.4 on purpose:
+# @opencode/cli`) is what we follow, but the version is pinned at 2.2.5 on purpose:
 # following `latest` makes the running agent drift with every build, and one bad
 # upstream release takes the whole AI stack down. It is also paired with the
 # OpenChamber pin (see the version-pair note there).
@@ -239,7 +243,7 @@ RUN npm i -g \
 # version variable is the fallback knob, not the source of truth — keep the two
 # in sync when bumping.
 #
-# codegraph is PINNED at 1.6.2 (BD-001) like the other two. It used to be deliberately
+# codegraph is PINNED at 1.6.2 (BD-002) like the other two. It used to be deliberately
 # unpinned — the old `versions/BD-INDEX.md` Hold argued it was an L1 tool whose failures
 # are loud (`codegraph status` errors visibly) — but an unpinned tool that also upgrades
 # itself at every boot is two moving parts in one container, and "tracks upstream" means a
@@ -250,9 +254,11 @@ RUN npm i -g \
 # neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
 # @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
 # openchamber : the web UI that manages its own embedded OpenCode server. PINNED
-#               (BD-001 = 2.5.1) and paired with the OpenCode pin — OpenChamber 2.x
-#               drives OpenCode 2.x only, and 2.5.2 is deliberately held back (it
-#               removed the Tree view; see versions/BD-INDEX.md).
+#               (BD-002 = 2.5.3) and paired with the OpenCode pin — OpenChamber 2.x
+#               drives OpenCode 2.x only. 2.6.0 is NOT taken: it dropped the question
+#               submit button (#6131) and churns ~3 git/s per project (#6084). The 2.5.2
+#               sidebar redesign (no Tree view) is accepted from BD-002 on; see
+#               versions/BD-INDEX.md.
 
 # ---- book-to-skill PDF extractors ----
 # The baked book-to-skill skill runs scripts/extract.py, which needs a PDF text
@@ -278,10 +284,10 @@ RUN set -eu; \
     python3 -c 'import pypdf, pdfminer' || fail "pypdf/pdfminer missing"; \
     pnpm --version | grep -q '11\.22\.0' || fail "pnpm is not 11.22.0"; \
     node --version | grep -q '^v24\.' || fail "node is not 24.x"; \
-    opencode --version | grep -q '2\.1\.4' || fail "opencode is not 2.1.4"; \
+    opencode --version | grep -q '2\.2\.5' || fail "opencode is not 2.2.5"; \
     codegraph --version | grep -q '1\.6\.2' || fail "codegraph is not 1.6.2"; \
-    openchamber --version 2>/dev/null | grep -q '2\.5\.1' \
-      || echo "WARN: openchamber --version did not report 2.5.1 (non-fatal)"; \
+    openchamber --version 2>/dev/null | grep -q '2\.5\.3' \
+      || echo "WARN: openchamber --version did not report 2.5.3 (non-fatal)"; \
     if [ -f /usr/bin/kasmvncserver ] || command -v kasmvncserver >/dev/null 2>&1; then \
       echo "kasmvnc: present ($(dpkg-query -W -f='${Version}' kasmvncserver 2>/dev/null))"; \
     else \

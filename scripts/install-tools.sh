@@ -24,8 +24,8 @@
 #   · smoke test + version report
 #
 # Verified tools (installed by the image): apt system packages, uv + Python 3.12,
-# pnpm (11.22.0), Doppler CLI, Neon CLI, Railway CLI, OpenChamber (2.5.1),
-# OpenCode CLI (2.1.4), CodeGraph, the interactive browser (Chromium + KasmVNC),
+# pnpm (11.22.0), Doppler CLI, Neon CLI, Railway CLI, OpenChamber (2.5.3),
+# OpenCode CLI (2.2.5), CodeGraph, the interactive browser (Chromium + KasmVNC),
 # gh, and the book-to-skill PDF extractors.
 #
 # NOT HANDLED HERE (per-developer, interactive — keep out of the startup script)
@@ -155,7 +155,7 @@ fi
 #   OpenChamber: github.com/openchamber/openchamber (README / scripts/install.sh)
 #                → `npm install -g @openchamber/web`
 #   OpenCode v2: https://opencode.ai/v2/docs → `npm install -g @opencode/cli`
-# Defaults live here (2.5.1 / 2.1.4) and can be overridden with
+# Defaults live here (2.5.3 / 2.2.5) and can be overridden with
 # OPENCHAMBER_VERSION / OPENCODE_VERSION. Set either to `latest` only if you
 # deliberately want the old "track upstream" behaviour.
 # Why pinned: with `latest` every redeploy could swap either component, so a bad
@@ -181,13 +181,13 @@ fi
 # /usr/local (npm global) is wiped on redeploy.
 #
 # Version pairing: OpenChamber 2.x drives OpenCode 2.x only and declares a
-# minimum (2.0.1 → MINIMUM_OPENCODE_VERSION = 2.0.15 in
+# minimum (2.5.3 → MINIMUM_OPENCODE_VERSION = 2.2.0 in
 # server/lib/opencode/compatibility.js). The pinned pair below is verified to
 # work together; bump both together, never one alone. v1 `opencode-ai` must
 # never be installed (no-agent mode).
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
-OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.5.1}"
+OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.5.3}"
 log "OpenChamber ${OPENCHAMBER_VERSION}"
 if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
@@ -209,7 +209,7 @@ fi
 # install; this is the fallback when the baked copy is missing. Keep the pin in
 # sync with the Dockerfile line. Installed per boot because
 # /usr/local (npm global) is wiped on redeploy.
-OPENCODE_VERSION="${OPENCODE_VERSION:-2.1.4}"
+OPENCODE_VERSION="${OPENCODE_VERSION:-2.2.5}"
 log "OpenCode CLI (v2) ${OPENCODE_VERSION}"
 if ! command -v opencode >/dev/null 2>&1; then
   npm install -g --allow-scripts=@opencode/cli "@opencode/cli@${OPENCODE_VERSION}" >/dev/null \
@@ -222,7 +222,7 @@ log "resolved: openchamber $(openchamber --version 2>/dev/null || echo 'n/a') ·
 
 # ── CodeGraph ─────────────────────────────────────────────────────────────────
 # Baked into the image at a **pinned** version (Dockerfile: `@colbymchenry/codegraph@1.6.2`,
-# BD-001). The boot no longer upgrades it: CODEGRAPH_UPGRADE defaults to 0.
+# BD-002). The boot no longer upgrades it: CODEGRAPH_UPGRADE defaults to 0.
 # Why the change: this used to track upstream on every start, so a redeploy could silently
 # change how the agent indexes code, on top of the baked version drifting per build. Two
 # moving parts in one container. Now the image is the source of truth; set

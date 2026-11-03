@@ -22,17 +22,23 @@
 
 ## 1. 三条原则
 
-### P1 只锁「已经跑过一段时间」的版本
+### P1 只锁「兼容、且没有未修重大 bug」的版本
 
-候选版本必须**已发布 ≥ 14 天**（大版本 `x.y.0` 需 ≥ 21 天），期间没有针对它的回归 issue。
+候选版本要同时满足两条，**不设发布天数门槛**：
 
-理由：上游的 patch 往往在发布后 1~3 天内密集出现（本仓库实测 magic-context 0.49.x 连续 11 个 patch），半个月足以把"新版本自己引入的新问题"暴露在 issue 里。
+1. **兼容**：满足同组其它组件的门禁（OpenChamber 的 `MINIMUM_OPENCODE_VERSION`、magic-context 对 OpenCode 的最低要求），并且不与已记录在案的 breaking 冲突。
+2. **干净**：上游 issue 里**没有针对它的、落在我们这条使用路径上的未修重大 bug**。"重大" = 会让日常路径失效：会话无法继续、消息发不出去、问答/表单提交不了、认证失败、数据损坏、明显性能回退。
 
-### P2 落后 latest 约半个月
+理由：BD 是**可回退**的——改回几个 pin、重新部署就回到旧组合（§7），所以"等半个月再升"买到的是确定性，代价是每天都跑在已知有 bug 的旧版本上。真正该看的是"有没有人在我们这条路径上踩到它"，而不是发布日历。
+历史也支持这一点：伤过我们的从来不是 patch 回归，而是**产品决策**（2.5.2 删掉 Tree 视图，上游 #5669 明说是故意改版）——那种事等多少天都防不住，只能靠升级当天的实测（§6）。
 
-不做"追最新"，也不做"长期不动"。**目标 = 最新版往前推约 15 天的那个版本**。这样：
-- 上游的问题已经在 issue 区被别人的血踩出来；
-- 我们又不会落后到需要跨越 breaking change（配置迁移、DB schema、API 契约）。
+> 一个版本被判"不干净"时，不等于整组停摆：取**它之前的干净版本**进 BD，把新版本写进 Hold 表并注明解除条件（见 `BD-INDEX.md`）。BD-002 就是这样拿到 `OpenChamber 2.5.3` 和 `magic-context 0.49.34` 的。
+
+### P2 跟稳定 dist-tag，不跟预发布
+
+取 npm 上该包的**稳定** `latest`；不取 `canary` / `beta` / `next` / `dev` / `*-canary.*` 之类的通道。
+
+"落后"只允许由 §3.3 的证据产生，并必须写进 `BD-INDEX.md` 的 Hold 表；不允许出现"没理由就是不升"的状态。
 
 ### P3 只跟「影响本环境」的修复
 
@@ -55,9 +61,9 @@
 
 | 组件 | 包 / 来源 | 当前 BD 版本 | 锁点（唯一真值） | 级别 |
 | --- | --- | --- | --- | --- |
-| OpenCode（agent 本体） | `@opencode/cli` | `2.1.4` | `Dockerfile` 的 `npm i -g …@opencode/cli@<v>` + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | L0 |
-| OpenChamber（Web UI / 托管 opencode） | `@openchamber/web` | `2.5.1` | `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` | L0 |
-| magic-context（上下文/记忆插件） | `@cortexkit/opencode-magic-context` | `0.49.21` | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | L0 |
+| OpenCode（agent 本体） | `@opencode/cli` | `2.2.5` | `Dockerfile` 的 `npm i -g …@opencode/cli@<v>` + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | L0 |
+| OpenChamber（Web UI / 托管 opencode） | `@openchamber/web` | `2.5.3` | `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` | L0 |
+| magic-context（上下文/记忆插件） | `@cortexkit/opencode-magic-context` | `0.49.34` | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | L0 |
 | codegraph（代码索引 MCP） | `@colbymchenry/codegraph` | `1.6.2` | `Dockerfile` 的 `@colbymchenry/codegraph@<v>` + `scripts/install-tools.sh` 的 `CODEGRAPH_VERSION` | L1 |
 | playwright（浏览器自动化：CLI + library） | `playwright` | `1.64.1` | `Dockerfile` 的 `playwright@<v>` + `playwright-cli` shim；接管入口 `scripts/pw` | L1 |
 | pnpm | corepack | `11.22.0` | `scripts/install-tools.sh` 的 `corepack prepare pnpm@<v>` | L1 |
@@ -80,7 +86,7 @@
 
 ### 3.1 先拉时间线
 
-npm 包的发布时间线（判断"落后多少天"、patch 密度）：
+npm 包的发布时间线 —— 用来判断 patch 密度（上游这条线是否还在高频补锅）和"这个候选之后有没有又发了新版本"：
 
 ```bash
 curl -s https://registry.npmjs.org/@opencode/cli | python3 -c '
@@ -107,19 +113,22 @@ for r in json.load(sys.stdin):
 2. **我们踩的路径**：OpenCode 2 宿主、`openai-compatible` provider（我们的 commandcode）、配置文件形状、会话库、`opencode serve`。
 3. **不影响我们的**：Pi / Oh My Pi / Windows / 其它 harness / 我们没开的 feature。这类越多，越说明这个版本对我们没价值。
 
-### 3.3 扫 issue：候选版本有没有回归
+### 3.3 扫 issue：候选版本有没有重大 bug（P1 的主判据）
 
-按创建时间倒序看 open issue，标题里带版本号的优先：
+这是决定"升 / 不升"的那一步。先按版本号搜，再按我们的使用形态搜：
 
 ```bash
-curl -s "https://api.github.com/repos/cortexkit/magic-context/issues?state=open&per_page=50&sort=created&direction=desc" | python3 -c '
+# 按版本号：标题/正文提到该版本号的 issue
+curl -s "https://api.github.com/search/issues?q=repo:openchamber/openchamber+is:issue+2.6.0&sort=created&order=desc&per_page=20" \
+  | python3 -c '
 import json,sys
-for i in json.load(sys.stdin):
-    if i.get("pull_request"): continue
-    print(i["number"], i["created_at"][:10], i["title"][:100])'
+for i in json.load(sys.stdin)["items"]:
+    print(i["state"], i["number"], i["created_at"][:10], i["title"][:100])'
 ```
 
-关注两类：**(a) 标题里写着候选版本号的 bug**；**(b) 我们的使用形态**（OpenCode 2 / 单实例 / 我们的 provider）。别人的 OMP、Windows、多实例问题可以忽略，但要在 BD 文档里记一句"已知、与我们无关"。
+同时看 open issue 列表（`state=open&sort=created`），关注两类：**(a) 标题/复现步骤里写着候选版本号的 bug**；**(b) 我们的使用形态**（OpenCode 2 宿主、单实例、`openai-compatible` provider、子会话、问答表单、Web UI 而非 Desktop）。别人的 OMP、Windows、多实例问题可以忽略，但要在 BD 文档里记一句"已知、与我们无关"。
+
+判"重大"的闸门只有一条：**它会不会让本环境的日常路径失效**。会话卡死、消息发不出、表单交不了、认证失败、数据损坏、明显性能回退 —— 命中任何一条即 Hold，取它的前一个干净版本。
 
 ### 3.4 用 compare API 看真实改动范围
 
@@ -133,7 +142,7 @@ print("commits", d["total_commits"], "files", len(d["files"]))
 for f in d["files"]: print(f["additions"], f["deletions"], f["filename"])'
 ```
 
-判读：改动全落在我们不用的 harness 目录（如 `packages/pi-plugin`）、且主包只动了 `version` 字段 → 对我们**等价**，可以选更老、soak 更久的那个。
+判读：改动全落在我们不用的 harness 目录（如 `packages/pi-plugin`）、且主包只动了 `version` 字段 → 对我们**等价**；此时两版之间只差"谁的 bug 少"，按 §3.3 取干净的那个。
 
 ### 3.5 配置兼容性必须校验
 
@@ -152,17 +161,17 @@ curl -s https://opencode.ai/config.json -o /tmp/oc.schema.json
 
 | 证据 | 结论 |
 | --- | --- |
-| ≥14 天、无同版本回归 issue、改动落在我们在用的路径且是修复 | **可以进下一个 BD** |
-| ≥14 天、但改动全在无关 harness | 可以进，但优先级最低（等下一个 BD 顺带） |
-| <14 天 | **观望**，记入 BD 文档"观察项"，下次再看 |
-| 有同版本回归 issue 未修 | **不升**；若已升则准备回滚 |
-| 带 breaking / migration | 单独立项评估，不要混在常规 BD 里 |
+| 兼容门禁满足 + 本路径上没有未修的重大 bug | **进下一个 BD** |
+| 兼容门禁满足，但有未修的重大 bug（会话/消息/表单/认证/数据/性能） | **不升**，改取它之前的干净版本；新版本写进 Hold 表，注明解除条件 |
+| 改动全落在无关 harness 且当前版本没病 | 可以进，优先级最低（顺带） |
+| 带 breaking / migration（配置迁移、DB 迁移、启动参数或环境变量改名） | 单独立项评估，不要混在常规 BD 里 |
+| 已升上去之后才发现同版本回归 | 立即回滚（§7），把原因写进 BD 文档的"已知问题" |
 
 ---
 
 ## 4. 更新流程（SOP）
 
-1. **确定窗口**：距上一个 BD ≥ 4 周，或出现 §P3 的跟车事件。
+1. **确定触发**：出现任一即开新 BD —— §P3 的跟车事件；§3.3 查到的修复正好落在我们这条路径上；当前 BD 里有未修的重大 bug 且新版本修了它；或距上一个 BD 已满 4 周（复盘节奏，不是"必须等"的理由）。
 2. **候选清单**：按 §3 对每个 L0 组件跑一遍，得到"候选版本 + 证据链接"。
 3. **组合校验**：先查版本互相约束 —— 例如 OpenChamber 的 `server/lib/opencode/compatibility.js` 里有 `MINIMUM_OPENCODE_VERSION`；magic-context 对 OpenCode 有最低版本要求（0.49.17 起才支持 OpenCode 2.1.x）。**约束不满足时降 OpenCode，不要单独升 OpenChamber**。
 4. **落地**：按下表把该改的地方一次改完（漏一处 = 版本分裂）。
@@ -184,7 +193,7 @@ curl -s https://opencode.ai/config.json -o /tmp/oc.schema.json
 
 ## 5. 跟车（fast-follow）
 
-只有 §P3 第一档（安全 / 数据损坏 / 会话中断 / 认证）走这条路：
+只有 §P3 第一档（安全 / 数据损坏 / 会话中断 / 认证）走这条路。它**不受"等下一个 BD"约束，也不看发布天数**：
 
 1. 不改 BD 号，直接在当前 BD 上打补丁版本，BD 文档记一行 `fast-follow: <日期> <组件> <旧→新> <原因 + 链接>`。
 2. 只升**那一个**组件，不做顺带升级。
@@ -208,10 +217,13 @@ ls -d ~/.cache/opencode/npm/@cortexkit/opencode-magic-context@*/ 2>/dev/null
 
 功能面（人工）：
 
-- [ ] OpenChamber 能打开，侧边栏布局符合预期（Tree / works 视图，见 BD 的 Hold 清单）
+- [ ] OpenChamber 能打开，侧边栏布局符合预期（BD-002 起是"works"式侧栏；Hold 清单见 BD 文档）
 - [ ] 新建会话 → 发一条消息 → 正常返回
+- [ ] agent 用 `question` 提问时，选项能选、能提交（OpenChamber 2.6.x 的已知回归点）
+- [ ] `openchamber_render` 画的一页能正常显示（2.6.0 起的 openui block 路径）
+- [ ] 两个本地插件工具可用：`sysinfo`、`session_search`
 - [ ] 会话库持久化：重启容器后历史仍在
-- [ ] magic-context：`/ctx-status` 正常；发一张图片不炸会话
+- [ ] magic-context：`/ctx-status` 正常；发一张图片不炸会话；子会话能正常开、能继续
 - [ ] codegraph MCP：`codegraph status` 可用
 - [ ] 终端 / 浏览器（KasmVNC）可用
 
