@@ -44,8 +44,22 @@ const DEFAULT_BUDGET_MS = 2_000;
 const DEADLINE_CHECK_EVERY = 512;
 
 export function resolveDbPath() {
-  const dataHome = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local/share');
-  return path.join(dataHome, 'opencode', 'opencode.db');
+  // opencode keeps its data dir at $XDG_DATA_HOME, else ~/.local/share on every platform
+  // it ships for — including Windows, where `os.homedir()` resolves to the user profile and
+  // the path becomes C:\Users\<you>\.local\share. `%LOCALAPPDATA%\opencode` is checked as a
+  // fallback so an install that follows the Windows convention still resolves, instead of
+  // the tool answering "no such session" forever.
+  const explicit = process.env.XDG_DATA_HOME;
+  if (explicit) return path.join(explicit, 'opencode', 'opencode.db');
+
+  const home = path.join(os.homedir(), '.local/share');
+  if (process.platform !== 'win32') return path.join(home, 'opencode', 'opencode.db');
+
+  const candidates = [
+    path.join(home, 'opencode', 'opencode.db'),
+    path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData/Local'), 'opencode', 'opencode.db'),
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) || candidates[0];
 }
 
 // The budget guards the parse loop, never the answer: a slow scan that has already produced hits is

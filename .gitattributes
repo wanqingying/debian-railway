@@ -1,0 +1,26 @@
+# Keep one line-ending convention across platforms.
+#
+# This repo is developed on Linux (Railway container) and on Windows 10, and Godot
+# rewrites .tscn/.tres wholesale when the line endings of its files change — a CRLF
+# checkout turns every scene into a full-file diff. Everything is stored as LF;
+# PowerShell scripts are the one exception, kept CRLF for Windows-native editing.
+* text=auto eol=lf
+
+*.tscn  text eol=lf
+*.tres  text eol=lf
+*.gd    text eol=lf
+*.godot text eol=lf
+*.sh    text eol=lf
+*.jsonc text eol=lf
+*.ps1   text eol=crlf
+
+# Binary payloads: never diff, never normalize.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.gif  binary
+*.ttf  binary
+*.otf  binary
+*.tgz  binary
+*.db   binary
