@@ -62,7 +62,7 @@
 | 组件 | 包 / 来源 | 当前 BD 版本 | 锁点（唯一真值） | 级别 |
 | --- | --- | --- | --- | --- |
 | OpenCode（agent 本体） | `@opencode/cli` | `2.2.5` | `Dockerfile` 的 `npm i -g …@opencode/cli@<v>` + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | L0 |
-| OpenChamber（Web UI / 托管 opencode） | `@openchamber/web` | `2.5.3` | `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` | L0 |
+| OpenChamber（Web UI / 托管 opencode） | 本仓库 fork 构建（2.6.0 + 分组补丁） | `2.6.0`（fork 构建） | `vendor/openchamber-web-2.6.0-fork.tgz` → `Dockerfile` 的 `npm i -g /opt/openchamber-fork/…tgz` + `scripts/install-tools.sh` 的 `OPENCHAMBER_FORK_TARBALL` | L0 |
 | magic-context（上下文/记忆插件） | `@cortexkit/opencode-magic-context` | `0.49.34` | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | L0 |
 | codegraph（代码索引 MCP） | `@colbymchenry/codegraph` | `1.6.2` | `Dockerfile` 的 `@colbymchenry/codegraph@<v>` + `scripts/install-tools.sh` 的 `CODEGRAPH_VERSION` | L1 |
 | playwright（浏览器自动化：CLI + library） | `playwright` | `1.64.1` | `Dockerfile` 的 `playwright@<v>` + `playwright-cli` shim；接管入口 `scripts/pw` | L1 |
@@ -185,7 +185,7 @@ curl -s https://opencode.ai/config.json -o /tmp/oc.schema.json
 | 升级对象 | 必须一起改 |
 | --- | --- |
 | opencode | `Dockerfile` 的安装行、`scripts/install-tools.sh` 的 `OPENCODE_VERSION` |
-| OpenChamber | `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` |
+| OpenChamber | `vendor/openchamber-web-2.6.0-fork.tgz`（先 `bun run pack:web` 再覆盖）、`Dockerfile` 的安装行、`scripts/install-tools.sh` 的 `OPENCHAMBER_FORK_TARBALL` |
 | magic-context | `opencode-config/opencode/opencode.jsonc` 的 `plugins`、`entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` |
 | 任何一个 L0 | `versions/bd/BD-<nnn>.md`、`versions/BD-INDEX.md`、`README.md` 的版本表、`AGENTS.md` 的版本说明 |
 
@@ -232,7 +232,7 @@ ls -d ~/.cache/opencode/npm/@cortexkit/opencode-magic-context@*/ 2>/dev/null
 ## 7. 回滚
 
 - 整组回滚：`git revert <BD commit>` 后重新 `railway up`。
-- 单组件临时回滚（不改代码）：`OPENCODE_VERSION=<v>` / `OPENCHAMBER_VERSION=<v>` 环境变量覆盖启动安装；opencode 若走的是 Dockerfile 烘焙副本，还要重新构建。
+- 单组件临时回滚（不改代码）：`OPENCODE_VERSION=<v>` 环境变量覆盖启动安装；opencode 若走的是 Dockerfile 烘焙副本，还要重新构建。OpenChamber 不能用环境变量回退到 npm 版本（镜像里烤的是 fork 的 tarball）——要临时回到上游，把 `OPENCHAMBER_FORK_TARBALL` 指向一个不存在的路径让启动脚本走 npm 兜底，或直接改 `Dockerfile` 那一行。
 - 插件回滚：只改 `opencode.jsonc` 的 `plugins` spec 即可，`entrypoint.sh` 会自动清掉不匹配的缓存。
 
 ---
@@ -263,7 +263,7 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 | 组件 | `debian-railway` 锁点 | `trn-bff-devcontainer-demo` 锁点 |
 | --- | --- | --- |
 | opencode | `Dockerfile` 安装行 + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | `.devcontainer/init.sh` 的 `OPENCODE_VERSION` |
-| OpenChamber | `scripts/install-tools.sh` 的 `OPENCHAMBER_VERSION` | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION` |
+| OpenChamber | `vendor/openchamber-web-2.6.0-fork.tgz` + `Dockerfile` 的安装行 | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION`（下游还没接 fork，见 BD 文档「下游同步」） |
 | magic-context | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | `.devcontainer/opencode/opencode.jsonc` 的 `plugins` + `.devcontainer/init.sh` 的 `MC_PLUGIN_CACHE_SPEC` |
 | 版本说明 | `README.md` 版本表 + `AGENTS.md` | `README.md` 的「自动升级」行 |
 

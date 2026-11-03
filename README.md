@@ -34,19 +34,31 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 ### 版本组合（OpenCode 2 + OpenChamber 2 + magic-context）
 
-镜像内三个组件都**钉死版本**（各自官方 npm 方式安装），不做「跟 latest 走」：上游一次坏版本会静默拖垮整个 AI 栈，而 OpenCode 与 OpenChamber 还有版本匹配门禁。改版本时按下面的位置一起改，并在同一个 commit 里部署。
+镜像内三个组件都**钉死版本**（OpenChamber 用自家 fork 的构建产物，另外两个按各自官方 npm 方式安装），不做「跟 latest 走」：上游一次坏版本会静默拖垮整个 AI 栈，而 OpenCode 与 OpenChamber 还有版本匹配门禁。改版本时按下面的位置一起改，并在同一个 commit 里部署。
 
 | 组件          | 包                                  | 版本                                                                                                           |
 | ------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| OpenChamber   | `@openchamber/web`                  | `2.6.0`（钉住；用 `OPENCHAMBER_VERSION` 覆盖；两个已知未修回归见 `versions/bd/BD-002.md`）                      |
+| OpenChamber   | 本仓库的 fork 构建（`vendor/openchamber-web-2.6.0-fork.tgz`） | `2.6.0` + 「worktree 分组」补丁（上游 [#5669](https://github.com/openchamber/openchamber/issues/5669) 未修）；两个已知未修回归见 `versions/bd/BD-002.md` |
 | OpenCode      | `@opencode/cli`                     | `2.2.5`（钉住；实际生效的是 `Dockerfile` 里那行 `npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.2.5`） |
 | magic-context | `@cortexkit/opencode-magic-context` | `0.49.34`（钉住，写在 `opencode.jsonc` 的 `plugins`；0.49.35 因 #838 暂不升）                                   |
+
+OpenChamber 为什么不是 npm 包：2.5.2 的 PR #5578 把侧栏改成 works 视图，项目下的 worktree 与会话平铺混排；上游 #5669 仍 open。fork 里加了 `sidebarGroupRootWorktrees` 开关（默认开），打开时每个 worktree 是项目根会话之后的可折叠分组。镜像烤的是这个构建，**不会**从 npm 装 `@openchamber/web`：npm 的 2.6.0 没有这个补丁，而把 npm 包装到 fork 上正是要避免的事（`Dockerfile` 的 COPY + 构建期断言会拦住）。
+
+重新生成 tarball（fork 改动之后）：
+
+```bash
+cd /workspace/openchamber-fork
+bun run pack:web                      # → packages/web/openchamber-web-2.6.0.tgz
+cp packages/web/openchamber-web-2.6.0.tgz /workspace/debian-railway/vendor/openchamber-web-2.6.0-fork.tgz
+```
+
+tarball 内是 `dist`/`server`/`bin`/`public`，19 MB 左右，依赖仍从 npm 解析，所以 `railway up` 时照常联网安装。
 
 几点须知：
 
 - **不要装 v1 的 `opencode-ai`**：OpenChamber 2.x 只驱动 OpenCode 2.x，装 v1 会在日志里报 `Configured OpenCode binary not found` 并降级为「无 agent」模式（Web UI 能开，但发消息无响应）。
 - **`opencode.jsonc` 用 v2 原生结构**：`providers`（`package`/`settings`/`modelID`/`capabilities`）、`permissions`、`plugins`、`update`、`mcp.servers`、`agents.title|summary`。OpenCode 2 仍*接受* v1 键（`provider` 的 `npm`/`options`/`id`、`plugin`、`permission`、`autoupdate`、`mcp.<name>`），但**别把已退役的键加回来**（模型上的 `release_date`/`reasoning`/`attachment`/`temperature`/`status`/`experimental`、顶层 `server`/`logLevel`/`subagent_depth`/`compaction.prune`/`tail_turns`、`experimental.batch_tool` 等）：v2 每次解析配置都会逐键重新诊断，会刷爆日志并吃满 CPU。
-- **三个组件都钉死版本**（各自官方 npm 方式：OpenChamber 参考其 README/`scripts/install.sh` → `npm i -g @openchamber/web`；OpenCode v2 参考 https://opencode.ai/v2/docs → `npm i -g @opencode/cli`）。当前 BD-002 默认 `2.6.0` / `2.2.5`，定义在 `scripts/install-tools.sh`。注意 **OpenCode 实际生效的版本来自 `Dockerfile` 里那行 `npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.2.5`**：`install-tools.sh` 只在二进制缺失时才安装，所以**升版本时这两处要同一个 commit 一起改**。想临时恢复「跟 latest 走」的行为：设 `OPENCHAMBER_VERSION=latest` / `OPENCODE_VERSION=latest`（opencode 还需把 `Dockerfile` 那行改回不带版本号）后 `railway up`。
+- **三个组件都钉死版本**（OpenChamber 用 `vendor/openchamber-web-2.6.0-fork.tgz` 烘进镜像，OpenCode v2 参考 https://opencode.ai/v2/docs → `npm i -g @opencode/cli`）。当前 BD-002 默认 `2.6.0`（fork 构建）/ `2.2.5`，定义在 `Dockerfile` 与 `scripts/install-tools.sh`。注意 **OpenCode 实际生效的版本来自 `Dockerfile` 里那行 `npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.2.5`**：`install-tools.sh` 只在二进制缺失时才安装，所以**升版本时这两处要同一个 commit 一起改**。OpenChamber 的 tarball 缺失时 `install-tools.sh` 才会退回 npm 的 pin（那份没有 fork 补丁），`OPENCODE_VERSION=latest` 仍可用于 opencode 临时跟车。
 - **版本怎么选**：见 `versions/README.md`。BD-002 起**不再看发布天数**，判据改成「兼容 + 上游 issue 里没有落在本环境路径上的未修重大 bug」；被判"不干净"的版本取它的前一个干净版本，并写进 `versions/BD-INDEX.md` 的 Hold 表（当前一条：magic-context 0.49.35）。BD 是可回退的，回滚方式见该手册 §7。
 - **magic-context 钉在 `0.49.34`**，写在 `opencode.jsonc` 的 `plugins`。为什么不是最新的 `0.49.35`：0.49.35 引入的 host fold 会给**没有历史的子会话**写入空压缩摘要，OpenCode 2.2 之后每轮被 `Schema validation failed` 拒绝、会话无法继续（上游 [#838](https://github.com/cortexkit/magic-context/issues/838)，未修）。0.49.34 相对 BD-001 的 `0.49.21` 已包含 0.49.29 的 **OpenCode 2.2 支持**（instruction 更新行）、0.49.25 的假「满上下文」修复、0.49.30/0.49.32 的主线程读取优化。升版本时要同步改 `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC`（启动时清理旧版本缓存），并重新用新版本仓库里的 `assets/magic-context.schema.json` 校验 `magic-context.jsonc`。
 - **指令文件只用 `AGENTS.md`**：OpenCode 2 读 `AGENTS.md`，**不再加载 `CLAUDE.md`**（故 `opencode-config/` 中不含 `CLAUDE.md`）。
@@ -66,8 +78,8 @@ OpenChamber **2.0.1** 起，下面三种写法都会走原生 `POST /api/session
 
 ### 更新 OpenChamber
 
-- **Web UI 里点「立即更新」**（容器内即时生效）：OpenChamber 以 daemon 模式运行，按钮会在后台执行 `npm install -g @openchamber/web@latest`、退出当前进程、再用相同参数自动重启；随后刷新页面即可，耗时取决于 npm 安装速度（几秒到几十秒）。若容器以 `--foreground` 启动，这个按钮只会报 `Foreground servers must be updated by their service manager`，因为该模式假定有 systemd 代管。⚠️ **但现在版本是钉死的**：这次就地更新只能维持到下次 `railway up`，之后会被重装回 pin 的版本。
-- **重新部署**（长期一致）：`/usr` 是临时文件系统，就地更新会在下次 `railway up` 时被重装一遍。但**两边现在都是钉死版本**（`install-tools.sh` 默认 `2.6.0`/`2.2.5`，`Dockerfile` 烤的是同一个 opencode 版本），所以「UI 里点更新」会被下次部署抹回去——**升版本请改仓库里的 pin 后 `railway up`**，而不是在容器里就地装。
+- **Web UI 里点「立即更新」**（容器内即时生效）：OpenChamber 以 daemon 模式运行，按钮会在后台执行 `npm install -g @openchamber/web@latest`、退出当前进程、再用相同参数自动重启；随后刷新页面即可，耗时取决于 npm 安装速度（几秒到几十秒）。若容器以 `--foreground` 启动，这个按钮只会报 `Foreground servers must be updated by their service manager`，因为该模式假定有 systemd 代管。⚠️ **它装的是上游包，会临时顶掉 fork 补丁**（worktree 分组开关消失），下次 `railway up` 会从镜像里的 tarball 装回 fork 构建。要用 fork 的新改动，改代码后重新生成 tarball 再 `railway up`。
+- **重新部署**（长期一致）：`/usr` 是临时文件系统，就地更新会在下次 `railway up` 时被重装一遍。**升级请改仓库里的 pin 后 `railway up`**（OpenChamber 就是换掉 `vendor/` 里的 tarball），而不是在容器里就地装。
 
 ## 文档
 
