@@ -7,25 +7,25 @@
 | 状态 | `current` / `superseded by BD-0NN` |
 | 冻结日期 | `<YYYY-MM-DD>` |
 | 上一个 BD | `BD-0NN` |
-| 下一个 BD | 待定（窗口：`<YYYY-MM-DD>` 之后，或出现 fast-follow 事件） |
-| 冻结依据 | `<为什么现在做这个 BD：窗口到期 / 跟车事件 / 上游 breaking>` |
+| 下一个 BD | 触发式（`<触发条件：跟车事件 / 关键修复 / 解除某条 Hold>`） |
+| 冻结依据 | `<为什么现在做这个 BD：跟车事件 / 关键修复 / Hold 解除 / 4 周复盘>` |
 
 ## 版本矩阵
 
-| 组件 | 版本 | 发布日 | 锁点 | 满足 P1（≥14 天） |
+| 组件 | 版本 | 发布日 | 锁点 | 判定（§3.3 issue 证据） |
 | --- | --- | --- | --- | --- |
-| `@opencode/cli` | `<v>` | `<date>` | `Dockerfile` + `scripts/install-tools.sh` | ✅/❌（N 天） |
-| `@openchamber/web` | `<v>` | `<date>` | `scripts/install-tools.sh` | ✅/❌ |
-| `@cortexkit/opencode-magic-context` | `<v>` | `<date>` | `opencode.jsonc` + `entrypoint.sh` | ✅/❌ |
+| `@opencode/cli` | `<v>` | `<date>` | `Dockerfile` + `scripts/install-tools.sh` | ▶ 进（本路径无未修重大 bug） |
+| `@openchamber/web` | `<v>` | `<date>` | `scripts/install-tools.sh` | ▶ 进 / ⏸ Hold（`<issue 链接>`） |
+| `@cortexkit/opencode-magic-context` | `<v>` | `<date>` | `opencode.jsonc` + `entrypoint.sh` | ▶ 进 / ⏸ Hold（`<issue 链接>`） |
 
 ## 为什么是这些版本
 
 ### `<组件> <版本>`
 
-- 上一 BD 的版本：`<v>`（落后 `<n>` 天 / `<n>` 个 patch）
+- 上一 BD 的版本：`<v>`（差 `<n>` 个版本）
 - 升级理由：`<修了我们踩的哪条路径 / 安全 / 约束要求>`
 - 证据：`<release 链接>`、`<issue 链接>`、`<compare API 结论>`
-- 风险与缓解：`<breaking / migration / 观察项>`
+- 未取更新的版本时：`<哪个版本、被哪条 issue 挡下、解除条件>`
 
 ## 与上一个 BD 的差异
 
