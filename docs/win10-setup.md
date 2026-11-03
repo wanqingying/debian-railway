@@ -107,7 +107,15 @@ git fetch origin main
 git merge origin/main
 ```
 
-Only `platform/win10/` is branch-only, so conflicts are rare. When `opencode-config/opencode/AGENTS.md`
-changes on `main`, update `platform/win10/AGENTS.win10.md` to match — `verify.ps1` reports any
-heading that went missing. Anything that benefits both platforms (a `session-search` fix, a config
-key, a skill update) should be merged into `main` rather than living here.
+Only `platform/win10/` is branch-only, so conflicts are rare. Two files carry a deliberate
+branch-versus-`main` difference:
+
+- `platform/win10/AGENTS.win10.md` — must be updated by hand whenever
+  `opencode-config/opencode/AGENTS.md` changes on `main`; `verify.ps1` reports any heading that
+  went missing.
+- `opencode-config/opencode/lib/session-search.js` — the `win32` branch in `resolveDbPath` lives
+  here only (decided 2026-11-03: `main` keeps Linux-only resolution). If `main` ever rewrites
+  that function, the conflict is confined to it.
+
+Other than those two, anything useful on both sides (a config key, a skill update) belongs on
+`main` and is merged down.

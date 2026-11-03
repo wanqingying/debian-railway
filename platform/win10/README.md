@@ -29,8 +29,10 @@ The merge surface is deliberately tiny:
 
 - **New files only** under `platform/win10/` → never conflicts, `main` never touches them.
 - **One additive code edit** in `opencode-config/opencode/lib/session-search.js`
-  (a `win32` branch in `resolveDbPath`). That edit is harmless on Linux, so it should be
-  cherry-picked into `main` and then the branch carries no shared-file diff at all.
+  (a `win32` branch in `resolveDbPath`). It is harmless on Linux, but it stays on this
+  branch by decision (2026-11-03): `main` keeps the Linux-only path resolution, so the two
+  environments differ in exactly one function and a merge conflict, if one ever appears,
+  is confined to it.
 - **`AGENTS.win10.md` must be re-synced by hand** whenever `opencode-config/opencode/AGENTS.md`
   changes on `main`. `verify.ps1` reports the diff so this cannot be forgotten silently.
 
