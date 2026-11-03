@@ -152,12 +152,12 @@ RUN curl -Ls https://cli.doppler.com/install.sh | sh \
 #   neon         : neonctl — authenticates natively via NEON_API_KEY, no login step
 #   @railway/cli : ships a postinstall -> needs --allow-scripts under npm 11
 #   openchamber  : the web UI that manages its own embedded OpenCode server. PINNED
-#                  (BD-002 = 2.5.3) and paired with the OpenCode pin below — OpenChamber
-#                  2.x drives OpenCode 2.x only. 2.6.0 is NOT taken: it dropped the
-#                  question submit button (#6131) and churns ~3 git/s per project (#6084).
-#                  The 2.5.2 sidebar redesign (no Tree view) is accepted from BD-002 on;
-#                  see versions/BD-INDEX.md.
-ARG OPENCHAMBER_VERSION=2.5.3
+#                  (BD-002 = 2.6.0) and paired with the OpenCode pin below — OpenChamber
+#                  2.x drives OpenCode 2.x only, and 2.6.0 requires opencode >= 2.2.4 (we
+#                  pin 2.2.5). 2.6.0 still has two open regressions (#6131 question form,
+#                  #6084 git churn); taking it anyway is a deliberate owner decision — see
+#                  versions/bd/BD-002.md.
+ARG OPENCHAMBER_VERSION=2.6.0
 # TWO npm invocations, kept split — but NOT because a split measures faster.
 # Honest history (2026-10-29): the same 5-package install measured 28.3 s (split),
 # 45.0 s (merged into one call) and 89.4 s (split again) across three builds. That
@@ -208,11 +208,10 @@ RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
 # neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
 # @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
 # openchamber : the web UI that manages its own embedded OpenCode server. PINNED
-#               (BD-002 = 2.5.3) and paired with the OpenCode pin — OpenChamber 2.x
-#               drives OpenCode 2.x only. 2.6.0 is NOT taken: it dropped the question
-#               submit button (#6131) and churns ~3 git/s per project (#6084). The 2.5.2
-#               sidebar redesign (no Tree view) is accepted from BD-002 on; see
-#               versions/BD-INDEX.md.
+#               (BD-002 = 2.6.0) and paired with the OpenCode pin — OpenChamber 2.x
+#               drives OpenCode 2.x only, and 2.6.0 requires opencode >= 2.2.4. It still has
+#               two open regressions (#6131 question form, #6084 git churn); taking it is a
+#               deliberate owner decision — see versions/bd/BD-002.md.
 # playwright  : CLI + library for driving the in-container KasmVNC Chromium over CDP.
 #               **No browser download** — `playwright` only fetches browsers when you run
 #               `playwright install`, which we never do: we attach to the Chromium that
@@ -254,11 +253,10 @@ RUN npm i -g \
 # neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
 # @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
 # openchamber : the web UI that manages its own embedded OpenCode server. PINNED
-#               (BD-002 = 2.5.3) and paired with the OpenCode pin — OpenChamber 2.x
-#               drives OpenCode 2.x only. 2.6.0 is NOT taken: it dropped the question
-#               submit button (#6131) and churns ~3 git/s per project (#6084). The 2.5.2
-#               sidebar redesign (no Tree view) is accepted from BD-002 on; see
-#               versions/BD-INDEX.md.
+#               (BD-002 = 2.6.0) and paired with the OpenCode pin — OpenChamber 2.x
+#               drives OpenCode 2.x only, and 2.6.0 requires opencode >= 2.2.4. It still has
+#               two open regressions (#6131 question form, #6084 git churn); taking it is a
+#               deliberate owner decision — see versions/bd/BD-002.md.
 
 # ---- book-to-skill PDF extractors ----
 # The baked book-to-skill skill runs scripts/extract.py, which needs a PDF text
@@ -286,8 +284,8 @@ RUN set -eu; \
     node --version | grep -q '^v24\.' || fail "node is not 24.x"; \
     opencode --version | grep -q '2\.2\.5' || fail "opencode is not 2.2.5"; \
     codegraph --version | grep -q '1\.6\.2' || fail "codegraph is not 1.6.2"; \
-    openchamber --version 2>/dev/null | grep -q '2\.5\.3' \
-      || echo "WARN: openchamber --version did not report 2.5.3 (non-fatal)"; \
+    openchamber --version 2>/dev/null | grep -q '2\.6\.0' \
+      || echo "WARN: openchamber --version did not report 2.6.0 (non-fatal)"; \
     if [ -f /usr/bin/kasmvncserver ] || command -v kasmvncserver >/dev/null 2>&1; then \
       echo "kasmvnc: present ($(dpkg-query -W -f='${Version}' kasmvncserver 2>/dev/null))"; \
     else \
