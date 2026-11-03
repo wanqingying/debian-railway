@@ -151,23 +151,26 @@ RUN curl -Ls https://cli.doppler.com/install.sh | sh \
 # (the boot script keeps the same per-tool fallback).
 #   neon         : neonctl — authenticates natively via NEON_API_KEY, no login step
 #   @railway/cli : ships a postinstall -> needs --allow-scripts under npm 11
-#   openchamber  : the web UI that manages its own embedded OpenCode server. PINNED
-#                  (BD-002 = 2.6.0) and paired with the OpenCode pin below — OpenChamber
-#                  2.x drives OpenCode 2.x only, and 2.6.0 requires opencode >= 2.2.4 (we
-#                  pin 2.2.5). 2.6.0 still has two open regressions (#6131 question form,
-#                  #6084 git churn); taking it anyway is a deliberate owner decision — see
-#                  versions/bd/BD-002.md.
-ARG OPENCHAMBER_VERSION=2.6.0
-# TWO npm invocations, kept split — but NOT because a split measures faster.
-# Honest history (2026-10-29): the same 5-package install measured 28.3 s (split),
-# 45.0 s (merged into one call) and 89.4 s (split again) across three builds. That
-# spread is network variance, not layout: npm step times on Railway cannot be compared
-# across deployments. So the split is kept as the layout that had been working, and the
-# merge attempt was reverted because it had no defensible evidence behind it — not
-# because the split is proven faster. To actually compare layouts, measure them
-# back-to-back on the same link, or compare structural counts (invocations, apt
-# `update` runs, bytes downloaded), never adjacent deploy wall-clocks.
-RUN npm i -g neon "@openchamber/web@${OPENCHAMBER_VERSION}" \
+#   openchamber  : the web UI that manages its own embedded OpenCode server. This is
+#                  OUR FORK's build of 2.6.0, not the npm package: it is the 2.6.0
+#                  release plus the "group worktrees" sidebar toggle
+#                  (fork: github.com/wanqingying/openchamber — upstream #5669 is still
+#                  open). The tarball is committed as
+#                  `vendor/openchamber-web-2.6.0-fork.tgz`; rebuild it in the fork with
+#                  `bun run pack:web` and copy the tgz here. It stays the 2.6.0
+#                  release, so it keeps the npm pair with the OpenCode pin below
+#                  (2.6.0 requires opencode >= 2.2.4; we pin 2.2.5) and the two open
+#                  regressions (#6131 question form, #6084 git churn) still apply —
+#                  see versions/bd/BD-002.md.
+# Upstream is therefore never installed by name: npm's `@openchamber/web@2.6.0` has no
+# fork patch, and installing it over the fork is exactly the mistake this COPY prevents.
+COPY vendor/openchamber-web-2.6.0-fork.tgz /opt/openchamber-fork/openchamber-web-2.6.0-fork.tgz
+# Kept as two invocations: `neon` comes from the registry, openchamber from the tarball,
+# and one failing install must not take the other down (install-tools.sh keeps the same
+# per-tool fallback). The split is not a speed claim: adjacent Railway build wall-clocks
+# were measured to vary 28–89 s on the same layout, so they cannot compare layouts.
+RUN npm i -g neon \
+    && npm i -g /opt/openchamber-fork/openchamber-web-2.6.0-fork.tgz \
     && npm cache clean --force
 
 # `--allow-scripts` is given per package that ships an install script. Both are known to
@@ -286,6 +289,10 @@ RUN set -eu; \
     codegraph --version | grep -q '1\.6\.2' || fail "codegraph is not 1.6.2"; \
     openchamber --version 2>/dev/null | grep -q '2\.6\.0' \
       || echo "WARN: openchamber --version did not report 2.6.0 (non-fatal)"; \
+    test -f /opt/openchamber-fork/openchamber-web-2.6.0-fork.tgz \
+      || fail "fork tarball missing (the npm package has no fork patch)"; \
+    grep -rqs 'groupRootWorktrees' "$(npm root -g)/@openchamber/web/dist/assets" \
+      || fail "installed openchamber is not the fork build (groupRootWorktrees missing from dist)"; \
     if [ -f /usr/bin/kasmvncserver ] || command -v kasmvncserver >/dev/null 2>&1; then \
       echo "kasmvnc: present ($(dpkg-query -W -f='${Version}' kasmvncserver 2>/dev/null))"; \
     else \
