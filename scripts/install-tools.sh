@@ -24,7 +24,7 @@
 #   · smoke test + version report
 #
 # Verified tools (installed by the image): apt system packages, uv + Python 3.12,
-# pnpm (11.22.0), Doppler CLI, Neon CLI, Railway CLI, OpenChamber (2.6.0),
+# pnpm (11.22.0), Doppler CLI, Neon CLI, Railway CLI, OpenChamber (2.6.0, fork build),
 # OpenCode CLI (2.2.5), CodeGraph, the interactive browser (Chromium + KasmVNC),
 # gh, and the book-to-skill PDF extractors.
 #
@@ -150,25 +150,30 @@ if ! command -v railway >/dev/null 2>&1; then
 fi
 
 # ── OpenChamber (web UI for OpenCode) + OpenCode v2 ───────────────────────────
-# Both are installed **pinned** (not `latest`), using each project's official npm
-# method:
-#   OpenChamber: github.com/openchamber/openchamber (README / scripts/install.sh)
-#                → `npm install -g @openchamber/web`
+# Both are installed **pinned** (not `latest`):
+#   OpenChamber: OUR FORK's build of 2.6.0 (the 2.6.0 release + the "group
+#                worktrees" sidebar toggle), baked from
+#                vendor/openchamber-web-2.6.0-fork.tgz → /opt/openchamber-fork/.
+#                The npm package is only the fallback, because it has no fork patch.
+#                Rebuild: `bun run pack:web` in /workspace/openchamber-fork, then
+#                copy packages/web/openchamber-web-2.6.0.tgz here under the fork name.
 #   OpenCode v2: https://opencode.ai/v2/docs → `npm install -g @opencode/cli`
 # Defaults live here (2.6.0 / 2.2.5) and can be overridden with
 # OPENCHAMBER_VERSION / OPENCODE_VERSION. Set either to `latest` only if you
-# deliberately want the old "track upstream" behaviour.
+# deliberately want the old "track upstream" behaviour (for OpenChamber that also
+# means losing the fork patch until the next redeploy restores it).
 # Why pinned: with `latest` every redeploy could swap either component, so a bad
 # upstream release silently takes down the whole AI stack (and the two must stay
 # matched — see the version-pair note below). Pinning also means the boot only
 # installs when the binary is *missing*, so nothing changes under you.
 # A Dockerfile opencode pin travels with this one: keep them in sync.
 #
-# Why npm -g rather than the curl installers: `curl -fsSL https://opencode.ai/v2/install | bash`
-# and OpenChamber's install.sh drop the binary under $HOME (or pick pnpm/bun when
-# present) and patch shell rc files — wrong for a container whose $HOME is
-# ephemeral and whose root FS is rebuilt on every redeploy. npm -g lands in /usr,
-# which this script re-creates each boot, and is the documented npm method for both.
+# Why install from the tarball rather than the curl installers: `curl -fsSL
+# https://opencode.ai/v2/install | bash` and OpenChamber's install.sh drop the
+# binary under $HOME (or pick pnpm/bun when present) and patch shell rc files —
+# wrong for a container whose $HOME is ephemeral and whose root FS is rebuilt on
+# every redeploy. A global npm install lands in /usr, which this script re-creates
+# each boot.
 #
 # npm 11 allow-scripts: @opencode/cli needs --allow-scripts (its postinstall picks
 # the native binary); @openchamber/web's own files ship no install script, and
@@ -188,10 +193,16 @@ fi
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
 OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.6.0}"
-log "OpenChamber ${OPENCHAMBER_VERSION}"
+OPENCHAMBER_FORK_TARBALL="${OPENCHAMBER_FORK_TARBALL:-/opt/openchamber-fork/openchamber-web-2.6.0-fork.tgz}"
+log "OpenChamber ${OPENCHAMBER_VERSION} (fork build)"
 if ! command -v openchamber >/dev/null 2>&1; then
-  npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
-    || log "warning: OpenChamber install failed (continuing without web UI)"
+  if [ -f "$OPENCHAMBER_FORK_TARBALL" ]; then
+    npm install -g "$OPENCHAMBER_FORK_TARBALL" >/dev/null \
+      || log "warning: OpenChamber fork build install failed (continuing without web UI)"
+  else
+    npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
+      || log "warning: OpenChamber install failed (continuing without web UI)"
+  fi
 fi
 
 # ── OpenCode v2 CLI ───────────────────────────────────────────────────────────
