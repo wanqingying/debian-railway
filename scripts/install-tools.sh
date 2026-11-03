@@ -24,7 +24,7 @@
 #   · smoke test + version report
 #
 # Verified tools (installed by the image): apt system packages, uv + Python 3.12,
-# pnpm (11.22.0), Doppler CLI, Neon CLI, Railway CLI, OpenChamber (2.5.3),
+# pnpm (11.22.0), Doppler CLI, Neon CLI, Railway CLI, OpenChamber (2.6.0),
 # OpenCode CLI (2.2.5), CodeGraph, the interactive browser (Chromium + KasmVNC),
 # gh, and the book-to-skill PDF extractors.
 #
@@ -155,7 +155,7 @@ fi
 #   OpenChamber: github.com/openchamber/openchamber (README / scripts/install.sh)
 #                → `npm install -g @openchamber/web`
 #   OpenCode v2: https://opencode.ai/v2/docs → `npm install -g @opencode/cli`
-# Defaults live here (2.5.3 / 2.2.5) and can be overridden with
+# Defaults live here (2.6.0 / 2.2.5) and can be overridden with
 # OPENCHAMBER_VERSION / OPENCODE_VERSION. Set either to `latest` only if you
 # deliberately want the old "track upstream" behaviour.
 # Why pinned: with `latest` every redeploy could swap either component, so a bad
@@ -181,13 +181,13 @@ fi
 # /usr/local (npm global) is wiped on redeploy.
 #
 # Version pairing: OpenChamber 2.x drives OpenCode 2.x only and declares a
-# minimum (2.5.3 → MINIMUM_OPENCODE_VERSION = 2.2.0 in
+# minimum (2.6.0 → MINIMUM_OPENCODE_VERSION = 2.2.4 in
 # server/lib/opencode/compatibility.js). The pinned pair below is verified to
 # work together; bump both together, never one alone. v1 `opencode-ai` must
 # never be installed (no-agent mode).
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
-OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.5.3}"
+OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.6.0}"
 log "OpenChamber ${OPENCHAMBER_VERSION}"
 if ! command -v openchamber >/dev/null 2>&1; then
   npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
