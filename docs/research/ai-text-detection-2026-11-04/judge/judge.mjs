@@ -2,7 +2,7 @@
 // Usage: node judge.mjs [--concurrency 3] [--limit N] [--prompt ./prompt-judge-v2.md]
 //                      [--model provider/id] [--variant high] [--out ./results-v2.json]
 // Writes results.json (one row per item) and prints one line per finished item.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 
 const API = 'http://127.0.0.1:4096';
 const AUTH = 'Basic ' + Buffer.from('opencode:qingying').toString('base64');
@@ -22,7 +22,7 @@ const argOf = (name, def) => {
   const i = args.indexOf(name);
   return i >= 0 ? Number(args[i + 1]) : def;
 };
-const CONCURRENCY = argOf('--concurrency', 3);
+const CONCURRENCY = argOf('--concurrency', 6);
 const LIMIT = argOf('--limit', Infinity);
 
 const PROMPT_TEMPLATE = readFileSync(new URL(strArg('--prompt', 'prompt-judge-v1.md'), import.meta.url), 'utf8');
@@ -71,17 +71,85 @@ const runOnce = async (promptText) => {
   return { ...last, error: last.error || (last.text ? null : 'timeout') };
 };
 
+// Balanced-brace scan: the model sometimes appends a second JSON after a correction
+// note, so a single first-{ .. last-} slice spans both and fails. Prefer the last
+// object that actually carries a verdict/p_ai.
+const jsonCandidates = (s) => {
+  const out = [];
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] !== '{') continue;
+    let depth = 0, inStr = false, esc = false;
+    for (let j = i; j < s.length; j++) {
+      const c = s[j];
+      if (esc) { esc = false; continue; }
+      if (c === '\\') { if (inStr) esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{') depth++;
+      else if (c === '}') { if (--depth === 0) { out.push(s.slice(i, j + 1)); i = j; break; } }
+    }
+  }
+  return out;
+};
+
+// Models routinely emit a trailing comma before } or ] (invalid JSON but valid JS-ish).
+// Strip those outside strings, then parse.
+const stripTrailingCommas = (s) => {
+  let out = '', inStr = false, esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (esc) { out += c; esc = false; continue; }
+    if (c === '\\') { out += c; if (inStr) esc = true; continue; }
+    if (c === '"') { inStr = !inStr; out += c; continue; }
+    if (!inStr && c === ',') {
+      let j = i + 1;
+      while (j < s.length && /\s/.test(s[j])) j++;
+      if (s[j] === '}' || s[j] === ']') continue; // drop the comma
+    }
+    out += c;
+  }
+  // Models also emit a dangling `,"}` when they cut a value short; drop that fragment.
+  return out.replace(/,\s*"\s*}/g, '}').replace(/,\s*"\s*\]/g, ']');
+};
+
+const repair = (s) => rebalance(stripTrailingCommas(s));
+
+// Models also truncate mid-object; close the string and append the missing brackets.
+const rebalance = (s) => {
+  let inStr = false, esc = false;
+  const stack = [];
+  for (const c of s) {
+    if (esc) { esc = false; continue; }
+    if (c === '\\') { if (inStr) esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{' || c === '[') stack.push(c);
+    else if (c === '}' || c === ']') stack.pop();
+  }
+  let out = s;
+  if (inStr) out += '"';
+  for (let i = stack.length - 1; i >= 0; i--) out += stack[i] === '{' ? '}' : ']';
+  return out;
+};
+
 const extractJson = (raw) => {
   if (!raw) return null;
-  let s = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-  const a = s.indexOf('{');
-  const b = s.lastIndexOf('}');
-  if (a < 0 || b <= a) return null;
-  try {
-    return JSON.parse(s.slice(a, b + 1));
-  } catch {
-    return null;
+  const cleaned = raw.replace(/```(?:json)?/gi, '').replace(/^[^{]*/, '').trim();
+  const cands = jsonCandidates(cleaned);
+  for (let k = cands.length - 1; k >= 0; k--) {
+    for (const attempt of [cands[k], repair(cands[k])]) {
+      try {
+        const o = JSON.parse(attempt);
+        if (o && (typeof o.p_ai === 'number' || typeof o.verdict === 'string')) return o;
+      } catch { /* next */ }
+    }
   }
+  // Last resort: the object was cut mid-value, so no balanced candidate exists.
+  try {
+    const o = JSON.parse(repair(cleaned.slice(cleaned.indexOf('{'))));
+    if (o && typeof o.p_ai === 'number') return o;
+  } catch { /* give up */ }
+  return null;
 };
 
 const judge = async (item) => {
@@ -128,20 +196,30 @@ const judge = async (item) => {
     evidence: parsed && Array.isArray(parsed.evidence) ? parsed.evidence : [],
     caveats: parsed && typeof parsed.caveats === 'string' ? parsed.caveats : null,
     p_ai: pAi,
+    p_family: parsed && typeof parsed.p_family === 'number' ? parsed.p_family : null,
+    e_shift: parsed && typeof parsed.e_shift === 'number' ? parsed.e_shift : null,
+    auto_lean: parsed && parsed.auto && typeof parsed.auto.lean === 'string' ? parsed.auto.lean : null,
+    auto_why: parsed && parsed.auto && typeof parsed.auto.why === 'string' ? parsed.auto.why : null,
     rule: parsed && typeof parsed.rule === 'string' ? parsed.rule : parsed && typeof parsed.hard === 'string' ? parsed.hard : null,
     verdict_source: rawVerdict ? 'model' : derived ? 'threshold' : null,
     noise: parsed && typeof parsed.noise === 'string' ? parsed.noise : null,
-    raw: ok ? null : String(res.text || '').slice(0, 800),
+    raw: ok ? null : String(res.text || '').slice(0, 4000),
   };
   const tag = ok ? `${row.id} ${row.label}→${row.verdict} ${row.confidence}` : `${row.id} ${row.label}→FAIL(${row.error})`;
+  if (!ok) {
+    // keep the exact text of a failure so a parser gap can be diagnosed without re-running
+    appendFileSync('/tmp/opencode/judge-fails.jsonl', JSON.stringify({ id: row.id, error: row.error, text: res.text }) + '\n');
+  }
   console.log(`${tag} (${(durationMs / 1000).toFixed(1)}s)`);
   return { row, item };
 };
 
+const ONLY = (strArg('--only', '') || '').split(',').map((s) => s.trim()).filter(Boolean);
 const items = readFileSync(new URL('./items.jsonl', import.meta.url), 'utf8')
   .trim()
   .split('\n')
   .map((l) => JSON.parse(l))
+  .filter((it) => !ONLY.length || ONLY.includes(it.id))
   .slice(0, LIMIT === Infinity ? undefined : LIMIT);
 
 console.log(`judging ${items.length} items, concurrency ${CONCURRENCY}`);
