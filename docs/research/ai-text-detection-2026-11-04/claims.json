@@ -1,0 +1,552 @@
+[
+  {
+    "claim_id": "C001",
+    "node": "N1",
+    "source_id": "S1",
+    "claim": "机器生成文本检测的文献可归为五类方法：经典机器学习、深度学习、Transformer 架构、商用检测器、统计工具；Transformer 类在基准上接近 100% 准确率，而人类评测者的上限约 77%。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C002",
+    "node": "N1",
+    "source_id": "S2",
+    "claim": "Binoculars 用两个相近语言模型对同一文本的困惑度比值作为零样本检测分数，在 0.01% 误报率下能检出 90% 以上的 ChatGPT 生成文本，且未用 ChatGPT 数据训练。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C003",
+    "node": "N1",
+    "source_id": "S3",
+    "claim": "检测器按原理可分为指标型（GLTR/DetectGPT/Fast-DetectGPT/Binoculars/LLMDet）、训练型分类器（RoBERTa）与商业黑盒三类，它们的阈值必须按目标误报率重新标定。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C004",
+    "node": "N1",
+    "source_id": "S4",
+    "claim": "SynthID-Text 只改采样过程嵌入水印，不改模型训练、不增加可见字符；用 Gemini 生产环境约 2000 万条带/不带水印响应的对照实验确认文本质量未变（论文另报 30 层 tournament sampling 只增加 0.57% 延迟）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C005",
+    "node": "N1",
+    "source_id": "S5",
+    "claim": "2026 年 RAID 榜首是稀疏自编码器方案 BASE-SAE，说明「可审计的检测方向」成为一条新路线，而非只是分类器打分。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C006",
+    "node": "N2",
+    "source_id": "S5",
+    "claim": "在 RAID 固定 5% 误报率的协议下，最强检测器约 86.4%，Originality.ai 85.0、Binoculars 79.6、Fast-DetectGPT 73.6、Winston 71.0、GPTZero 66.5、GLTR 62.6——即所谓 99% 是不同阈值下的数字。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C007",
+    "node": "N2",
+    "source_id": "S3",
+    "claim": "用「看起来合理」的默认阈值（如 0.5）时，开源指标型检测器误报率可高达 100%（GLTR），商用检测器则基本都低于 1.7%。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C008",
+    "node": "N2",
+    "source_id": "S6",
+    "claim": "芝加哥大学 BFI 的对照实验：Pangram 在中长文本上误报与漏报都接近 0，GPTZero 约 0.7% 误报、0.06 漏报率，开源 RoBERTa 误报率 30–78%；且 GPTZero 面对 StealthGPT 类「人性化」工具时漏报率升到 50% 以上。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C009",
+    "node": "N2",
+    "source_id": "S7",
+    "claim": "Epoch AI 2026 年 7 月独立测试：人类文本 495 段中 Pangram 与 GPTZero 均 0 误报、Originality.ai 误报 19 段（3.8%）；直白提示生成的 AI 文本漏报 ≤0.7%；但让模型模仿某位作者风格后，漏报升到 10.1%/10.8%/17.8%，模仿科学写作时 24–29% 漏报。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C010",
+    "node": "N2",
+    "source_id": "S8",
+    "claim": "VUB 2026 年同行评议研究（160 篇 4000+ 词论文）中，纯 AI 论文仅 Pangram 检出 97.5%，Turnitin、Copyleaks、GPTZero 均为 0%；经「人性化」处理后 Pangram 仍 95%，Turnitin 52.5%，Copyleaks 25%。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C011",
+    "node": "N2",
+    "source_id": "S9",
+    "claim": "Graphite 用三个检测器（Pangram/GPTZero/Copyleaks）测 15.7k 篇 2020–2022 年的真人文章，误报率 1.36%–1.84%；对 GPT-5/Gemini 3.1/Claude Opus 4.6 生成的文章漏报平均 0.07%–1.97%。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C012",
+    "node": "N2",
+    "source_id": "S10",
+    "claim": "厂商自测与独立评测结论冲突：GPTZero 官方博客称在 Chicago Booth 队列上召回 99.3%、Pangram 98.9%，而独立复现中 GPTZero 在同一类任务上远逊于 Pangram。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C013",
+    "node": "N2",
+    "source_id": "S11",
+    "claim": "OpenAI 2023 年自建的分类器只能识别 26% 的 AI 文本、同时误判 9% 的人类文本，因准确率过低于 2023 年 7 月 20 日下线。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C014",
+    "node": "N5",
+    "source_id": "S12",
+    "claim": "Liang 等（Patterns 2023）用 7 个流行检测器测 91 篇中国学生 TOEFL 作文：平均误报率 61.22%，97.8% 的作文至少被一个检测器判为 AI；同一批检测器对美国八年级母语作文近乎全对。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C015",
+    "node": "N5",
+    "source_id": "S12",
+    "claim": "偏差的机制是困惑度：词汇越「可预测」越被判 AI。用 ChatGPT 给 TOEFL 作文「提升用词」后误报率从 61.22% 降到 11.77%；反过来把母语作文「简化用词」后误报率从 5.19% 升到 56.65%。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C016",
+    "node": "N5",
+    "source_id": "S13",
+    "claim": "Sadasivan 等给出「不可靠」的经验与理论论证：改写攻击把零样本检测器 AUROC 从 96.5% 打到 25.2%；5 轮递归改写把水印在 1% 误报率下的 TPR 从 99% 打到 15%；并证明当模型足够像人时，最优检测器也只能略优于随机。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C017",
+    "node": "N5",
+    "source_id": "S14",
+    "claim": "DIPPER（11B 段落级改写器）把 DetectGPT 在 1% 误报率下的检出率从 70.3% 降到 4.6%，语义几乎不变；作者提出「检索库比对」作为防御，可检出 80–97% 被改写的生成文本，但这要求模型提供方保存全部输出。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C018",
+    "node": "N5",
+    "source_id": "S3",
+    "claim": "RAID 发现三类系统性失效：换采样策略、加 repetition penalty（准确率最多掉 32 个点）、换未见过的生成模型；结论是检测器尚不适合高风险部署。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C019",
+    "node": "N5",
+    "source_id": "S15",
+    "claim": "中文场景的「人机协作文本」更难检：C-HAT-Bench（5000 篇人类原文 + 24 万变体）显示，相对纯 AI 生成，协作生产模式下文档级检测器平均 AUROC 下降 12.0%，单模型最大降幅 44.4%。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C020",
+    "node": "N5",
+    "source_id": "S16",
+    "claim": "普通人在 10 个文体的 500 篇文本上判别准确率约 59%（214 人、9164 条标注），且有把文本判为「人写」的倾向；同一实验中两个自动工具达 88%。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C021",
+    "node": "N5",
+    "source_id": "S17",
+    "claim": "254 名捷克母语者判别 55.4%（无反馈）vs 65.1%（即时反馈）——即「练一下」能提升，但不练只比瞎猜略好。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C022",
+    "node": "N5",
+    "source_id": "S18",
+    "claim": "35 名专家（22 名医学专业 + 13 名人文学科文本分析专家）判 69 轮德国医学生论文 vs ChatGPT-3.5 生成文本：70% 判对，两组的判断主要依赖冗余、重复、线索连贯等文体特征，而非内容错误。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C023",
+    "node": "N5",
+    "source_id": "S19",
+    "claim": "上限实验：19 名受过训练的专业标注者在 9 种语言、16 个数据集上平均准确率 87.6%，靠的是具体性、文化细节、长度/结构/情感的多样性差异，而非某个词。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C024",
+    "node": "N5",
+    "source_id": "S20",
+    "claim": "高频用 LLM 写作的人（非专家训练）判 300 篇英文文章 TPR 92.7%、FPR 3.3%，5 人多数投票 300 篇只错 1 篇，超过几乎所有商用/开源检测器，只有 Pangram 的 Emi 模型能匹敌。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C025",
+    "node": "N5",
+    "source_id": "S21",
+    "claim": "「AI 味」词汇清单在 2026 年的新模型上已经失效：Graphite 在 1 万篇真人文章 + 9 万篇 9 个模型生成文章中发现 12,877 个「tell」，但 em dash 已不再被一致滥用——GPT-6 Astra 的使用量只有人类的 1/8，Claude Opus 5 与人类持平，Gemini 3.1 Pro 几乎不用。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C026",
+    "node": "N5",
+    "source_id": "S22",
+    "claim": "把民间信号量化：em dash 每千词频率 AUROC 0.772（在 1% 误报预算下只能抓到 20.3% 的机器长文），「AI 词表」（delve/leverage/robust…）AUROC 只有 0.578；真正更稳的是词汇多样性 MATTR（0.791）与相邻句衔接（0.777）。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C027",
+    "node": "N5",
+    "source_id": "S23",
+    "claim": "预设阈值的对照实验：10 条 tell 无一达到「机器使用率 10 倍 + AUC 0.90」的标准，最好的 tricolon 只有 AUC 0.80；同一模型换个目录（加载了禁止 em dash 的 CLAUDE.md）就从 6.10 个/千词变成 0.00。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C028",
+    "node": "N5",
+    "source_id": "S24",
+    "claim": "词频层面的「人群级」信号是真实且可测的：15.1M 篇 PubMed 摘要中，2024 年至少 13.5% 经过 LLM 处理（部分子集达 40%），delve 出现率是历史预期的 28 倍，且新增的多是风格动词/形容词而非内容名词。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C029",
+    "node": "N5",
+    "source_id": "S25",
+    "claim": "但这些词会「回流」到人类写作：ChatGPT 过用的词（delve、comprehend、boast、swift、meticulous）在播客与学术演讲里也出现上升，说明 tell 会随时间被人类吸收而失效。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C030",
+    "node": "N5",
+    "source_id": "S26",
+    "claim": "中文检测的学术现状：编码器模型在分布外明显退化（RoBERTa 76.3%、BERT 79.3%），LoRA 微调的 Qwen2.5-7B 达 95.94%，说明「同分布高分、跨模型崩塌」同样成立。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C031",
+    "node": "N5",
+    "source_id": "S27",
+    "claim": "人民网「天目」系统宣称对国内外主要大模型生成的中文文本识别准确率 93%，其切入点是困惑度与词频（AI 倾向用高频词）。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C032",
+    "node": "N6",
+    "source_id": "S28",
+    "claim": "C2PA Content Credentials 是嵌入资产、用私钥签名的清单，验证器能确认「签名者是谁、字节是否被改」；规范明确它不判断内容真假。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C033",
+    "node": "N6",
+    "source_id": "S29",
+    "claim": "C2PA 官网明确：凭证说明来源与历史，不用于断言内容「真实」；AI 工具若支持，会在凭证里标出「由 AI 生成」。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C034",
+    "node": "N6",
+    "source_id": "S30",
+    "claim": "读者侧可直接使用的验证入口：Adobe Inspect（inspect.cr）与 verify.contentauthenticity.org，可看签名者、工具、动作与是否标注 AI 生成；缺失凭证不等于「不是 AI」。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C035",
+    "node": "N6",
+    "source_id": "S31",
+    "claim": "凭证可被「排他区间」绕过：2026 年 10 月有人构造出签名有效但哈希排他区间覆盖整个文件的图片，没有任何验证工具报警——说明「有凭证」本身也不足以证明字节受保护。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C036",
+    "node": "N6",
+    "source_id": "S32",
+    "claim": "EU AI Act 第 50(2) 条自 2026-08-02 起要求生成式 AI 提供方把输出「以机器可读格式标记并使其可被检测为 AI 生成」，且标记与检测两者都要满足；2026-12-02 前已上市系统也须合规。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C037",
+    "node": "N6",
+    "source_id": "S33",
+    "claim": "第 50(4) 条对文本的要求比图像弱：只有「为告知公众公共利益的文本」需要披露，且经过人工编辑审校、有编辑责任人的可豁免。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C038",
+    "node": "N6",
+    "source_id": "S34",
+    "claim": "欧委会联合研究中心把文本标记/检测的技术路线归为五类：水印、结构标记、元数据、日志、AI 文本检测，并逐一比较其对「有效性/鲁棒性/可靠性/可及性/互操作性」的满足度。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C039",
+    "node": "N6",
+    "source_id": "S35",
+    "claim": "文本水印的真实部署状态（2026-10）：Google Gemini 默认带 SynthID-Text；Anthropic 自 2026-08/09 起在新模型上内置 SynthID-Text 系方案；OpenAI 的 textGrain 仅 EU 的 ChatGPT/Codex 且 API 默认关闭——三家都还没有面向公众的任意文本检测器。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C040",
+    "node": "N6",
+    "source_id": "S36",
+    "claim": "OpenAI 明确说 textGrain「不保证可靠检测」，且水印不验证准确性、不证明人类作者身份；其检测器只对经审核的研究者/机构开放，公开会因漏检与误报风险而不做。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C041",
+    "node": "N6",
+    "source_id": "S37",
+    "claim": "OpenAI 公布的 textGrain 检测曲线：1% 误报率下 200 token 约 80%、400 token 约 95% 可检出；把 25% 的词替换成同义词后检出率跌到 17%。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C042",
+    "node": "N6",
+    "source_id": "S38",
+    "claim": "Google 的 SynthID Detector 自 2026-10 起对所有人开放，但只接受图像/视频/音频文件，不接受文本——即「公开可查的水印」目前只覆盖多模态，不覆盖纯文本。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C043",
+    "node": "N3",
+    "source_id": "S39",
+    "claim": "Binoculars 官方实现带一个固定全局阈值（用 Falcon-7B/Falcon-7B-Instruct 校准），换评分模型必须自己重标定；作者明确它英文最好、仅限学术用途。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C044",
+    "node": "N3",
+    "source_id": "S40",
+    "claim": "原始 Binoculars 需要同时驻留两个 7B 模型（约 28GB 显存）；4-bit 量化 + 顺序加载的分支把它压到约 7.8GB，在 RTX 4060 级别显卡上可跑，窗口 384 token、长度加权聚合。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C045",
+    "node": "N3",
+    "source_id": "S41",
+    "claim": "Fast-DetectGPT（ICLR 2024）用条件概率曲率替代 DetectGPT 的扰动采样，零样本且显著更快；2026 年作者报告用 Llama3-8B 作为采样/评分模型明显优于 falcon-7b。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C046",
+    "node": "N3",
+    "source_id": "S42",
+    "claim": "可直接自托管的工程化封装已经有多个：IsItAI（Fast-DetectGPT 算法 + 自带数据校准 + 可分块打分）、Greyscope（输出连续 ai_involvement 分数，支持英/日/繁中）。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C047",
+    "node": "N3",
+    "source_id": "S42",
+    "claim": "自托管方案明确警告短文本不可靠：少于约 100 词的文本只能切出极少 chunk，聚合分数方差大。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C048",
+    "node": "N3",
+    "source_id": "S43",
+    "claim": "算力档位：RoBERTa 类 1.2–2.5GB 显存、1k token 约 18ms（A10G）；曲线类（DetectGPT 系）需 6–12GB、约 300ms；FastText 风格基线 CPU 约 3ms 但只能当集成组件。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": null
+  },
+  {
+    "claim_id": "C049",
+    "node": "N4",
+    "source_id": "S44",
+    "claim": "《人工智能生成合成内容标识办法》自 2025-09-01 施行，要求传播平台核验文件元数据里的隐式标识；未核验到但检测出显式标识或「其他生成合成痕迹」的，要按「疑似」标注——即平台侧必须跑检测。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C050",
+    "node": "N4",
+    "source_id": "S45",
+    "claim": "强制国标 GB 45438—2025 规定了隐式标识的字段格式：元数据里要有含 \"AIGC\" 的扩展字段，值为 JSON，Label 取 1/2/3 分别表示「属于/可能/疑似」AI 生成，另含 ContentProducer、ProduceID、ContentPropagator、PropagateID 等。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C051",
+    "node": "N4",
+    "source_id": "S46",
+    "claim": "TC260 的检测实践指南给出标准检测框架：目标设定 → 预处理 → 检测实施 → 结果输出，并明确要求「多算法交叉检测」与全局/局部分层检测。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C052",
+    "node": "N4",
+    "source_id": "S47",
+    "claim": "国内云厂商已把「AI 生成文本鉴别」做成可直接调用的 API：阿里云内容安全 TextModerationPlus 下的 text_aigc_detector 服务，用于判断文本是否疑似 AI 生成。",
+    "tier": "T3",
+    "access": "render",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C053",
+    "node": "N4",
+    "source_id": "S48",
+    "claim": "中文开源检测的研究线已经成形：MLSDET 用多模型（Qwen/Wenzhong-GPT2/LLaMA）的 log-rank、熵、log-likelihood 与跨模型交叉熵做集成，在 HC3-Chinese 上比零样本 CLTR 的 F1 高 15.94%。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C054",
+    "node": "N2",
+    "source_id": "S49",
+    "claim": "商用 API 的价格与计费单位完全不可直接比较：Sapling 约 $0.03/千词、Originality 约 $0.119/千词、Copyleaks 约 $0.027/千词、Winston 约 $0.09/千词，但 GPTZero 按词、Originality 按 100 词/点、Copyleaks 按 250 词/点、Winston 按词计点。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C055",
+    "node": "N2",
+    "source_id": "S50",
+    "claim": "Pangram 的 API 按量计价约 $50/百万词（Pangram 3）、$500/百万词（Pangram 4），并给出文档分段的 human/AI-assisted/AI 判定与 paraphrase 提示。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  }
+]
