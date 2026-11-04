@@ -1,0 +1,59 @@
+{
+  "slug": "ai-text-detection-2026-11-04",
+  "question": "面对一篇帖子/文章，有哪些可用手段判断它是否由 AI 生成？这些手段各自依据什么原理、在真实数据上准确率如何、什么时候会失效，一个普通读者应该按什么顺序、以多大置信度下结论？",
+  "depth": "standard",
+  "budget": { "max_sources_per_node": 8, "max_minutes": 45, "max_workers_per_batch": 3, "total_source_floor": 12 },
+  "created": "2026-11-04",
+  "nodes": [
+    {
+      "id": "N1",
+      "question": "检测机器生成文本的技术路线有哪几类，各自依据什么信号？",
+      "acceptance": "给出 ≥4 类方法（统计/零样本指标、训练型分类器、水印、来源凭证/元数据），每类给出至少 1 个具名代表方法与原始论文或官方文档链接",
+      "families": ["arxiv", "aclanthology", "vendor docs"],
+      "min_independent_sources": 2,
+      "freshness_window": "2019-2026"
+    },
+    {
+      "id": "N2",
+      "question": "市面上的检测工具实测准确率如何，排名与差异有多大？",
+      "acceptance": "≥8 个具名工具/模型在同一评测协议（固定 FPR）下的数字，或明确说明无法横向比较的原因；含 RAID 榜单数字",
+      "families": ["raid-bench.xyz", "arxiv:2405.xxxx", "aclanthology", "independent lab tests"],
+      "min_independent_sources": 2,
+      "freshness_window": "2024-2026"
+    },
+    {
+      "id": "N3",
+      "question": "检测在什么情况下会失效或产生系统性误判（误报/漏报），尤其是对真人写作者的伤害？",
+      "acceptance": "给出 ≥3 类具体失效机制，每类有实测数字或同行评议证据（非母语者误报率、改写规避、分布外模型、阈值选择）",
+      "families": ["arxiv", "aclanthology", "university press releases"],
+      "min_independent_sources": 3,
+      "freshness_window": "2023-2026"
+    },
+    {
+      "id": "N4",
+      "question": "人能靠肉眼/文体特征判断吗？准确率多少？哪些“AI 味”特征有实证支持、哪些是民间传说？",
+      "acceptance": "给出人类判读准确率的实测区间，并逐条判定 ≥4 个流行“AI 味”特征（破折号、delve、三段式、过度礼貌等）是否有实证支持",
+      "families": ["arxiv", "aclanthology", "linguistics journals"],
+      "min_independent_sources": 2,
+      "freshness_window": "2023-2026"
+    },
+    {
+      "id": "N5",
+      "question": "水印和来源凭证现在真实可用到什么程度？一个读者能不能直接验证？",
+      "acceptance": "≥2 种已落地机制（如 SynthID-Text、C2PA Content Credentials），说明其覆盖范围、可被读者验证的方式、以及已知的去除手段",
+      "families": ["nature.com", "c2pa.org", "vendor docs", "EU regulation"],
+      "min_independent_sources": 2,
+      "freshness_window": "2024-2026"
+    },
+    {
+      "id": "N6",
+      "question": "一个普通读者面对具体一篇帖子，应该按什么顺序做、得出多强的结论？",
+      "acceptance": "给出可执行的 4-6 步流程，每步说明看什么、能得出什么强度的结论、以及不能得出什么结论；含“证据不足时该怎么表述”",
+      "families": ["derived from N1-N5 + platform docs"],
+      "min_independent_sources": 2,
+      "freshness_window": "any"
+    }
+  ],
+  "arithmetic": "6 nodes × min 2-3 families = 14 family-slots; budget 8/node=48 max sources, feasible",
+  "self_critique": "N2 与 N1 有重叠风险（N1 只讲原理，N2 只讲数字，边界：N1 不出现准确率数字）；N6 是综合节点，不引入新事实，只引用 N1-N5 的 claims"
+}

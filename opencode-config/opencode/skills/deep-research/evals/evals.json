@@ -1,6 +1,6 @@
 {
   "skill_name": "deep-research",
-  "notes": "Iteration 1. Two prompts chosen because they stress different new mechanisms: eval 1 the comparison + freshness + public-API lane, eval 2 the recency + issue-tracking lane where I already know the ground truth (OpenCode 2.1.x support starts at magic-context 0.49.17; hidden runs need OpenCode >= 2.0.22; we pin 0.49.21). Runs are single-agent and budget-capped so the fan-out itself is not what is being measured.",
+  "notes": "Iteration 1. Two prompts chosen because they stress different new mechanisms: eval 1 the comparison + freshness + public-API lane, eval 2 the recency + issue-tracking lane where I already know the ground truth (OpenCode 2.1.x support starts at magic-context 0.49.17; hidden runs need OpenCode >= 2.0.22; we pin 0.49.21). Runs are single-agent and budget-capped so the fan-out itself is not what is being measured. Iteration 3 adds the freshness dimension: eval-1's window is stated by the user (2026-10-01..) so its assertion is checkable against the prompt; eval-0 only asserts that publication date is recorded, since that prompt names no window.",
   "evals": [
     {
       "id": 0,
@@ -18,7 +18,8 @@
         "the recommendation is concrete and states the condition under which it would change",
         "no single domain supplies more than half of the cited sources",
         "no claim is presented without an inline source id",
-        "tries a machine-readable fallback before dropping a dimension the question asked for"
+        "tries a machine-readable fallback before dropping a dimension the question asked for",
+        "every record records a publication date (or undated) separately from its retrieval date"
       ]
     },
     {
@@ -36,7 +37,8 @@
         "gaps or unverifiable items are listed explicitly",
         "every record in evidence.jsonl carries url, quote, tier, access and retrieved date",
         "every load-bearing claim has a verification verdict",
-        "no single domain supplies more than half of the cited sources"
+        "no single domain supplies more than half of the cited sources",
+        "no load-bearing claim published before the requested window is left without a stale_reason"
       ]
     }
   ]

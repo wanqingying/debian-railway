@@ -19,6 +19,10 @@ ACCEPTANCE (you are done when these are satisfied, not when you run out of pages
 RECIPES: <the actual URLs or curl commands from source-routing.md>
 LANES ALLOWED: <A only | A,B | A,B,C>
 RECENCY WINDOW: <e.g. "published after 2025-01-01" or "any date">
+
+Every source older than the window still counts as evidence if it is the best there is — but it must come
+back with a one-line reason it still holds (a stable spec, a benchmark nobody has repeated, a price that
+has not moved). Say so in the record's `stale_reason`; do not quietly drop it.
 TODAY: <YYYY-MM-DD>
 BUDGET: at most <n> sources; stop as soon as acceptance is met
 EVIDENCE DIR: <absolute path to the research dir>
@@ -37,7 +41,9 @@ Method
    page looked authoritative while signed in.
 5. Write every finding to the register, one record per claim:
      node <evidence.mjs> append <EVIDENCE DIR> '<json>'
-   where the json is {"node","claim","source_title","url","quote","tier","access","retrieved","confidence"}
+   where the json is {"node","claim","source_title","url","quote","tier","access","published","retrieved","confidence"}
+   `published` is the page's own publication or last-updated date — read it off the page, not off the fetch.
+   If the page carries no date, write "undated": an honest gap, never a guess and never the retrieval date.
    One record = one claim + one quote + one URL. If a claim needs two pages to stand up, write two
    records; never one claim pointing at two URLs, because neither can then be verified alone.
 6. Count sources the way the register does: by publisher + page kind. The project's releases page, its
@@ -101,7 +107,9 @@ and the quote the gatherer recorded. Then:
    authenticated session unless the brief says so).
 2. Decide whether the page as it stands supports the claim AS WRITTEN. Watch for overreach
    ("proves" where the source says "suggests"), version drift, and quotes taken out of context.
-3. Look once for a newer source or a credible counter-claim.
+3. Look once for a newer source or a credible counter-claim — and check the publication date is what the
+   claim implies. A page last updated in 2024 supporting a statement about 2026 is the commonest silent
+   staleness there is: the claim is true of the version it was written about and false of the current one.
 4. Record the verdict: `node <evidence.mjs> verify <dir> --claim C0xx --verdict <v> --note "<why>"`
 5. If the claim itself was wrong (misattributed, wrong version, quote from a different page), correct it
    with `node <evidence.mjs> edit <dir> --claim C0xx '<json>'` rather than a text editor; the edit
@@ -116,7 +124,8 @@ Return: a table of claim_id → verdict → one-line reason, and the accuracy li
 
 ## Consolidation checklist (main agent, Phase 4)
 
-- [ ] Every record has a URL, a retrieval date, a tier, and an access lane.
+- [ ] Every record has a URL, a publication date (or `undated`), a retrieval date, a tier, and an access lane.
+- [ ] Every load-bearing claim older than the node's window has a `stale_reason`, or was replaced.
 - [ ] Duplicates removed by URL **and** by underlying source (five copies of one press release are one source).
 - [ ] Load-bearing claims marked verified / single-source / contradicted.
 - [ ] Contradictions surfaced, not averaged.
