@@ -54,6 +54,17 @@ cp packages/web/openchamber-web-2.6.0.tgz /workspace/debian-railway/vendor/openc
 
 tarball 内是 `dist`/`server`/`bin`/`public`，19 MB 左右，依赖仍从 npm 解析，所以 `railway up` 时照常联网安装。
 
+**重新生成后要同步下游的 sha256**：团队开发容器（`trn-bff-devcontainer-demo`）装的是同一份产物，但**不入库**——它按公开 URL 拉取并用钉死的 sha256 校验。所以换了 tarball 之后：
+
+```bash
+sha256sum vendor/openchamber-web-2.6.0-fork.tgz        # 得到新 hash
+# 1) 把新 tgz 传到同一个 R2 路径（文件名可不变）
+#    https://pub-8714914666ef434292ae6b44c496f9f9.r2.dev/openchamber/openchamber-web-2.6.0-fork.tgz
+# 2) 改下游 .devcontainer/init.sh 的 OPENCHAMBER_FORK_SHA256 为该 hash
+```
+
+不改 hash 的后果是静默的：下游校验失败 → 打告警 → 退回 npm 上游包（worktree 分组补丁消失），不会报错退出。反过来，同名文件被覆盖也不会被静默使用，因为校验按 hash 走。
+
 几点须知：
 
 - **不要装 v1 的 `opencode-ai`**：OpenChamber 2.x 只驱动 OpenCode 2.x，装 v1 会在日志里报 `Configured OpenCode binary not found` 并降级为「无 agent」模式（Web UI 能开，但发消息无响应）。
