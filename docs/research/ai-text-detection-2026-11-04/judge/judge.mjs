@@ -215,7 +215,8 @@ const judge = async (item) => {
 };
 
 const ONLY = (strArg('--only', '') || '').split(',').map((s) => s.trim()).filter(Boolean);
-const items = readFileSync(new URL('./items.jsonl', import.meta.url), 'utf8')
+const ITEMS_FILE = strArg('--items', './items.jsonl');
+const items = readFileSync(new URL(ITEMS_FILE, import.meta.url), 'utf8')
   .trim()
   .split('\n')
   .map((l) => JSON.parse(l))
