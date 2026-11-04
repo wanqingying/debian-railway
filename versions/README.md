@@ -263,7 +263,7 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 | 组件 | `debian-railway` 锁点 | `trn-bff-devcontainer-demo` 锁点 |
 | --- | --- | --- |
 | opencode | `Dockerfile` 安装行 + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | `.devcontainer/init.sh` 的 `OPENCODE_VERSION` |
-| OpenChamber | `vendor/openchamber-web-2.6.0-fork.tgz` + `Dockerfile` 的安装行 | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION`（下游还没接 fork，见 BD 文档「下游同步」） |
+| OpenChamber | `vendor/openchamber-web-2.6.0-fork.tgz` + `Dockerfile` 的安装行 | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION` + `OPENCHAMBER_FORK_URL` / `OPENCHAMBER_FORK_SHA256`（同一份产物，下游按 URL 拉而不入 git） |
 | magic-context | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | `.devcontainer/opencode/opencode.jsonc` 的 `plugins` + `.devcontainer/init.sh` 的 `MC_PLUGIN_CACHE_SPEC` |
 | 版本说明 | `README.md` 版本表 + `AGENTS.md` | `README.md` 的「自动升级」行 |
 
@@ -271,6 +271,7 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 
 - `plugins` 的 spec **逐字符一致**（含版本号），两边都不能写 `@latest`。
 - 两边都用"删掉非当前 spec 的缓存"实现（不是只删 `@latest` 目录）。
+- OpenChamber 的 fork 构建要**同一份产物**：`sha256sum vendor/openchamber-web-2.6.0-fork.tgz` 必须等于下游 `init.sh` 里的 `OPENCHAMBER_FORK_SHA256`。换了 tarball 就两处一起改，否则下游会因校验失败静默退回 npm 上游包（补丁消失）。
 - 三处版本说明（railway `README.md` / railway `AGENTS.md` / devcontainer `README.md`）与 `BD-INDEX.md` 的当前 BD 一致。
 - 两个仓库的提交各自独立，但**同一个 BD 里要成对出现**；`BD-INDEX.md` 的「下游同步」列记录 devcontainer 是否已跟上。
 

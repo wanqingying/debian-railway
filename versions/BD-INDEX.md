@@ -19,7 +19,7 @@
 | [BD-001](bd/BD-001.md)（r2） | 2026-10-29 | 2.1.4 | 2.5.1 | 0.49.21 | 1.6.2 | **1.64.1** | `superseded by BD-002` | ✅ 已同步 | 新增 `playwright`（L1）：CLI + library，不下载浏览器，只用 CDP 接管容器内 KasmVNC 的 Chromium |
 | [BD-002](bd/BD-002.md) | 2026-11-03 | **2.2.5** | 2.5.3 | **0.49.34** | 1.6.2 | 1.64.1 | `superseded by BD-002 (r1)` | —（下游直接跳到 r2） | 首次按"证据判定、不看发布天数"的规则组合：两个 L0 各因一个未修重大 bug 取次新版本。已实际部署并验证运行正常 |
 | [BD-002](bd/BD-002.md)（r1） | 2026-11-03 | 2.2.5 | **2.6.0** | 0.49.34 | 1.6.2 | 1.64.1 | `superseded by BD-002 (r2)` | —（下游直接跳到 r2） | owner 决定 OpenChamber 直接跟 latest：解除它的 Hold，两个未修回归改为"已知并接受"（#6131 问答表单、#6084 git 探测风暴） |
-| [BD-002](bd/BD-002.md)（r2） | 2026-11-03 | 2.2.5 | **2.6.0（fork 构建）** | 0.49.34 | 1.6.2 | 1.64.1 | `current` | ✅ 已同步（2026-11-04） | 安装来源从 npm 换成 `vendor/openchamber-web-2.6.0-fork.tgz`：2.6.0 + `sidebarGroupRootWorktrees`（worktree 分组开关，默认开）。代码仍是 2.6.0，版本门禁不变。**下游装的是 npm 上游 2.6.0，没有这个 fork 补丁**（见下方说明） |
+| [BD-002](bd/BD-002.md)（r2） | 2026-11-03 | 2.2.5 | **2.6.0（fork 构建）** | 0.49.34 | 1.6.2 | 1.64.1 | `current` | ✅ 已同步（2026-11-04） | 安装来源从 npm 换成 `vendor/openchamber-web-2.6.0-fork.tgz`：2.6.0 + `sidebarGroupRootWorktrees`（worktree 分组开关，默认开）。代码仍是 2.6.0，版本门禁不变。**下游用同一份产物**，但按 `OPENCHAMBER_FORK_URL` + 钉死的 sha256 拉取，不把 19 MB 二进制放进团队仓库 |
 
 > 「下游同步」= 同一组锁点已落到 `trn-bff-devcontainer-demo`（顺序与核对项见[手册 §9](README.md)）。没打勾说明该 BD 只在 railway 生效，两个容器行为会不一致。
 
