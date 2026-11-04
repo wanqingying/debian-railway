@@ -1,0 +1,378 @@
+[
+  {
+    "sid": "S1",
+    "title": "New Revenue Share Tiers and other updates to the Steam Distribution Agreement — Steamworks",
+    "url": "https://steamcommunity.com/groups/steamworks/announcements/detail/1697191267930157838",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S2",
+    "title": "Valve's new Steam revenue agreement gives more money to developers — The Verge",
+    "url": "https://www.theverge.com/2018/11/30/18120577/valve-steam-game-marketplace-revenue-split-new-rules-competition",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S3",
+    "title": "Steam Direct Fee — Steamworks Documentation",
+    "url": "https://partner.steamgames.com/doc/gettingstarted/appfee",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S4",
+    "title": "Steam Refunds — Valve",
+    "url": "https://store.steampowered.com/steam_refunds/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S5",
+    "title": "Steam Genre Benchmark — App2top",
+    "url": "https://app2top.com/analytics/steam-genre-benchmark-inequality-index-oversaturated-niches-top-grossing-categories-anomalies-and-perennial-underdogs-295050.html",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S6",
+    "title": "The Indie-pocalypse is here? Steam Q1 2026 Data Analysis — Games-Stats",
+    "url": "https://games-stats.com/blog/Steam_in_Q12026/",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S7",
+    "title": "How Much Do Indie Games Make on Steam? — grishakof（引用 GameDiscoverCo）",
+    "url": "https://grishakof.com/blog/en/guides/how-much-do-indie-games-make-on-steam/",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S8",
+    "title": "Taxes FAQ — Steamworks Documentation",
+    "url": "https://partner.steamgames.com/doc/finance/taxfaq",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S9",
+    "title": "Frequently asked questions — Godot Engine documentation",
+    "url": "https://docs.godotengine.org/en/4.6/about/faq.html",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S10",
+    "title": "Download Godot 4.7 (stable) — Godot Engine",
+    "url": "https://godotengine.org/download/archive/4.7-stable/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S11",
+    "title": "Release support timeline — Godot Engine documentation",
+    "url": "https://docs.godotengine.org/en/stable/about/release_policy.html",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S12",
+    "title": "Godot 4.7 Release — Godot Engine",
+    "url": "https://godotengine.org/releases/4.7/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S13",
+    "title": "Unity Pricing Changes — Unity",
+    "url": "https://unity.com/products/pricing-updates",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S14",
+    "title": "Unity 6 Releases & Support — Unity",
+    "url": "https://unity.com/releases/unity-6/support",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S15",
+    "title": "Unreal Engine licensing options — Epic Games",
+    "url": "https://www.unrealengine.com/en-US/license",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S16",
+    "title": "Unreal Engine 5.8 is now available — Epic Games",
+    "url": "https://www.unrealengine.com/news/unreal-engine-5-8-is-now-available",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S17",
+    "title": "Export Licences Pricing — GameMaker",
+    "url": "https://gamemaker.io/en/get",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S18",
+    "title": "GMRT Update: Free for Commercial Use and Source Access — GameMaker",
+    "url": "https://gamemaker.io/en/blog/gmrt-update",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S19",
+    "title": "GMRT (GameMaker Runtime) — GameMaker manual",
+    "url": "https://manual.gamemaker.io/lts/en/Settings/Runner_Details/GMRT_(GameMaker_Runtime).htm",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S20",
+    "title": "Always free and developer-friendly — Defold",
+    "url": "https://defold.com/open/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S21",
+    "title": "Construct 3 plans — Scirra（页面结构化报价数据）",
+    "url": "https://editor.construct.net/r26/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S22",
+    "title": "Construct 3 r450 — Scirra",
+    "url": "https://www.construct.net/en/make-games/releases/beta/r450",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S23",
+    "title": "Construct 3 r424 — Scirra",
+    "url": "https://www.construct.net/en/make-games/releases/stable/r424",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S24",
+    "title": "RPG Maker MZ on Steam — Gotcha Gotcha Games",
+    "url": "https://store.steampowered.com/app/1096900/RPG_Maker_MZ/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S25",
+    "title": "RPG Maker MZ price history — SteamPeaks",
+    "url": "https://steampeaks.com/app/1096900/rpg-maker-mz/price-history",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S26",
+    "title": "The Ren'Py Visual Novel Engine — Ren'Py",
+    "url": "https://www.renpy.org/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S27",
+    "title": "Changelog — Ren'Py documentation",
+    "url": "https://www.renpy.org/doc/html/changelog.html",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S28",
+    "title": "Tags — bevyengine/bevy (GitHub)",
+    "url": "https://github.com/bevyengine/bevy/tags",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S29",
+    "title": "3.8.5 Release — MonoGame",
+    "url": "https://monogame.net/blog/2026-07-15-3.8.5-release-2026/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S30",
+    "title": "MonoGame.Framework.DesktopGL — NuGet",
+    "url": "https://www.nuget.org/packages/MonoGame.Framework.DesktopGL/3.8.4",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S31",
+    "title": "Version History — LÖVE",
+    "url": "https://love2d.org/wiki/Version_History",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S32",
+    "title": "Balatro — Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Balatro_(video_game)",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S33",
+    "title": "How an IT worker from Saskatchewan made the best game of the year — The Logic",
+    "url": "https://thelogic.co/news/balatro-developer-interview/",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S34",
+    "title": "GDevelop Premium Plans — GDevelop",
+    "url": "https://gdevelop.io/pricing",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S35",
+    "title": "Console support in Godot — Godot Engine",
+    "url": "https://godotengine.org/consoles/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S36",
+    "title": "GodotSteam GDExtension 4.4+ — Godot Asset Library",
+    "url": "https://godotengine.org/asset-library/asset/2445",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S37",
+    "title": "Steamworks.NET — rlabrecque",
+    "url": "https://steamworks.github.io/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S38",
+    "title": "GMEXT-Steamworks v2.2.1 — YoYoGames (GitHub)",
+    "url": "https://github.com/YoYoGames/GMEXT-Steamworks/releases/tag/2.2.1",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S39",
+    "title": "Setting Up Online Subsystem Steam in Unreal Engine — Epic Developer Community",
+    "url": "https://forums.unrealengine.com/t/community-tutorial-setting-up-online-subsystem-steam-in-unreal-engine/2669433",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S40",
+    "title": "Steam Deck and Steam Machine Compatibility Review — Steamworks Documentation",
+    "url": "https://partner.steamgames.com/doc/steamhardware/compat",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S41",
+    "title": "GDC 2026 State of the Game Industry — GDC",
+    "url": "https://gdconf.com/article/gdc-2026-state-of-the-game-industry-reveals-impact-of-layoffs-generative-ai-and-more/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S42",
+    "title": "How's PC game engine usage changing? — GameDiscoverCo",
+    "url": "https://newsletter.gamediscover.co/p/hows-pc-game-engine-usage-changing",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S43",
+    "title": "深入理解 Godot 引擎 — wangshucheng",
+    "url": "https://wangshucheng.github.io/godot-engine-book/",
+    "tier": "T4",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S44",
+    "title": "免费+开源的神仙引擎，能让独立游戏逃离剥削吗？ — 游民星空",
+    "url": "https://www.gamersky.com/news/202603/2115214.shtml",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S45",
+    "title": "GameMaker development engine free for commercial use — Opera Newsroom",
+    "url": "https://press.opera.com/2026/10/23/gamemaker-unlocks-access-to-its-acclaimed-game-development-engine-for-more-developers/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S46",
+    "title": "Balatro Made with Love… Love2D That is — GameFromScratch",
+    "url": "https://gamefromscratch.com/balatro-made-with-love-love2d-that-is/",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S47",
+    "title": "Defold on Steam — Defold Foundation",
+    "url": "https://store.steampowered.com/app/1365760/Defold/",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  }
+]

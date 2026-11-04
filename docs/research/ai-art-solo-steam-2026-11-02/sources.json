@@ -1,0 +1,146 @@
+[
+  {
+    "sid": "S1",
+    "title": "Content Survey — Steamworks Documentation",
+    "url": "https://partner.steamgames.com/doc/gettingstarted/contentsurvey",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S2",
+    "title": "Valve tweaks and clarifies AI disclosure rules for Steam — Game Developer",
+    "url": "https://www.gamedeveloper.com/business/valve-tweaks-and-clarifies-ai-disclosure-rules-for-steam",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S3",
+    "title": "Steam AI Disclosure: What 465 Pages Actually Say — SteamPageAnalyzer",
+    "url": "https://www.steampageanalyzer.com/blog/steam-ai-disclosure-what-developers-wrote",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S4",
+    "title": "Valve has 'significantly' rewritten Steam's rules — VGC",
+    "url": "https://www.videogameschronicle.com/news/valve-has-significantly-rewritten-steams-rules-for-how-developers-much-disclose-ai-use/",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S5",
+    "title": "Tasty Chef says AI made all its art — IndieTooling（引用 Sulka Haro 对 53,597 款新作的统计）",
+    "url": "https://indietooling.com/posts/tasty-chef-ai-art-disclosure",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S6",
+    "title": "$9,500 a week — HEXSTORM — App2top",
+    "url": "https://app2top.com/news/9-500-a-week-a-solo-developer-shared-about-the-launch-of-the-game-with-ai-code-hexstorm-tears-of-arcadia-296068.html",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S7",
+    "title": "Steam's AI dilemma manifests in How To Grow a Black Hole — Regen Raygun",
+    "url": "https://www.regenraygun.com/steams-ai-dilemma-manifests-in-how-to-grow-a-black-hole/",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S8",
+    "title": "打上“零AI”，销量翻5倍 — 36氪",
+    "url": "https://www.36kr.com/p/3844127150819841",
+    "tier": "T4",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S9",
+    "title": "单人+AI，5000块做出94%好评的Steam游戏 — 什么值得买（转述 Game Oracle / AISEEBIZ）",
+    "url": "https://post.smzdm.com/p/anvx48w7/",
+    "tier": "T4",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S10",
+    "title": "Copyright and Artificial Intelligence, Part 2: Copyrightability — U.S. Copyright Office",
+    "url": "https://www.copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S11",
+    "title": "United States Copyright Office Annual Report FY 2025 — U.S. Copyright Office",
+    "url": "https://copyright.gov/reports/annual/2025/ar2025.pdf",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S12",
+    "title": "Firefly Legal FAQs – Enterprise Customers — Adobe",
+    "url": "https://www.adobe.com/cc-shared/assets/pdf/enterprise/firefly-legal-faqs-enterprise-customers-2024-06-11.pdf",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S13",
+    "title": "Using Images & Videos Commercially — Midjourney",
+    "url": "https://docs.midjourney.com/hc/en-us/articles/27870375276557-Using-Images-Videos-Commercially",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S14",
+    "title": "Transparency obligations under Article 50 of the AI Act — European Commission",
+    "url": "https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S15",
+    "title": "Guidelines on the implementation of the transparency obligations under Article 50 — European Commission (C(2026) 5054)",
+    "url": "https://ai-act-service-desk.ec.europa.eu/sites/default/files/2026-07/guidelines_on_the_implementation_of_the_transparency_obligations_for_certain_ai_systems_under_article_50_of_the_ai_act_bzptwqhk0ikg1dtlddap41psfy_131215.pdf",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S16",
+    "title": "Article 50: Transparency obligations — AI Act Service Desk",
+    "url": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50",
+    "tier": "T1",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S17",
+    "title": "AI Sprite Sheet Generator for 2D Games — SpriteCanvas",
+    "url": "https://spritecanvas.com/",
+    "tier": "T3",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "sid": "S18",
+    "title": "Sprite Generator — Ludo.ai Docs",
+    "url": "https://ludo.ai/docs/sprite-generator",
+    "tier": "T2",
+    "access": "public",
+    "retrieved": "2026-11-02"
+  }
+]
