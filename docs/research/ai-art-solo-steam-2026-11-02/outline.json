@@ -1,0 +1,54 @@
+{
+  "slug": "ai-art-solo-steam-2026-11-02",
+  "question": "单人制作中小体量 Steam 单机游戏，美术能否由 AI 辅助完成？边界、成本与风险是什么？",
+  "depth": "quick",
+  "budget": {
+    "max_total_sources": 20,
+    "max_minutes": 25
+  },
+  "created": "2026-11-02",
+  "nodes": [
+    {
+      "id": "A1",
+      "question": "Steam 对 AI 生成美术的披露规则是什么？",
+      "acceptance": [
+        "区分预生成/实时生成两类",
+        "说明 2026 年 1 月收窄后的口径",
+        "给出披露在商店页的呈现位置"
+      ],
+      "status": "covered"
+    },
+    {
+      "id": "A2",
+      "question": "AI 美术的版权与商用授权边界在哪？",
+      "acceptance": [
+        "美国版权局对纯 AI 输出的立场",
+        "至少两家常用工具的商用条款",
+        "欧盟 AI Act 第 50 条对 deployer 的义务边界"
+      ],
+      "status": "covered"
+    },
+    {
+      "id": "A3",
+      "question": "哪些美术资产 AI 现在能交付，哪些不能？",
+      "acceptance": [
+        "按资产类型给出可交付度",
+        "指出精灵表/动画的具体工程缺口",
+        "有工具文档作为存在性证据"
+      ],
+      "status": "covered"
+    },
+    {
+      "id": "A4",
+      "question": "披露 AI 对销量与评价的真实影响有多大？",
+      "acceptance": [
+        "至少两组独立统计",
+        "至少两个正反案例",
+        "指出统计口径冲突"
+      ],
+      "status": "covered"
+    }
+  ],
+  "completed": "2026-11-02",
+  "scope": "Steam 国际版（Valve，美国）+ 美国版权法 + 欧盟 AI Act"
+}

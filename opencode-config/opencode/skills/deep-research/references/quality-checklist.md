@@ -32,11 +32,17 @@ Run this in Phase 6, before delivery. It exists because the most common failure 
 - [ ] Editorial diversity: one commentary site does not supply most of the commentary. First-party API endpoints of the subject are exempt — several facts from one repository are one family, not one site dominating.
 - [ ] Every dimension the question asked for is either answered or explicitly reported as a gap; none was dropped because its ideal source was unreachable.
 
-## 4. Freshness
+## 4. Freshness (a number, not an adjective)
 
-- [ ] "Latest/current/recent" questions state the retrieval cutoff and the window searched.
-- [ ] The freshest authoritative source was used, not the most-indexed older one.
+- [ ] `stats --window <start>` was run and the in-window figure is in the report header.
+- [ ] Every load-bearing claim published before the window carries a `stale_reason`; `render --gate --window` passes, not just the prose.
+- [ ] The undated count is stated; no publication date was guessed to make the figure look better.
+- [ ] Every source records `published` separately from `retrieved` — a fresh fetch never stands in for an old publication.
+- [ ] "Latest/current/recent" questions also state the cutoff date in the Method section.
+- [ ] The freshest authoritative source was used, not the most-indexed older one — and where the fresher source is weaker (a blog instead of the paper), the trade-off is stated instead of resolved silently.
 - [ ] Deprecated or retracted sources were replaced or flagged.
+
+> Why a number here too: "we used the freshest source" cannot fail. `in-window 24/27 dated (89%), 3 undated` can, and the fix for a failure is one clause of `stale_reason` rather than a rewrite.
 
 ## 5. Honesty
 

@@ -1,0 +1,167 @@
+{
+  "slug": "steam-solo-game-engine-2026-11-02",
+  "question": "单人开发、上架 Steam 的单机游戏（小到中等体量，定价 10-30 元人民币），应该如何在游戏引擎之间做选择？",
+  "depth": "deep",
+  "budget": {
+    "max_total_sources": 40,
+    "max_sources_per_node": 6,
+    "max_minutes": 70,
+    "max_workers_per_batch": 3
+  },
+  "created": "2026-11-02",
+  "nodes": [
+    {
+      "id": "N1",
+      "question": "10-30 元定价的 Steam 单机游戏，钱到底怎么分？引擎授权费在这个收入区间是否构成真实约束？",
+      "acceptance": [
+        "Valve 官方文档给出 30% 平台分成、100 美元 Steam Direct 可回收费用、退款政策",
+        "给出 1000 / 5000 / 20000 份销量三档的净收入表（含平台分成、税费口径说明）",
+        "明确回答：Unity/Unreal/GameMaker 等收费条款在该收入区间是否触发"
+      ],
+      "families": [
+        "partner.steamgames.com 官方文档",
+        "Valve store 官方页面",
+        "厂商定价页"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "min_independent_sources": 2,
+      "freshness_window": "2025-01-01..now",
+      "status": "covered"
+    },
+    {
+      "id": "N2",
+      "question": "能发布 Steam 单机游戏的引擎/框架全集有哪些？入选与排除标准是什么？",
+      "acceptance": [
+        "至少 14 个候选，每个有官方链接、授权模式、2D/3D、主语言、典型适用体量",
+        "明确写出入选标准（能导出 Windows 可执行、有 Steam 发布先例、2026 年仍在维护）与被排除项及原因",
+        "区分通用引擎、专用引擎（RPG Maker/Ren'Py）、框架/库（MonoGame/LÖVE/Bevy）三类"
+      ],
+      "families": [
+        "引擎官网",
+        "Steam 商店已发行游戏页",
+        "引擎文档"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "min_independent_sources": 2,
+      "freshness_window": "2025-06-01..now",
+      "status": "covered"
+    },
+    {
+      "id": "N3",
+      "question": "2026 年 11 月各引擎的授权与费用条款具体是什么？",
+      "acceptance": [
+        "Godot、Unity、Unreal、GameMaker、Construct、Defold、RPG Maker、Ren'Py、Bevy、MonoGame 逐个给出官方定价页链接与取数日期",
+        "Unity 的营收/席位门槛与 Runtime Fee 现状写明",
+        "Unreal 的分成比例与起征门槛写明",
+        "GameMaker 免费/商用条款写明",
+        "每个数字标注币种与周期"
+      ],
+      "families": [
+        "厂商官方 pricing/license 页"
+      ],
+      "lanes": [
+        "A",
+        "B"
+      ],
+      "min_independent_sources": 2,
+      "freshness_window": "2025-06-01..now",
+      "status": "covered"
+    },
+    {
+      "id": "N4",
+      "question": "就小到中等体量单机游戏的实际出货需求，各引擎的工程能力差在哪？",
+      "acceptance": [
+        "Steamworks 接入（成就、云存档、创意工坊、Rich Presence）逐引擎给出官方或事实标准方案",
+        "Windows 打包、Linux/Steam Deck 支持情况逐引擎给出依据",
+        "2D 工作流（Tilemap、动画、UI、本地化、存档）优劣有具体依据而非印象",
+        "迭代速度相关的一手证据（热重载、编译时间、编辑器稳定性）"
+      ],
+      "families": [
+        "引擎官方文档",
+        "Steamworks 文档",
+        "GitHub 集成项目"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "min_independent_sources": 2,
+      "freshness_window": "2025-01-01..now",
+      "status": "covered",
+      "note": "RPG Maker MZ / Defold / LÖVE / Bevy 的 Steam 接入细节未逐项核实，已在报告中标注为未核实。"
+    },
+    {
+      "id": "N5",
+      "question": "单人开发者的生态现实：教程、中文资料、素材、插件、AI 辅助与常见失败模式。",
+      "acceptance": [
+        "每个主力引擎给出中文学习资源与社区规模的证据",
+        "素材商店/插件生态给出可核实的市场链接",
+        "列出至少 3 个单人开发常见失败模式及其与引擎选择的关系",
+        "有 Steam 已发行作品作为该引擎能落地的证据"
+      ],
+      "families": [
+        "官方资产商店",
+        "开发者社区/论坛",
+        "Steam 商店",
+        "开发者复盘文章"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "min_independent_sources": 2,
+      "freshness_window": "2025-01-01..now",
+      "status": "covered"
+    },
+    {
+      "id": "N6",
+      "question": "这个价位段常见的单机类型，分别最适合哪类引擎？",
+      "acceptance": [
+        "覆盖至少 8 个类型（2D 动作/roguelike、银河城、种田/生活模拟、模拟经营、卡牌/策略、解谜、恐怖、RPG、视觉小说、点击冒险）",
+        "每个类型给出首选引擎 + 备选 + 理由，且理由指向前一节点的工程事实",
+        "给出该类型在 10-30 元价位的代表作作为存在性证明"
+      ],
+      "families": [
+        "Steam 商店类型榜",
+        "引擎展示页",
+        "开发者访谈/复盘"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "min_independent_sources": 2,
+      "freshness_window": "2024-01-01..now",
+      "status": "covered",
+      "note": "仅对已核实引擎归属的作品给出存在性证明，其余标注“未逐款核实”。"
+    },
+    {
+      "id": "N7",
+      "question": "给这位开发者的决策框架、加权评分与推荐是什么？",
+      "acceptance": [
+        "给出 6-8 个决策准则并说明权重来源（与收入区间、体量、单人开发相关）",
+        "对至少 6 个候选做加权评分表，每格可追溯到前面节点的事实",
+        "给出决策树（若你的类型/技能/美术能力是 X 则选 Y）",
+        "给出一个 2 周可执行的试做验证协议与退出条件",
+        "明确写出推荐在什么条件下会翻转"
+      ],
+      "families": [
+        "前序节点综合"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "min_independent_sources": 2,
+      "freshness_window": "any",
+      "status": "covered",
+      "note": "综合前六个节点得出；评分为作者判断，非实测。"
+    }
+  ],
+  "completed": "2026-11-02",
+  "result": {
+    "sources": 47,
+    "claims": 54,
+    "report": "report.md"
+  }
+}
