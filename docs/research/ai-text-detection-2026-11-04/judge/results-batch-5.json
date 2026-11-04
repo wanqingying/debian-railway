@@ -1,0 +1,578 @@
+{
+ "size": 5,
+ "wall": 16793,
+ "rows": [
+  {
+   "id": "raid-h000",
+   "p_ai": 0.38,
+   "why": "综述结构规整，含具体项目细节",
+   "expected": [
+    "raid-h000",
+    "raid-h001",
+    "raid-h002",
+    "raid-h003",
+    "raid-h004"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h001",
+   "p_ai": 0.3,
+   "why": "含仓库链接与作者拼写错误",
+   "expected": [
+    "raid-h000",
+    "raid-h001",
+    "raid-h002",
+    "raid-h003",
+    "raid-h004"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h002",
+   "p_ai": 0.36,
+   "why": "术语密集，含粘连拼写错误",
+   "expected": [
+    "raid-h000",
+    "raid-h001",
+    "raid-h002",
+    "raid-h003",
+    "raid-h004"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h003",
+   "p_ai": 0.38,
+   "why": "教科书式结构，但有具体实验设计",
+   "expected": [
+    "raid-h000",
+    "raid-h001",
+    "raid-h002",
+    "raid-h003",
+    "raid-h004"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h004",
+   "p_ai": 0.32,
+   "why": "含具体百分比与自创损失名",
+   "expected": [
+    "raid-h000",
+    "raid-h001",
+    "raid-h002",
+    "raid-h003",
+    "raid-h004"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h005",
+   "p_ai": 0.15,
+   "why": "具体数据集与消融细节",
+   "expected": [
+    "raid-h005",
+    "raid-h006",
+    "raid-h007",
+    "raid-h008",
+    "raid-h009"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h006",
+   "p_ai": 0.18,
+   "why": "非母语措辞，方法专属",
+   "expected": [
+    "raid-h005",
+    "raid-h006",
+    "raid-h007",
+    "raid-h008",
+    "raid-h009"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h007",
+   "p_ai": 0.2,
+   "why": "自造模块名，无套话",
+   "expected": [
+    "raid-h005",
+    "raid-h006",
+    "raid-h007",
+    "raid-h008",
+    "raid-h009"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h008",
+   "p_ai": 0.16,
+   "why": "非常规句法与专属术语",
+   "expected": [
+    "raid-h005",
+    "raid-h006",
+    "raid-h007",
+    "raid-h008",
+    "raid-h009"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-h009",
+   "p_ai": 0.1,
+   "why": "精确数值结果，语法瑕疵",
+   "expected": [
+    "raid-h005",
+    "raid-h006",
+    "raid-h007",
+    "raid-h008",
+    "raid-h009"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0000600",
+   "p_ai": 0.9,
+   "why": "四段等长总-分-总，泛化断言无数据",
+   "expected": [
+    "raid-a0000600",
+    "raid-a0000601",
+    "raid-a0001600",
+    "raid-a0001601",
+    "raid-a0002600"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0000601",
+   "p_ai": 0.88,
+   "why": "贡献清单模板加消融套话",
+   "expected": [
+    "raid-a0000600",
+    "raid-a0000601",
+    "raid-a0001600",
+    "raid-a0001601",
+    "raid-a0002600"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0001600",
+   "p_ai": 0.82,
+   "why": "模板化贡献陈述，连接词堆砌空转",
+   "expected": [
+    "raid-a0000600",
+    "raid-a0000601",
+    "raid-a0001600",
+    "raid-a0001601",
+    "raid-a0002600"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0001601",
+   "p_ai": 0.97,
+   "why": "整段自我复述，泄露抓取模板残留",
+   "expected": [
+    "raid-a0000600",
+    "raid-a0000601",
+    "raid-a0001600",
+    "raid-a0001601",
+    "raid-a0002600"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0002600",
+   "p_ai": 0.85,
+   "why": "首尾套式收束，改进无具体数字",
+   "expected": [
+    "raid-a0000600",
+    "raid-a0000601",
+    "raid-a0001600",
+    "raid-a0001601",
+    "raid-a0002600"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0002601",
+   "p_ai": 0.9,
+   "why": "泛化总结加潜力收尾",
+   "expected": [
+    "raid-a0002601",
+    "raid-a0004600",
+    "raid-a0004601",
+    "raid-a0005600",
+    "raid-a0005601"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0004600",
+   "p_ai": 0.18,
+   "why": "具体数字与私人比喻",
+   "expected": [
+    "raid-a0002601",
+    "raid-a0004600",
+    "raid-a0004601",
+    "raid-a0005600",
+    "raid-a0005601"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0004601",
+   "p_ai": 0.97,
+   "why": "元话语重复复述硬信号",
+   "expected": [
+    "raid-a0002601",
+    "raid-a0004600",
+    "raid-a0004601",
+    "raid-a0005600",
+    "raid-a0005601"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0005600",
+   "p_ai": 0.9,
+   "why": "总分开收尾套话",
+   "expected": [
+    "raid-a0002601",
+    "raid-a0004600",
+    "raid-a0004601",
+    "raid-a0005600",
+    "raid-a0005601"
+   ],
+   "ok": true
+  },
+  {
+   "id": "raid-a0005601",
+   "p_ai": 0.96,
+   "why": "模板占位句复述空转",
+   "expected": [
+    "raid-a0002601",
+    "raid-a0004600",
+    "raid-a0004601",
+    "raid-a0005600",
+    "raid-a0005601"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h0",
+   "p_ai": 0.08,
+   "why": "口语跳跃，IIRC 等私人语气",
+   "expected": [
+    "HC3-en-h0",
+    "HC3-en-h1",
+    "HC3-en-h2",
+    "HC3-en-h3",
+    "HC3-en-h4"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h1",
+   "p_ai": 0.07,
+   "why": "逻辑荒诞加错字than，人类吐槽",
+   "expected": [
+    "HC3-en-h0",
+    "HC3-en-h1",
+    "HC3-en-h2",
+    "HC3-en-h3",
+    "HC3-en-h4"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h2",
+   "p_ai": 0.1,
+   "why": "拼写讹误，冷门细节自来",
+   "expected": [
+    "HC3-en-h0",
+    "HC3-en-h1",
+    "HC3-en-h2",
+    "HC3-en-h3",
+    "HC3-en-h4"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h3",
+   "p_ai": 0.07,
+   "why": "情绪化跑题，圈内梗密集",
+   "expected": [
+    "HC3-en-h0",
+    "HC3-en-h1",
+    "HC3-en-h2",
+    "HC3-en-h3",
+    "HC3-en-h4"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h4",
+   "p_ai": 0.32,
+   "why": "单句粗俗玩笑，短文本无硬信号",
+   "expected": [
+    "HC3-en-h0",
+    "HC3-en-h1",
+    "HC3-en-h2",
+    "HC3-en-h3",
+    "HC3-en-h4"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h5",
+   "p_ai": 0.3,
+   "why": "因果链具体但结构松散",
+   "expected": [
+    "HC3-en-h5",
+    "HC3-en-h6",
+    "HC3-en-h7",
+    "HC3-en-h8",
+    "HC3-en-h9"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h6",
+   "p_ai": 0.05,
+   "why": "粗口口语、真实训斥语气",
+   "expected": [
+    "HC3-en-h5",
+    "HC3-en-h6",
+    "HC3-en-h7",
+    "HC3-en-h8",
+    "HC3-en-h9"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h7",
+   "p_ai": 0.35,
+   "why": "三点式但条目长短失衡",
+   "expected": [
+    "HC3-en-h5",
+    "HC3-en-h6",
+    "HC3-en-h7",
+    "HC3-en-h8",
+    "HC3-en-h9"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h8",
+   "p_ai": 0.08,
+   "why": "带EDIT日期与社区语境",
+   "expected": [
+    "HC3-en-h5",
+    "HC3-en-h6",
+    "HC3-en-h7",
+    "HC3-en-h8",
+    "HC3-en-h9"
+   ],
+   "ok": true
+  },
+  {
+   "id": "HC3-en-h9",
+   "p_ai": 0.25,
+   "why": "括注插入与口语称呼 brethren",
+   "expected": [
+    "HC3-en-h5",
+    "HC3-en-h6",
+    "HC3-en-h7",
+    "HC3-en-h8",
+    "HC3-en-h9"
+   ],
+   "ok": true
+  }
+ ],
+ "diffs": [
+  {
+   "id": "HC3-en-h1",
+   "single": 0.73,
+   "batch": 0.07,
+   "d": 0.6599999999999999
+  },
+  {
+   "id": "raid-a0001600",
+   "single": 0.35,
+   "batch": 0.82,
+   "d": 0.47
+  },
+  {
+   "id": "HC3-en-h7",
+   "single": 0.07,
+   "batch": 0.35,
+   "d": 0.27999999999999997
+  },
+  {
+   "id": "raid-h003",
+   "single": 0.12,
+   "batch": 0.38,
+   "d": 0.26
+  },
+  {
+   "id": "raid-h007",
+   "single": 0.45,
+   "batch": 0.2,
+   "d": 0.25
+  },
+  {
+   "id": "raid-h002",
+   "single": 0.12,
+   "batch": 0.36,
+   "d": 0.24
+  },
+  {
+   "id": "raid-h000",
+   "single": 0.15,
+   "batch": 0.38,
+   "d": 0.23
+  },
+  {
+   "id": "raid-h008",
+   "single": 0.38,
+   "batch": 0.16,
+   "d": 0.22
+  },
+  {
+   "id": "HC3-en-h4",
+   "single": 0.12,
+   "batch": 0.32,
+   "d": 0.2
+  },
+  {
+   "id": "raid-a0000601",
+   "single": 0.72,
+   "batch": 0.88,
+   "d": 0.16000000000000003
+  },
+  {
+   "id": "HC3-en-h5",
+   "single": 0.15,
+   "batch": 0.3,
+   "d": 0.15
+  },
+  {
+   "id": "raid-h001",
+   "single": 0.42,
+   "batch": 0.3,
+   "d": 0.12
+  },
+  {
+   "id": "raid-a0005600",
+   "single": 0.78,
+   "batch": 0.9,
+   "d": 0.12
+  },
+  {
+   "id": "raid-a0001601",
+   "single": 0.86,
+   "batch": 0.97,
+   "d": 0.10999999999999999
+  },
+  {
+   "id": "HC3-en-h3",
+   "single": 0.18,
+   "batch": 0.07,
+   "d": 0.10999999999999999
+  },
+  {
+   "id": "raid-h004",
+   "single": 0.22,
+   "batch": 0.32,
+   "d": 0.1
+  },
+  {
+   "id": "raid-h006",
+   "single": 0.25,
+   "batch": 0.18,
+   "d": 0.07
+  },
+  {
+   "id": "HC3-en-h9",
+   "single": 0.18,
+   "batch": 0.25,
+   "d": 0.07
+  },
+  {
+   "id": "HC3-en-h8",
+   "single": 0.15,
+   "batch": 0.08,
+   "d": 0.06999999999999999
+  },
+  {
+   "id": "raid-a0002601",
+   "single": 0.86,
+   "batch": 0.9,
+   "d": 0.040000000000000036
+  },
+  {
+   "id": "raid-a0004600",
+   "single": 0.22,
+   "batch": 0.18,
+   "d": 0.04000000000000001
+  },
+  {
+   "id": "HC3-en-h2",
+   "single": 0.07,
+   "batch": 0.1,
+   "d": 0.03
+  },
+  {
+   "id": "raid-h009",
+   "single": 0.08,
+   "batch": 0.1,
+   "d": 0.020000000000000004
+  },
+  {
+   "id": "HC3-en-h0",
+   "single": 0.06,
+   "batch": 0.08,
+   "d": 0.020000000000000004
+  },
+  {
+   "id": "raid-a0002600",
+   "single": 0.86,
+   "batch": 0.85,
+   "d": 0.010000000000000009
+  },
+  {
+   "id": "raid-a0004601",
+   "single": 0.96,
+   "batch": 0.97,
+   "d": 0.010000000000000009
+  },
+  {
+   "id": "HC3-en-h6",
+   "single": 0.06,
+   "batch": 0.05,
+   "d": 0.009999999999999995
+  },
+  {
+   "id": "raid-h005",
+   "single": 0.15,
+   "batch": 0.15,
+   "d": 0
+  },
+  {
+   "id": "raid-a0000600",
+   "single": 0.9,
+   "batch": 0.9,
+   "d": 0
+  },
+  {
+   "id": "raid-a0005601",
+   "single": 0.96,
+   "batch": 0.96,
+   "d": 0
+  }
+ ]
+}
