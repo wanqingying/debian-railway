@@ -41,7 +41,7 @@
 | `nodes[].families` | yes | source families, or exact recipes/URLs | workers inventing a search from scratch |
 | `nodes[].lanes` | when known | which access lanes this node needs (`A`, `B`, `C`) | a worker burning the budget on a page it cannot see |
 | `nodes[].min_independent_sources` | yes | usually 2 for load-bearing nodes, counted in **distinct source families** (one publisher's `releases`, `README` and `commits` are one family) | a single blog post — or a single project quoting itself — standing in for consensus |
-| `nodes[].freshness_window` | yes | accepted date range, or `any` | stale numbers presented as current |
+| `nodes[].freshness_window` | yes | accepted date range (`"2025-06-01.."`) or `any`; its start date is the `--window` you pass to `stats`/`render --gate` | stale numbers presented as current — unmeasurable unless the window is a real date |
 | `nodes[].status` | yes | `open` → `covered` / `partial` / `unanswerable` + reason | silent holes at write time |
 
 ## Writing an acceptance test
@@ -78,6 +78,7 @@ Read your own outline as a hostile reviewer, and fix it here rather than in the 
 - What does the question imply that no node covers? (Usually: cost, failure modes, what changed recently, who is the incumbent.)
 - Which node needs lane C to be answerable at all, and is a login actually available?
 - Is `min_independent_sources` honest for this node, or is it 2 because 2 looks rigorous?
+- Is `freshness_window` a real date, or `any` because a date would be awkward? (`any` silently opts the node out of the freshness metric, and it is visible in the report.)
 
 ## Updating during the run
 

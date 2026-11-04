@@ -1,0 +1,232 @@
+[
+  {
+    "claim_id": "C001",
+    "node": "A1",
+    "source_id": "S1",
+    "claim": "Steam 的 Content Survey 要求披露两类生成式 AI 内容：随游戏发布的预生成内容，以及游戏运行时生成的内容；范围包含美术、声音、叙事、本地化等玩家会接触的内容。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C002",
+    "node": "A1",
+    "source_id": "S1",
+    "claim": "Valve 明确表示，开发环境内置的 AI 工具带来的效率提升不是该调查的关注点，关注点是玩家最终消费的 AI 生成内容。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C003",
+    "node": "A1",
+    "source_id": "S2",
+    "claim": "2026 年 1 月 Valve 收窄披露口径：AI 编程助手等工作流工具不再需要披露，但进入游戏或营销素材的 AI 内容仍需披露。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C004",
+    "node": "A1",
+    "source_id": "S3",
+    "claim": "披露文字会出现在商店页的 “AI Generated Content Disclosure” 区块；实时生成内容还要求开发者在调查中说明护栏，并提供玩家在游戏内举报非法内容的通道。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C005",
+    "node": "A1",
+    "source_id": "S4",
+    "claim": "2025 年上半年有近 8,000 款 Steam 新作披露使用生成式 AI，而 2024 年全年约 1,000 款。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C006",
+    "node": "A1",
+    "source_id": "S1",
+    "claim": "Steam 要求开发者承诺游戏不含违法或侵权内容，并与营销材料一致；预生成 AI 内容会像其他内容一样在发售前被审核。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C007",
+    "node": "A4",
+    "source_id": "S5",
+    "claim": "2026 年中约三分之一 Steam 新作带有 AI 披露；披露 AI 的游戏平均好评率 77%，未披露的 81%，中位数 80% 对 85%。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C008",
+    "node": "A4",
+    "source_id": "S5",
+    "claim": "价格越高，AI 披露带来的好评率差距越大：20 美元以上为 73% 对 81%。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C009",
+    "node": "A4",
+    "source_id": "S5",
+    "claim": "《Tasty Chef》全部美术与音乐由生成式 AI 制作并在商店页披露，仍获得 513 条评测 92% 好评；销量估计约 1.09 万–2.5 万份。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C010",
+    "node": "A4",
+    "source_id": "S6",
+    "claim": "《HEXSTORM》用 AI 写代码，发售后因玩家反感 AI 数小时内好评率跌到约 55%，后通过补丁与降价回升到 74%；首周约 1,200 份、毛收入约 9,500 美元。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C011",
+    "node": "A4",
+    "source_id": "S7",
+    "claim": "《How To Grow a Black Hole》未使用 AI，却被单条评测指为 “AI slop”，开发者只能公开否认；Steam 没有事后核验机制。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C012",
+    "node": "A4",
+    "source_id": "S8",
+    "claim": "一位开发者首版用 AI 做美术，首月不到 300 份（定价 20 元）；改为“零 AI”并请美术重制后，销量约 5 倍（一个月约 2,000 份）——作者自述，属个案。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C013",
+    "node": "A4",
+    "source_id": "S9",
+    "claim": "第三方统计称，覆盖 2025 年 1–10 月上线的 9,879 款 Steam 游戏，披露 AI 的游戏首月评测中位数 4 条，未披露的 7 条，约少 53%。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C014",
+    "node": "A4",
+    "source_id": "S9",
+    "claim": "同一篇转述指出：校正开发者经验、发行资源等变量后，对缺经验、缺预算的小团队，用不用 AI 对市场表现几乎没有额外影响；销量下滑主要出现在成熟工作室。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C015",
+    "node": "A2",
+    "source_id": "S10",
+    "claim": "美国版权局结论：完全由 AI 生成的材料不受版权保护；仅靠提示词不足以构成作者身份；人类对输出的选择、编排、修改可以形成可保护的表达。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C016",
+    "node": "A2",
+    "source_id": "S11",
+    "claim": "D.C. 巡回上诉法院 2025 年 3 月维持了版权局对纯 AI 生成图片登记的拒绝，确认人类作者要求。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C017",
+    "node": "A2",
+    "source_id": "S12",
+    "claim": "Adobe Firefly 模型在授权内容与公有领域内容上训练，输出归客户所有；但 IP 赔偿仅覆盖符合条件的 Creative Cloud 团队/企业套餐。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C018",
+    "node": "A2",
+    "source_id": "S13",
+    "claim": "Midjourney：付费会员在现行法律允许范围内拥有生成资产；未付费用户仅获 CC BY-NC 4.0（非商用）许可；年收入超 100 万美元的公司需 Pro/Mega 才能拥有资产。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C019",
+    "node": "A2",
+    "source_id": "S14",
+    "claim": "欧盟 AI Act 第 50 条自 2026-08-02 适用；第 50(2) 的机器可读标记义务落在生成式 AI 系统的提供者（如 Midjourney、Adobe），不是使用其输出的游戏开发者。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C020",
+    "node": "A2",
+    "source_id": "S15",
+    "claim": "欧盟委员会 2026 年 7 月指引：仅在游戏等生产流程闭环中使用、且不是 AI 系统最终输出的内容，不在第 50(2) 标记范围内；只有工作流的最终输出需要标记。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C021",
+    "node": "A2",
+    "source_id": "S16",
+    "claim": "第 50(4) 对深度伪造的披露义务，在内容属于明显的艺术、创作、讽刺、虚构作品时，限于以不干扰作品展示与享受的方式披露“存在 AI 生成内容”。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C022",
+    "node": "A3",
+    "source_id": "S17",
+    "claim": "面向游戏的 AI 精灵管线已能生成多方向、多动作的精灵表，并显式处理共享单元格、枢轴与循环连续性——这反过来说明原始生成结果本身并不天然是引擎可用资产。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C023",
+    "node": "A3",
+    "source_id": "S18",
+    "claim": "美术工具文档把“保持角色一致性”描述为需要固定风格、参考图、姿态控制与导出归一化的多步流程，而不是一次提示词就能完成。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  }
+]

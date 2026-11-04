@@ -1,0 +1,542 @@
+[
+  {
+    "claim_id": "C001",
+    "node": "N1",
+    "source_id": "S1",
+    "claim": "Steam 的标准分成是流水的 30%；单款产品累计超过 1000 万美元后，超出部分降为 25%，超过 5000 万美元后降为 20%。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C002",
+    "node": "N1",
+    "source_id": "S2",
+    "claim": "媒体核对 Valve 条款后给出的基线是：Steam 通常抽取全部销售额的约 30%。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C003",
+    "node": "N1",
+    "source_id": "S3",
+    "claim": "每个新 App 需支付 100 美元 Steam Direct 费用；该费用不可退，但在产品 Adjusted Gross Revenue 达到 1000 美元后会返还。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C004",
+    "node": "N1",
+    "source_id": "S4",
+    "claim": "Steam 退款政策：购买 14 天内、游玩不足 2 小时即可无理由退款。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C005",
+    "node": "N1",
+    "source_id": "S5",
+    "claim": "2026 上半年 Steam 上线近 1.2 万款新游戏，中位收入约 196 美元，67% 收入低于 1000 美元，仅 1.2% 超过 100 万美元。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C006",
+    "node": "N1",
+    "source_id": "S6",
+    "claim": "2026 年 Q1 至 4 月 22 日的 6169 款新作，平均收入约 12 万美元、中位数约 290 美元，平均每天上线 55 款以上。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C007",
+    "node": "N1",
+    "source_id": "S7",
+    "claim": "GameDiscoverCo 统计的 2026 年 1 月付费新作，在约 8 个月后中位毛收入约 1000 美元；7.2% 达到 10 万美元，1.3% 达到 100 万美元。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C008",
+    "node": "N1",
+    "source_id": "S7",
+    "claim": "Gamalytic 对 2025 年发布游戏的估算是中位毛收入 249 美元，66% 低于 1000 美元。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C009",
+    "node": "N1",
+    "source_id": "S8",
+    "claim": "非美国开发者从 Steam 获得的收入按版税处理，美国来源收入预扣税率 0%–30%，取决于税务信息与税收协定。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C010",
+    "node": "N3",
+    "source_id": "S9",
+    "claim": "Godot 采用 MIT 许可证，可自由用于商业项目，无需版税或订阅。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C011",
+    "node": "N3",
+    "source_id": "S10",
+    "claim": "Godot 4.7 稳定版于 2026 年 6 月 18 日发布。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C012",
+    "node": "N3",
+    "source_id": "S11",
+    "claim": "Godot 4.8 计划于 2026 年 Q4 发布（官方估算）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C013",
+    "node": "N3",
+    "source_id": "S12",
+    "claim": "Godot 4.7 引入官方 Asset Store、HDR 输出与 2D 场景绘制模式等。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C014",
+    "node": "N3",
+    "source_id": "S13",
+    "claim": "Unity Personal 对年收入与融资不超过 20 万美元者免费；超过后必须使用 Pro。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C015",
+    "node": "N3",
+    "source_id": "S13",
+    "claim": "Unity Pro 2026 年价格为每席 2310 美元/年（或 210 美元/月），且 Runtime Fee 已取消。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C016",
+    "node": "N3",
+    "source_id": "S14",
+    "claim": "Unity 6.3 LTS 支持到 2027 年 12 月，Unity 6.0 LTS 支持到 2026 年 10 月。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C017",
+    "node": "N3",
+    "source_id": "S15",
+    "claim": "Unreal Engine 对单款产品累计毛收入 100 万美元以内的部分免费，超出部分收 5% 版税；Epic 商店收入免版税。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C018",
+    "node": "N3",
+    "source_id": "S15",
+    "claim": "Unreal 对非游戏类且年收入超 100 万美元的商用客户按席位收费 1850 美元/年；游戏产品不需要买席位。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C019",
+    "node": "N3",
+    "source_id": "S16",
+    "claim": "Unreal Engine 5.8 于 2026 年 6 月发布，是 UE5 最后一个计划中的大版本，Epic 正在转向 UE6。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C020",
+    "node": "N3",
+    "source_id": "S17",
+    "claim": "GameMaker 对非商业用途免费；商业发行桌面游戏需一次性购买 99.99 美元的 Professional 许可证。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C021",
+    "node": "N3",
+    "source_id": "S18",
+    "claim": "GameMaker 下一代运行时 GMRT 将从 2027 年 1 月 1 日起对商业使用免费。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C022",
+    "node": "N3",
+    "source_id": "S19",
+    "claim": "GMRT 目前仍是 beta，官方手册明确不建议把在研项目迁到 GMRT。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C023",
+    "node": "N3",
+    "source_id": "S20",
+    "claim": "Defold 永久免费、无版税，许可证基于 Apache 2.0，由瑞典基金会持有。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C024",
+    "node": "N3",
+    "source_id": "S21",
+    "claim": "Construct 3 采用订阅制，个人版约 129.99 美元/年；免费版有项目规模与导出限制。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C025",
+    "node": "N3",
+    "source_id": "S22",
+    "claim": "Construct 3 从 r450 起移除 NW.js 导出器，改用 WebView2 / WKWebView / CEF 导出；新版导出器已带 Steamworks 插件。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C026",
+    "node": "N3",
+    "source_id": "S23",
+    "claim": "Construct 3 的 macOS 导出器已支持 Steamworks 插件，Windows/Linux/Steam Deck 导出也由官方维护。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C027",
+    "node": "N3",
+    "source_id": "S24",
+    "claim": "RPG Maker MZ 在 Steam 的标价为 79.99 美元。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C028",
+    "node": "N3",
+    "source_id": "S25",
+    "claim": "RPG Maker MZ 的国区标价为 268 元，历史低价约 104 元。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C029",
+    "node": "N3",
+    "source_id": "S26",
+    "claim": "Ren'Py 开源且可免费商用；稳定版 8.5.3 于 2026 年 5 月 15 日发布。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C030",
+    "node": "N3",
+    "source_id": "S27",
+    "claim": "Ren'Py 内置 Steamworks 支持，使用 SDK 1.62，并支持 Steam Timeline。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C031",
+    "node": "N3",
+    "source_id": "S28",
+    "claim": "Bevy 0.19 于 2026 年 6 月 18 日发布，永久免费开源。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C032",
+    "node": "N3",
+    "source_id": "S29",
+    "claim": "MonoGame 3.8.5 于 2026 年 7 月发布，新增 DesktopVK 与 WindowsDX12 目标。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C033",
+    "node": "N3",
+    "source_id": "S30",
+    "claim": "MonoGame 被用于《星露谷物语》《蔚蓝》《怒之铁拳4》《Carrion》等商业作品。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C034",
+    "node": "N3",
+    "source_id": "S31",
+    "claim": "LÖVE 当前稳定版仍是 11.5（2023-12-03），12.0 仍在开发中。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C035",
+    "node": "N3",
+    "source_id": "S32",
+    "claim": "《小丑牌 Balatro》由单人开发、使用 LÖVE/Lua 制作。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C036",
+    "node": "N3",
+    "source_id": "S33",
+    "claim": "《小丑牌》销量超过 500 万份（开发商访谈/媒体报道）。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C037",
+    "node": "N3",
+    "source_id": "S34",
+    "claim": "GDevelop 引擎开源，免费版即可导出桌面游戏，但自动化构建每天限 1 次。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C038",
+    "node": "N3",
+    "source_id": "S35",
+    "claim": "Godot 不提供官方主机移植；主机发行需通过 W4 Games 等认证第三方中间件。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C039",
+    "node": "N4",
+    "source_id": "S36",
+    "claim": "GodotSteam 4.23.2 对应 Steamworks SDK 1.65，支持 Godot 4.4 及以上，覆盖成就、云存档、创意工坊等完整 Steamworks 功能。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C040",
+    "node": "N4",
+    "source_id": "S37",
+    "claim": "Unity 使用免费开源的 Steamworks.NET（MIT）接入 Steam。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C041",
+    "node": "N4",
+    "source_id": "S38",
+    "claim": "GameMaker 官方 Steamworks 扩展 2.2.1 于 2026 年 4 月发布，支持 Windows/macOS/Linux，覆盖成就、云存档、排行榜与 Steam Input。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C042",
+    "node": "N4",
+    "source_id": "S39",
+    "claim": "Unreal 通过 Online Subsystem Steam 接入 Steam，需在 DefaultEngine.ini 配置并在打包目录放置 steam_appid.txt。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C043",
+    "node": "N4",
+    "source_id": "S40",
+    "claim": "Steam Deck Verified 要求默认配置手柄可完成全部内容、按键图标匹配、文本输入可呼出屏幕键盘、800p 下 30fps、无兼容性警告。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C044",
+    "node": "N4",
+    "source_id": "S40",
+    "claim": "没有原生 Linux 构建的 Windows 游戏在 Steam Deck 上通过 Proton 运行，Proton 兼容性由 Valve 逐款测试。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C045",
+    "node": "N5",
+    "source_id": "S41",
+    "claim": "GDC 2026 调查（2300+ 从业者）：42% 把 Unreal 作为主引擎，Unity 30%；新兴独立工作室中 Godot 占 11%。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C046",
+    "node": "N5",
+    "source_id": "S42",
+    "claim": "按发行游戏数量统计：2025 年 Unity 占 49.4%、Unreal 约 20%、Godot 7.1%（2020 年为 0.9%），无引擎标识 13%；2025 年 GMTK Jam 有 39% 的作品用 Godot。",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C047",
+    "node": "N5",
+    "source_id": "S43",
+    "claim": "中文 Godot 学习资源已成体系：存在 76 篇/21 万字的中文深度教程（基线 4.7.2，2026-10 更新）。",
+    "tier": "T4",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C048",
+    "node": "N5",
+    "source_id": "S44",
+    "claim": "中文游戏媒体对 Godot 的判断：份额从 0.9% 升到 2025 年 7.1%，《杀戮尖塔2》销量 300 万；但主机支持弱、国内招聘市场仍以 Unity/Unreal 为主。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C049",
+    "node": "N6",
+    "source_id": "S45",
+    "claim": "GameMaker 的代表作包括《Spelunky》《DELTARUNE》《UFO 50》。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C050",
+    "node": "N6",
+    "source_id": "S44",
+    "claim": "Godot 已能承载商业级 2D 作品：《杀戮尖塔2》销量 300 万份，《土豆兄弟》《恶魔轮盘赌》《文字游戏》均为 Godot 作品。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C051",
+    "node": "N6",
+    "source_id": "S46",
+    "claim": "《吸血鬼幸存者》最初用 Phaser（HTML5 框架）制作，说明框架类技术也能跑出爆款，但通常需要额外的桌面封装。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C052",
+    "node": "N2",
+    "source_id": "S47",
+    "claim": "Defold 在 Steam 有官方发行页，标注支持 Windows、macOS、Linux、HTML5、Android、iOS，并能一键部署到 Steam。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C053",
+    "node": "N2",
+    "source_id": "S24",
+    "claim": "RPG Maker MZ 在 Steam 上架销售，是面向 RPG 制作的专用工具。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C054",
+    "node": "N2",
+    "source_id": "S26",
+    "claim": "Ren'Py 官方支持 Windows 10+、macOS 10.13+、Linux、Android、iOS 与 Web，覆盖 Steam 桌面发行所需平台。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  }
+]
