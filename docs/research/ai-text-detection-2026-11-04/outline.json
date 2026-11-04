@@ -1,59 +1,19 @@
 {
   "slug": "ai-text-detection-2026-11-04",
-  "question": "面对一篇帖子/文章，有哪些可用手段判断它是否由 AI 生成？这些手段各自依据什么原理、在真实数据上准确率如何、什么时候会失效，一个普通读者应该按什么顺序、以多大置信度下结论？",
+  "question": "面对一篇帖子/文章，用什么技术手段（检测模型、API、水印、元数据）判断它是否由 AI 生成？各有何真实准确率、失效边界，怎样搭一条能用于判定的流程？",
   "depth": "standard",
-  "budget": { "max_sources_per_node": 8, "max_minutes": 45, "max_workers_per_batch": 3, "total_source_floor": 12 },
+  "budget": { "max_sources_per_node": 10, "max_minutes": 60, "max_workers_per_batch": 3 },
   "created": "2026-11-04",
+  "pivot": "用户明确：不是让人类肉眼识别，是用 AI/技术手段识别。人判读仅作为『为什么不能只靠眼睛』的背景约束（非 load-bearing）。",
   "nodes": [
-    {
-      "id": "N1",
-      "question": "检测机器生成文本的技术路线有哪几类，各自依据什么信号？",
-      "acceptance": "给出 ≥4 类方法（统计/零样本指标、训练型分类器、水印、来源凭证/元数据），每类给出至少 1 个具名代表方法与原始论文或官方文档链接",
-      "families": ["arxiv", "aclanthology", "vendor docs"],
-      "min_independent_sources": 2,
-      "freshness_window": "2019-2026"
-    },
-    {
-      "id": "N2",
-      "question": "市面上的检测工具实测准确率如何，排名与差异有多大？",
-      "acceptance": "≥8 个具名工具/模型在同一评测协议（固定 FPR）下的数字，或明确说明无法横向比较的原因；含 RAID 榜单数字",
-      "families": ["raid-bench.xyz", "arxiv:2405.xxxx", "aclanthology", "independent lab tests"],
-      "min_independent_sources": 2,
-      "freshness_window": "2024-2026"
-    },
-    {
-      "id": "N3",
-      "question": "检测在什么情况下会失效或产生系统性误判（误报/漏报），尤其是对真人写作者的伤害？",
-      "acceptance": "给出 ≥3 类具体失效机制，每类有实测数字或同行评议证据（非母语者误报率、改写规避、分布外模型、阈值选择）",
-      "families": ["arxiv", "aclanthology", "university press releases"],
-      "min_independent_sources": 3,
-      "freshness_window": "2023-2026"
-    },
-    {
-      "id": "N4",
-      "question": "人能靠肉眼/文体特征判断吗？准确率多少？哪些“AI 味”特征有实证支持、哪些是民间传说？",
-      "acceptance": "给出人类判读准确率的实测区间，并逐条判定 ≥4 个流行“AI 味”特征（破折号、delve、三段式、过度礼貌等）是否有实证支持",
-      "families": ["arxiv", "aclanthology", "linguistics journals"],
-      "min_independent_sources": 2,
-      "freshness_window": "2023-2026"
-    },
-    {
-      "id": "N5",
-      "question": "水印和来源凭证现在真实可用到什么程度？一个读者能不能直接验证？",
-      "acceptance": "≥2 种已落地机制（如 SynthID-Text、C2PA Content Credentials），说明其覆盖范围、可被读者验证的方式、以及已知的去除手段",
-      "families": ["nature.com", "c2pa.org", "vendor docs", "EU regulation"],
-      "min_independent_sources": 2,
-      "freshness_window": "2024-2026"
-    },
-    {
-      "id": "N6",
-      "question": "一个普通读者面对具体一篇帖子，应该按什么顺序做、得出多强的结论？",
-      "acceptance": "给出可执行的 4-6 步流程，每步说明看什么、能得出什么强度的结论、以及不能得出什么结论；含“证据不足时该怎么表述”",
-      "families": ["derived from N1-N5 + platform docs"],
-      "min_independent_sources": 2,
-      "freshness_window": "any"
-    }
+    { "id": "N1", "question": "检测机器生成文本的技术路线有哪几类，各自依据什么信号？", "acceptance": "≥4 类具名方法，每类有原始论文/官方文档", "families": ["arxiv", "aclanthology", "nature"], "min_independent_sources": 3 },
+    { "id": "N2", "question": "商用检测工具/API 的真实准确率、误报率与价格（归一化到每千词）？", "acceptance": "≥6 个工具在固定误报率下的数字 + 可比的单位价格", "families": ["independent evals", "vendor docs", "pricing pages"], "min_independent_sources": 3 },
+    { "id": "N3", "question": "能自己部署的开源检测方案有哪些，算力与阈值要求？", "acceptance": "≥3 个可运行的开源方案 + 显存/延迟/语言限制", "families": ["github", "papers"], "min_independent_sources": 3 },
+    { "id": "N4", "question": "中文文本怎么检？国内有哪些可用 API 与强制标识规范？", "acceptance": "≥1 个云 API + 中文基准数字 + 标识规范的机器可读字段", "families": ["gov.cn", "tc260", "aliyun", "arxiv/icassp"], "min_independent_sources": 3 },
+    { "id": "N5", "question": "检测在什么条件下失效（改写、误报偏差、短文本、阈值）？", "acceptance": "每类失效机制有量化证据", "families": ["arxiv", "patterns", "acl"], "min_independent_sources": 3 },
+    { "id": "N6", "question": "水印与来源凭证现在能被谁、以什么方式验证？", "acceptance": "≥3 家厂商的落地状态 + 可自查的验证入口", "families": ["nature", "vendor help", "c2pa"], "min_independent_sources": 3 },
+    { "id": "N7", "question": "综合成一条可执行的技术流程（选型、标定、结论强度）", "acceptance": "4–6 步，每步给出输入/工具/输出与结论强度上限", "families": ["derived"], "min_independent_sources": 0 }
   ],
-  "arithmetic": "6 nodes × min 2-3 families = 14 family-slots; budget 8/node=48 max sources, feasible",
-  "self_critique": "N2 与 N1 有重叠风险（N1 只讲原理，N2 只讲数字，边界：N1 不出现准确率数字）；N6 是综合节点，不引入新事实，只引用 N1-N5 的 claims"
+  "arithmetic": "7 nodes, 42 load-bearing claims over 41 source families; N7 不引入新事实",
+  "self_critique": "N2 与 N3 的边界：N2 只收商用黑盒与第三方横评，N3 只收可自部署代码；N5 吸收原 N4（人判读）作为『不能只靠肉眼』的一条，并标非 load-bearing"
 }

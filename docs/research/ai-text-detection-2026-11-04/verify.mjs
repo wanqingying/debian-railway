@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const dir = process.argv[2] || '.';
+const only = process.argv.slice(3).filter((a) => /^C\d+$/.test(a));
 const rows = readFileSync(`${dir}/evidence.jsonl`, 'utf8').split('\n').filter(Boolean).map(JSON.parse);
 const work = mkdtempSync(join(tmpdir(), 'verify-'));
 
@@ -34,13 +35,21 @@ const normPdf = (s) => String(s).toLowerCase()
   .trim();
 
 function fragments(q) {
-  return String(q).split(/\.\.\.|…/).map((f) => norm(f)).filter((f) => f.length > 20);
+  return String(q).split(/\.\.\.|…/).map((f) => norm(f)).filter((f) => f.length > 8);
 }
 
 // Exact-substring matching is defeated by layout (a PDF table, MathJax printing
-// "96.5 % 96.5\%", a line break inside a word). Compare word trigrams instead:
-// a page supports an exact quote when nearly all of its trigrams are present.
+// "96.5 % 96.5\%", a line break inside a word). Compare n-grams instead: a page
+// supports an exact quote when nearly all of its grams are present. CJK runs have
+// no spaces, so they are cut into character 6-grams; everything else into word 3-grams.
 function shingles(s) {
+  if (!s.includes(' ')) {
+    const chars = [...s.replace(/\s+/g, '')];
+    if (chars.length < 12) return [chars.join('')];
+    const out = [];
+    for (let i = 0; i + 6 <= chars.length; i++) out.push(chars.slice(i, i + 6).join(''));
+    return out;
+  }
   const w = s.split(' ').filter(Boolean);
   const out = [];
   for (let i = 0; i + 3 <= w.length; i++) out.push(w.slice(i, i + 3).join(' '));
@@ -94,7 +103,8 @@ function browseText(url) {
 
 const out = [];
 for (const r of rows) {
-  if (!r.load_bearing) continue;
+  if (!r.load_bearing && !only.length) continue;
+  if (only.length && !only.includes(r.claim_id)) continue;
   let res, lane = 'http';
   try {
     res = await fetchText(r.url);

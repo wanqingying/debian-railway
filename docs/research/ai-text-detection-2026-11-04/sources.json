@@ -1,0 +1,452 @@
+[
+  {
+    "sid": "S1",
+    "title": "Human or Machine? A Survey on Machine-Generated Text Detection (IEEE Access)",
+    "url": "https://doi.org/10.1109/access.2026.3666781",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-01-01",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S2",
+    "title": "Spotting LLMs With Binoculars: Zero-Shot Detection of Machine-Generated Text (arXiv 2401.12070)",
+    "url": "https://arxiv.org/abs/2401.12070",
+    "tier": "T1",
+    "access": "public",
+    "published": "2024-01-22",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S3",
+    "title": "RAID: A Shared Benchmark for Robust Evaluation of Machine-Generated Text Detectors (ACL 2024)",
+    "url": "https://aclanthology.org/2024.acl-long.674.pdf",
+    "tier": "T1",
+    "access": "public",
+    "published": "2024-08-11",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S4",
+    "title": "Scalable watermarking for identifying large language model outputs (Nature 634)",
+    "url": "https://www.nature.com/articles/s41586-024-08025-4",
+    "tier": "T1",
+    "access": "public",
+    "published": "2024-10-23",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S5",
+    "title": "RAID leaderboard",
+    "url": "https://paperswithcode.co/benchmark/raid",
+    "tier": "T2",
+    "access": "public",
+    "published": "2026-10-21",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S6",
+    "title": "Artificial Writing and Automated Detection (Becker Friedman Institute)",
+    "url": "https://bfi.uchicago.edu/insights/artificial-writing-and-automated-detection/",
+    "tier": "T2",
+    "access": "public",
+    "published": "2025-10-06",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S7",
+    "title": "AI detectors rarely flag human writing, but sometimes miss AI text imitating real authors (Epoch AI)",
+    "url": "https://epoch.ai/data-insights/ai-detectors-false-negatives",
+    "tier": "T2",
+    "access": "public",
+    "published": "2026-07-15",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S8",
+    "title": "Third-Party Pangram Evaluations (Pangram 转述 VUB/IJEI 论文)",
+    "url": "https://www.pangram.com/blog/third-party-pangram-evals",
+    "tier": "T4",
+    "access": "public",
+    "published": "2026-08-02",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S9",
+    "title": "AI Now Writes as Many Online Articles as Humans (Graphite)",
+    "url": "https://graphite.io/five-percent/research/ai-now-writes-as-many-online-articles-as-humans-do",
+    "tier": "T2",
+    "access": "public",
+    "published": "2026-05-15",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S10",
+    "title": "GPTZero Tops Accuracy on Chicago Booth Benchmark in 2026 (vendor)",
+    "url": "https://gptzero.me/news/chicago-booth-2026/",
+    "tier": "T4",
+    "access": "public",
+    "published": "2026-01-13",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S11",
+    "title": "How Accurate Are AI Detectors? What Independent Studies Found (2026)",
+    "url": "https://aicheckerplus.com/guides/how-accurate-are-ai-detectors/",
+    "tier": "T4",
+    "access": "public",
+    "published": "2026-10-31",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S12",
+    "title": "GPT detectors are biased against non-native English writers (Patterns, 2023)",
+    "url": "https://arxiv.org/html/2304.02819v3",
+    "tier": "T1",
+    "access": "public",
+    "published": "2023-07-10",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S13",
+    "title": "Can AI-Generated Text be Reliably Detected? (arXiv 2303.11156)",
+    "url": "https://arxiv.org/html/2303.11156v2",
+    "tier": "T1",
+    "access": "public",
+    "published": "2023-06-28",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S14",
+    "title": "Paraphrasing evades detectors of AI-generated text, but retrieval is an effective defense (NeurIPS 2023)",
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2023/hash/575c450013d0e99e4b0ecf82bd1afaa4-Abstract.html",
+    "tier": "T1",
+    "access": "public",
+    "published": "2023-12-15",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S15",
+    "title": "C-HAT-Bench: Benchmarking Chinese AI-Text Detection Beyond Fully Generated Text",
+    "url": "https://arxiv.org/abs/2609.32770",
+    "tier": "T2",
+    "access": "public",
+    "published": "2026-09-26",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S16",
+    "title": "TURING: Evaluating Human Abilities to Identify AI-Generated Texts (LREC 2026)",
+    "url": "https://aclanthology.org/anthology-files/anthology-files/pdf/lrec/2026.lrec-1.355.pdf",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-05-01",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S17",
+    "title": "Learning to detect AI texts and learning the limits (PLOS One, 2025)",
+    "url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0333007",
+    "tier": "T1",
+    "access": "public",
+    "published": "2025-10-15",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S18",
+    "title": "Detecting Artificial Intelligence–Generated Versus Human-Written Medical Student Essays (JMIR / PMC11914838)",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11914838/",
+    "tier": "T1",
+    "access": "public",
+    "published": "2025-01-16",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S19",
+    "title": "Is Human-Like Text Liked by Humans? Multilingual Human Detection and Preference Against AI (ACL 2026)",
+    "url": "https://doi.org/10.18653/v1/2026.acl-long.639",
+    "tier": "T1",
+    "access": "public",
+    "published": "2025-02-17",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S20",
+    "title": "People who frequently use ChatGPT for writing tasks are accurate and robust detectors of AI-generated text (arXiv 2501.15654)",
+    "url": "https://arxiv.org/html/2501.15654v2",
+    "tier": "T2",
+    "access": "public",
+    "published": "2025-05-19",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S21",
+    "title": "AI Tells (Graphite research)",
+    "url": "https://graphite.io/research/ai-tells",
+    "tier": "T2",
+    "access": "public",
+    "published": "2026-09-16",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S22",
+    "title": "Burstiness, em dashes and \"delve\": the folk signals, measured (Opace Research)",
+    "url": "https://opace.agency/tools/ai/content-verification-integrity/research/ai-writing-myths-measured/",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-08-29",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S23",
+    "title": "No writing tell separates human from machine on its own: the best of 10 reaches AUC 0.80",
+    "url": "https://dimhold.by/papers/tells-baseline/",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-08-21",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S24",
+    "title": "Delving into LLM-assisted writing in biomedical publications through excess vocabulary (Science Advances, 2025)",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12219543/",
+    "tier": "T1",
+    "access": "public",
+    "published": "2025-07-02",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S25",
+    "title": "How AI-generated prose diverges from human writing and why it matters (Reuters Institute)",
+    "url": "https://reutersinstitute.politics.ox.ac.uk/news/how-ai-generated-prose-diverges-human-writing-and-why-it-matters",
+    "tier": "T2",
+    "access": "public",
+    "published": "2025-12-09",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S26",
+    "title": "LLM Encoder vs. Decoder: Robust Detection of Chinese AI-Generated Text with LoRA",
+    "url": "https://doi.org/10.48550/arxiv.2509.00731",
+    "tier": "T2",
+    "access": "public",
+    "published": "2025-08-31",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S27",
+    "title": "人民网「天目」智能识别系统发布",
+    "url": "http://gz.people.com.cn/n2/2023/1210/c344102-40672928.html",
+    "tier": "T4",
+    "access": "public",
+    "published": "2023-12-10",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S28",
+    "title": "C2PA and Content Credentials Explainer (spec 2.3)",
+    "url": "https://spec.c2pa.org/specifications/specifications/2.3/explainer/_attachments/Explainer.pdf",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S29",
+    "title": "How it works (Content Authenticity Initiative)",
+    "url": "https://www.contentauthenticity.org/how-it-works",
+    "tier": "T2",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S30",
+    "title": "How to check an image for C2PA Content Credentials",
+    "url": "https://wipetheai.com/guides/check-image-content-credentials",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-09-23",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S31",
+    "title": "How to check a Content Credential, and what it does not show (verifiable.pro)",
+    "url": "https://verifiable.pro/articles/check-a-content-credential/",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-10-20",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S32",
+    "title": "Guidelines on the implementation of the transparency obligations under Article 50 (C(2026) 5054)",
+    "url": "https://ai-act-service-desk.ec.europa.eu/sites/default/files/2026-07/guidelines_on_the_implementation_of_the_transparency_obligations_for_certain_ai_systems_under_article_50_of_the_ai_act_bzptwqhk0ikg1dtlddap41psfy_131215.pdf",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-07-20",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S33",
+    "title": "Article 50: Transparency obligations (AI Act Service Desk)",
+    "url": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S34",
+    "title": "Technical solutions for marking and detecting AI generated text content in the context of Article 50(2)",
+    "url": "https://op.europa.eu/en/publication-detail/-/publication/6c981119-4829-11f1-8095-01aa75ed71a1/language-en",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-10-05",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S35",
+    "title": "Provenance signals in OpenAI-generated content (OpenAI Help Center)",
+    "url": "https://help.openai.com/en/articles/8912793-provenance-signals-in-openai-generated-content",
+    "tier": "T2",
+    "access": "public",
+    "published": "2026-10-05",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S36",
+    "title": "OpenAI is adding text watermarking in ChatGPT and Codex (The Verge)",
+    "url": "https://www.theverge.com/ai-artificial-intelligence/1004880/openai-chatgpt-text-watermarks-eu-ai-act",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-08-12",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S37",
+    "title": "Who Watermarks What: AI Provider Tracker",
+    "url": "https://aiwatermarking.org/who-watermarks-what/",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-10-10",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S38",
+    "title": "Provenance Week: OpenAI Watermarks ChatGPT Text in the EU, Google Opens SynthID Detector to Everyone",
+    "url": "https://aicassindra.com/research/2026/10/10/openai-textgrain-eu-text-watermark-google-synthid-detector-public.html",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-10-09",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S39",
+    "title": "ahans30/Binoculars (GitHub)",
+    "url": "https://github.com/ahans30/Binoculars",
+    "tier": "T2",
+    "access": "public",
+    "published": "2026-05-01",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S40",
+    "title": "lukiies/Binoculars — 8 GB GPU edition (GitHub)",
+    "url": "https://github.com/lukiies/Binoculars",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-01-01",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S41",
+    "title": "baoguangsheng/fast-detect-gpt (GitHub)",
+    "url": "https://github.com/baoguangsheng/fast-detect-gpt/",
+    "tier": "T2",
+    "access": "public",
+    "published": "2026-01-31",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S42",
+    "title": "Croups/is-it-ai (GitHub)",
+    "url": "https://github.com/Croups/is-it-ai",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-06-01",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S43",
+    "title": "Open-Source AI Detectors You Can Actually Self-Host in 2026",
+    "url": "https://couldthisbetrue.com/blog/oss-ai-detectors-self-host-2026/",
+    "tier": "T4",
+    "access": "public",
+    "published": "2026-05-28",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S44",
+    "title": "人工智能生成合成内容标识办法（国信办通字〔2025〕2号）",
+    "url": "https://www.gov.cn/zhengce/zhengceku/202503/content_7014286.htm",
+    "tier": "T1",
+    "access": "public",
+    "published": "2025-03-07",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S45",
+    "title": "GB 45438—2025 网络安全技术 人工智能生成合成内容标识方法",
+    "url": "http://kjs.customs.gov.cn/kjs/fileDir/resource/cms/article/2596230/6906637/2025122418290565612.pdf",
+    "tier": "T1",
+    "access": "public",
+    "published": "2025-02-28",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S46",
+    "title": "TC260 网络安全标准实践指南——人工智能生成合成内容检测框架",
+    "url": "https://www.tc260.org.cn/tc260/sjzn/202508/c0908483cf934b919e3f43cbe51d49d1/files/c05e9f9eca704c0985d72c40f7218ca1.pdf",
+    "tier": "T1",
+    "access": "public",
+    "published": "2025-08-01",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S47",
+    "title": "AI生成合成内容鉴别和标识最佳实践（阿里云）",
+    "url": "https://help.aliyun.com/zh/document_detail/2979119.html",
+    "tier": "T3",
+    "access": "render",
+    "published": "2026-01-01",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S48",
+    "title": "MLSDET: Multi-LLM Statistical Deep Ensemble for Chinese AI-Generated Text Detection (ICASSP 2025)",
+    "url": "https://doi.org/10.1109/icassp49660.2025.10888686",
+    "tier": "T1",
+    "access": "public",
+    "published": "2025-03-12",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S49",
+    "title": "AI text detection: cheapest APIs compared (Oct 2026)",
+    "url": "https://proxlai.com/markets/ai-text-detection",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-10-18",
+    "retrieved": "2026-11-04"
+  },
+  {
+    "sid": "S50",
+    "title": "Best AI Detector APIs: The Four Options I'd Pick in 2026 (Fritz ai)",
+    "url": "https://fritz.ai/best-ai-detector-apis/",
+    "tier": "T3",
+    "access": "public",
+    "published": "2026-10-28",
+    "retrieved": "2026-11-04"
+  }
+]
