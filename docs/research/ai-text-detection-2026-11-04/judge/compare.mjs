@@ -7,6 +7,8 @@ const FILES = [
   ['v2', './results-v2.json'],
   ['v3', './results-v3.json'],
   ['v4', './results-v4.json'],
+  ['v5', './results-v5.json'],
+  ['v6', './results-v6.json'],
 ];
 const ORDER = ['RAID', 'HC3-en', 'HC3-zh'];
 const AI_V = new Set(['AI', 'LIKELY_AI']);
