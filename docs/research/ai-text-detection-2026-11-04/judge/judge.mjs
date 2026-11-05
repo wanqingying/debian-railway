@@ -11,6 +11,8 @@ const strArg = (name, def) => {
   return i >= 0 ? process.argv[i + 1] : def;
 };
 const [mProvider, mId] = strArg('--model', 'opencode-go/deepseek-v4.1-flash').split('/');
+// A bare model name yields id=undefined and the API answers "Missing key [model][id]".
+if (!mId) throw new Error('--model needs provider/id, e.g. --model opencode-go/gpt-5.6-luna');
 const MODEL = { providerID: mProvider, id: mId };
 if (strArg('--variant', '')) MODEL.variant = strArg('--variant', '');
 const DIR = '/tmp/opencode/judge-run';
