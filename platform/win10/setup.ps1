@@ -21,9 +21,17 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Resolve-Path ((Join-Path (Join-Path $PSScriptRoot '..') '..'))).Path,
+    [string]$RepoRoot,
     [switch]$SkipGlobalPackages
 )
+
+# Windows PowerShell 5.1 evaluates param defaults before $PSScriptRoot is
+# populated, so the default '-' got an empty string and Join-Path refused to
+# bind. Resolve the repo root after binding instead.
+if (-not $RepoRoot) {
+    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+    $RepoRoot = (Resolve-Path (Join-Path $scriptDir '..\..')).Path
+}
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'

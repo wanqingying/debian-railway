@@ -15,7 +15,14 @@
     powershell -ExecutionPolicy Bypass -File platform\win10\verify.ps1
 #>
 [CmdletBinding()]
-param([string]$RepoRoot = (Resolve-Path ((Join-Path (Join-Path $PSScriptRoot '..') '..'))).Path)
+param([string]$RepoRoot)
+
+# Same Windows PowerShell 5.1 quirk as setup.ps1: param defaults are evaluated
+# before $PSScriptRoot exists, so resolve the repo root after binding.
+if (-not $RepoRoot) {
+    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+    $RepoRoot = (Resolve-Path (Join-Path $scriptDir '..\..')).Path
+}
 
 $script:failures = 0
 $script:warnings = 0
