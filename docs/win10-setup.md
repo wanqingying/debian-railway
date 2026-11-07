@@ -95,6 +95,7 @@ Windows-specific setup that is easy to forget:
 | `npm i -g` fails with `EBADENGINE` | Node < 24.14 | upgrade Node, reopen shell |
 | OpenChamber starts, chat never answers | opencode missing or version mismatch | `verify.ps1`; reinstall `@opencode/cli@2.2.5` |
 | `openchamber` command not found after install | npm global bin not on PATH | add `%APPDATA%\npm` to `PATH` |
+| installed with fnm / nvm-windows, commands missing after switching Node | global packages live inside the Node installation, not `%APPDATA%\npm` | `npm root -g` prints the real root; re-run `setup.ps1` after switching Node versions |
 | `ERR_INVALID_PACKAGE_CONFIG` under `.config\opencode` | a stray `package.json` inside `opencode\` | delete it; the valid one lives in `.config\` (parent) |
 | Godot AI dock shows "server not running" | `uv` missing | `winget install astral-sh.uv`, then reopen the dock |
 | MCP entry exists but the agent sees no tools | client not restarted after Configure | restart opencode |

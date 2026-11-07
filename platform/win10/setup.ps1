@@ -55,7 +55,10 @@ function Assert-Command([string]$name, [string]$hint) {
 }
 
 function Get-GlobalPackageVersion([string]$package) {
-    $raw = npm ls -g --depth=0 --json 2>$null
+    # Route through cmd and join the lines first: PowerShell pipes native output
+    # line by line, so multi-line JSON only parses once flattened, and PS 5.1
+    # turns redirected stderr into error records.
+    $raw = (cmd /c 'npm ls -g --depth=0 --json 2>nul') -join "`n"
     if (-not $raw) { return $null }
     try { $tree = $raw | ConvertFrom-Json } catch { return $null }
     $deps = $tree.dependencies
@@ -63,6 +66,19 @@ function Get-GlobalPackageVersion([string]$package) {
     $key = $package
     if ($deps.PSObject.Properties.Name -contains $key) { return $deps.$key.version }
     return $null
+}
+
+function Install-NpmGlobal([string]$spec) {
+    # PS 5.1 turns every native-command stderr line into an error record, and
+    # under $ErrorActionPreference = 'Stop' an ordinary npm warning (the
+    # install-scripts advisory fires on every install) terminates the script.
+    # Run the call through cmd so both streams arrive as plain text, and judge
+    # success by $LASTEXITCODE only.
+    $quoted = '"' + ($spec -replace '"', '') + '"'
+    cmd /c "npm install -g $quoted 2>&1" | ForEach-Object {
+        if ("$_" -match 'ERR!|npm warn') { Write-Host "    $_" }
+    }
+    if ($LASTEXITCODE -ne 0) { throw "npm install -g $spec failed (exit $LASTEXITCODE)." }
 }
 
 Write-Host ''
@@ -101,14 +117,12 @@ if ($SkipGlobalPackages) {
     )
     foreach ($package in $packages) {
         Write-Host "  installing $package"
-        npm install -g $package 2>&1 | ForEach-Object { if ($_ -match 'ERR!') { Write-Host "    $_" } }
-        if ($LASTEXITCODE -ne 0) { throw "npm install -g $package failed (exit $LASTEXITCODE)." }
+        Install-NpmGlobal $package
         Ok $package
     }
 
     Write-Host '  installing @openchamber/web from the fork tarball'
-    npm install -g $OPENCHAMBER_TARBALL 2>&1 | ForEach-Object { if ($_ -match 'ERR!') { Write-Host "    $_" } }
-    if ($LASTEXITCODE -ne 0) { throw 'npm install -g of the fork tarball failed.' }
+    Install-NpmGlobal $OPENCHAMBER_TARBALL
     Ok 'openchamber (fork build)'
 
     # node-pty ships prebuilds/win32-x64/conpty.node, so no MSVC is needed.
@@ -155,6 +169,21 @@ Step '6/6 versions installed'
 foreach ($package in '@opencode/cli', '@openchamber/web', '@colbymchenry/codegraph', 'playwright') {
     $version = Get-GlobalPackageVersion $package
     if ($version) { Ok "$package $version" } else { Warn "$package not found in the global prefix" }
+}
+
+# Version managers (fnm, nvm-windows) keep global packages inside the Node
+# installation, not %APPDATA%\npm - print the real root so the Playwright env
+# hints below use the right path.
+$npmRoot = (cmd /c 'npm root -g 2>nul') -join ''
+if ($npmRoot) { Ok "npm global root: $npmRoot" }
+if (-not $env:NODE_PATH -or -not $env:PW_PKG) {
+    Warn 'NODE_PATH / PW_PKG not set - the playwright library (deep-research) needs them:'
+    Write-Host "    setx NODE_PATH `"$npmRoot`""
+    Write-Host "    setx PW_PKG `"$npmRoot\playwright\index.mjs`""
+}
+if (-not $env:PW_CDP) {
+    Warn 'PW_CDP not set for browser automation:'
+    Write-Host '    setx PW_CDP "http://127.0.0.1:9222"   (Chrome started with --remote-debugging-port=9222)'
 }
 
 Write-Host ''

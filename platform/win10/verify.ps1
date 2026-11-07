@@ -78,7 +78,10 @@ Check 'openchamber on PATH' {
 }
 
 Check 'BD pins installed' {
-    $raw = npm ls -g --depth=0 --json 2>$null
+    # cmd + flatten first: PowerShell feeds native output line by line, which
+    # breaks ConvertFrom-Json on npm's multi-line pretty JSON (PS 5.1 also
+    # becomes an error record at a redirected stderr line).
+    $raw = (cmd /c 'npm ls -g --depth=0 --json 2>nul') -join "`n"
     $tree = $raw | ConvertFrom-Json
     $want = @(
         @('@opencode/cli', '2.2.5'),
