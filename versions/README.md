@@ -61,11 +61,11 @@
 
 | 组件 | 包 / 来源 | 当前 BD 版本 | 锁点（唯一真值） | 级别 |
 | --- | --- | --- | --- | --- |
-| OpenCode（agent 本体） | `@opencode/cli` | `2.2.5` | `Dockerfile` 的 `npm i -g …@opencode/cli@<v>` + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | L0 |
-| OpenChamber（Web UI / 托管 opencode） | 本仓库 fork 构建（2.6.0 + 分组补丁） | `2.6.0`（fork 构建） | `vendor/openchamber-web-2.6.0-fork.tgz` → `Dockerfile` 的 `npm i -g /opt/openchamber-fork/…tgz` + `scripts/install-tools.sh` 的 `OPENCHAMBER_FORK_TARBALL` | L0 |
-| magic-context（上下文/记忆插件） | `@cortexkit/opencode-magic-context` | `0.49.34` | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | L0 |
+| OpenCode（agent 本体） | `@opencode/cli` | `2.2.6` | `Dockerfile` 的 `npm i -g …@opencode/cli@<v>` + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | L0 |
+| OpenChamber（Web UI / 托管 opencode） | 本仓库 fork 构建（2.7.0 + 分组补丁） | `2.7.0`（fork 构建） | `vendor/openchamber-web-2.7.0-fork.tgz` → `Dockerfile` 的 `npm i -g /opt/openchamber-fork/…tgz` + `scripts/install-tools.sh` 的 `OPENCHAMBER_FORK_TARBALL` | L0 |
+| magic-context（上下文/记忆插件） | `@cortexkit/opencode-magic-context` | `0.49.43` | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | L0 |
 | codegraph（代码索引 MCP） | `@colbymchenry/codegraph` | `1.6.2` | `Dockerfile` 的 `@colbymchenry/codegraph@<v>` + `scripts/install-tools.sh` 的 `CODEGRAPH_VERSION` | L1 |
-| playwright（浏览器自动化：CLI + library） | `playwright` | `1.64.1` | `Dockerfile` 的 `playwright@<v>` + `playwright-cli` shim；接管入口 `scripts/pw` | L1 |
+| playwright（浏览器自动化：CLI + library） | `playwright` | `1.65.0` | `Dockerfile` 的 `playwright@<v>` + `playwright-cli` shim；接管入口 `scripts/pw` | L1 |
 | pnpm | corepack | `11.22.0` | `scripts/install-tools.sh` 的 `corepack prepare pnpm@<v>` | L1 |
 | Python / uv | apt + uv installer | Python `3.12.x` / uv 取 latest | `scripts/install-tools.sh` | L1 |
 | Node.js | NodeSource `setup_24.x` | `24.x`（构建时最新 minor） | `Dockerfile` | L2 |
@@ -119,7 +119,7 @@ for r in json.load(sys.stdin):
 
 ```bash
 # 按版本号：标题/正文提到该版本号的 issue
-curl -s "https://api.github.com/search/issues?q=repo:openchamber/openchamber+is:issue+2.6.0&sort=created&order=desc&per_page=20" \
+curl -s "https://api.github.com/search/issues?q=repo:openchamber/openchamber+is:issue+2.7.0&sort=created&order=desc&per_page=20" \
   | python3 -c '
 import json,sys
 for i in json.load(sys.stdin)["items"]:
@@ -185,7 +185,7 @@ curl -s https://opencode.ai/config.json -o /tmp/oc.schema.json
 | 升级对象 | 必须一起改 |
 | --- | --- |
 | opencode | `Dockerfile` 的安装行、`scripts/install-tools.sh` 的 `OPENCODE_VERSION` |
-| OpenChamber | `vendor/openchamber-web-2.6.0-fork.tgz`（先 `bun run pack:web` 再覆盖）、`Dockerfile` 的安装行、`scripts/install-tools.sh` 的 `OPENCHAMBER_FORK_TARBALL` |
+| OpenChamber | `vendor/openchamber-web-2.7.0-fork.tgz`（先 `bun run pack:web` 再覆盖）、`Dockerfile` 的安装行、`scripts/install-tools.sh` 的 `OPENCHAMBER_FORK_TARBALL` |
 | magic-context | `opencode-config/opencode/opencode.jsonc` 的 `plugins`、`entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` |
 | 任何一个 L0 | `versions/bd/BD-<nnn>.md`、`versions/BD-INDEX.md`、`README.md` 的版本表、`AGENTS.md` 的版本说明 |
 
@@ -217,10 +217,10 @@ ls -d ~/.cache/opencode/npm/@cortexkit/opencode-magic-context@*/ 2>/dev/null
 
 功能面（人工）：
 
-- [ ] OpenChamber 能打开，侧边栏布局符合预期（BD-002 起是"works"式侧栏；Hold 清单见 BD 文档）
+- [ ] OpenChamber 能打开，侧边栏布局符合预期（BD-002 起是"works"式侧栏 + fork 的 worktree 分组；Hold 清单见 BD 文档）
 - [ ] 新建会话 → 发一条消息 → 正常返回
 - [ ] agent 用 `question` 提问时，选项能选、能提交（OpenChamber 2.6.x 的已知回归点）
-- [ ] `openchamber_render` 画的一页能正常显示（2.6.0 起的 openui block 路径）
+- [ ] `openchamber_render` 画的一页能正常显示（2.6.0 起的 openui block 路径，2.7.0 增加了扩展块与表单提交修复）
 - [ ] 两个本地插件工具可用：`sysinfo`、`session_search`
 - [ ] 会话库持久化：重启容器后历史仍在
 - [ ] magic-context：`/ctx-status` 正常；发一张图片不炸会话；子会话能正常开、能继续
@@ -263,7 +263,7 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 | 组件 | `debian-railway` 锁点 | `trn-bff-devcontainer-demo` 锁点 |
 | --- | --- | --- |
 | opencode | `Dockerfile` 安装行 + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | `.devcontainer/init.sh` 的 `OPENCODE_VERSION` |
-| OpenChamber | `vendor/openchamber-web-2.6.0-fork.tgz` + `Dockerfile` 的安装行 | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION` + `OPENCHAMBER_FORK_URL` / `OPENCHAMBER_FORK_SHA256`（同一份产物，下游按 URL 拉而不入 git） |
+| OpenChamber | `vendor/openchamber-web-2.7.0-fork.tgz` + `Dockerfile` 的安装行 | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION` + `OPENCHAMBER_FORK_URL` / `OPENCHAMBER_FORK_SHA256`（同一份产物，下游按 URL 拉而不入 git） |
 | magic-context | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | `.devcontainer/opencode/opencode.jsonc` 的 `plugins` + `.devcontainer/init.sh` 的 `MC_PLUGIN_CACHE_SPEC` |
 | 版本说明 | `README.md` 版本表 + `AGENTS.md` | `README.md` 的「自动升级」行 |
 
@@ -271,7 +271,7 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 
 - `plugins` 的 spec **逐字符一致**（含版本号），两边都不能写 `@latest`。
 - 两边都用"删掉非当前 spec 的缓存"实现（不是只删 `@latest` 目录）。
-- OpenChamber 的 fork 构建要**同一份产物**：`sha256sum vendor/openchamber-web-2.6.0-fork.tgz` 必须等于下游 `init.sh` 里的 `OPENCHAMBER_FORK_SHA256`。换了 tarball 就两处一起改，否则下游会因校验失败静默退回 npm 上游包（补丁消失）。
+- OpenChamber 的 fork 构建要**同一份产物**：`sha256sum vendor/openchamber-web-2.7.0-fork.tgz` 必须等于下游 `init.sh` 里的 `OPENCHAMBER_FORK_SHA256`。换了 tarball 就两处一起改，否则下游会因校验失败静默退回 npm 上游包（补丁消失）。
 - 三处版本说明（railway `README.md` / railway `AGENTS.md` / devcontainer `README.md`）与 `BD-INDEX.md` 的当前 BD 一致。
 - 两个仓库的提交各自独立，但**同一个 BD 里要成对出现**；`BD-INDEX.md` 的「下游同步」列记录 devcontainer 是否已跟上。
 

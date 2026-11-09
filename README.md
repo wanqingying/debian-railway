@@ -38,28 +38,31 @@ Railway 一个 service 默认只暴露一个公开端口（给 SSH）。要访�
 
 | 组件          | 包                                  | 版本                                                                                                           |
 | ------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| OpenChamber   | 本仓库的 fork 构建（`vendor/openchamber-web-2.6.0-fork.tgz`） | `2.6.0` + 「worktree 分组」补丁（上游 [#5669](https://github.com/openchamber/openchamber/issues/5669) 未修）；两个已知未修回归见 `versions/bd/BD-002.md` |
-| OpenCode      | `@opencode/cli`                     | `2.2.5`（钉住；实际生效的是 `Dockerfile` 里那行 `npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.2.5`） |
-| magic-context | `@cortexkit/opencode-magic-context` | `0.49.34`（钉住，写在 `opencode.jsonc` 的 `plugins`；0.49.35 因 #838 暂不升）                                   |
+| OpenChamber   | 本仓库的 fork 构建（`vendor/openchamber-web-2.7.0-fork.tgz`） | `2.7.0` + 「worktree 分组」补丁（上游 [#5669](https://github.com/openchamber/openchamber/issues/5669) 未修）；#6131 问答表单已由上游修复，#6084 git 轮询仍在，见 `versions/bd/BD-003.md` |
+| OpenCode      | `@opencode/cli`                     | `2.2.6`（钉住；实际生效的是 `Dockerfile` 里那行 `npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.2.6`） |
+| magic-context | `@cortexkit/opencode-magic-context` | `0.49.43`（钉住，写在 `opencode.jsonc` 的 `plugins`；#838 已修，host fold 提速已拿回）                        |
 
-OpenChamber 为什么不是 npm 包：2.5.2 的 PR #5578 把侧栏改成 works 视图，项目下的 worktree 与会话平铺混排；上游 #5669 仍 open。fork 里加了 `sidebarGroupRootWorktrees` 开关（默认开），打开时每个 worktree 是项目根会话之后的可折叠分组。镜像烤的是这个构建，**不会**从 npm 装 `@openchamber/web`：npm 的 2.6.0 没有这个补丁，而把 npm 包装到 fork 上正是要避免的事（`Dockerfile` 的 COPY + 构建期断言会拦住）。
+OpenChamber 为什么不是 npm 包：2.5.2 的 PR #5578 把侧栏改成 works 视图，项目下的 worktree 与会话平铺混排；上游 #5669 仍 open。fork 里加了 `sidebarGroupRootWorktrees` 开关（默认开），打开时每个 worktree 是项目根会话之后的可折叠分组。镜像烤的是这个构建，**不会**从 npm 装 `@openchamber/web`：npm 的 2.7.0 没有这个补丁，而把 npm 包装到 fork 上正是要避免的事（`Dockerfile` 的 COPY + 构建期断言会拦住）。
 
 重新生成 tarball（fork 改动之后）：
 
 ```bash
 cd /workspace/openchamber-fork
-bun run pack:web                      # → packages/web/openchamber-web-2.6.0.tgz
-cp packages/web/openchamber-web-2.6.0.tgz /workspace/debian-railway/vendor/openchamber-web-2.6.0-fork.tgz
+git checkout fork/2.7.0               # tag bd-003-2.7.0-fork = v2.7.0 + 分组补丁；main 仍停在 2.6.1 线
+bun install --frozen-lockfile
+(cd packages/web && NODE_OPTIONS=--max-old-space-size=6144 bun run build)
+bun run pack:web                      # → packages/web/openchamber-web-2.7.0.tgz
+cp packages/web/openchamber-web-2.7.0.tgz /workspace/debian-railway/vendor/openchamber-web-2.7.0-fork.tgz
 ```
 
-tarball 内是 `dist`/`server`/`bin`/`public`，19 MB 左右，依赖仍从 npm 解析，所以 `railway up` 时照常联网安装。
+tarball 内是 `dist`/`server`/`bin`/`public`，20 MB 左右，依赖仍从 npm 解析，所以 `railway up` 时照常联网安装。
 
 **重新生成后要同步下游的 sha256**：团队开发容器（`trn-bff-devcontainer-demo`）装的是同一份产物，但**不入库**——它按公开 URL 拉取并用钉死的 sha256 校验。所以换了 tarball 之后：
 
 ```bash
-sha256sum vendor/openchamber-web-2.6.0-fork.tgz        # 得到新 hash
+sha256sum vendor/openchamber-web-2.7.0-fork.tgz        # 得到新 hash
 # 1) 把新 tgz 传到同一个 R2 路径（文件名可不变）
-#    https://pub-8714914666ef434292ae6b44c496f9f9.r2.dev/openchamber/openchamber-web-2.6.0-fork.tgz
+#    https://pub-8714914666ef434292ae6b44c496f9f9.r2.dev/openchamber/openchamber-web-2.7.0-fork.tgz
 # 2) 改下游 .devcontainer/init.sh 的 OPENCHAMBER_FORK_SHA256 为该 hash
 ```
 
@@ -69,9 +72,9 @@ sha256sum vendor/openchamber-web-2.6.0-fork.tgz        # 得到新 hash
 
 - **不要装 v1 的 `opencode-ai`**：OpenChamber 2.x 只驱动 OpenCode 2.x，装 v1 会在日志里报 `Configured OpenCode binary not found` 并降级为「无 agent」模式（Web UI 能开，但发消息无响应）。
 - **`opencode.jsonc` 用 v2 原生结构**：`providers`（`package`/`settings`/`modelID`/`capabilities`）、`permissions`、`plugins`、`update`、`mcp.servers`、`agents.title|summary`。OpenCode 2 仍*接受* v1 键（`provider` 的 `npm`/`options`/`id`、`plugin`、`permission`、`autoupdate`、`mcp.<name>`），但**别把已退役的键加回来**（模型上的 `release_date`/`reasoning`/`attachment`/`temperature`/`status`/`experimental`、顶层 `server`/`logLevel`/`subagent_depth`/`compaction.prune`/`tail_turns`、`experimental.batch_tool` 等）：v2 每次解析配置都会逐键重新诊断，会刷爆日志并吃满 CPU。
-- **三个组件都钉死版本**（OpenChamber 用 `vendor/openchamber-web-2.6.0-fork.tgz` 烘进镜像，OpenCode v2 参考 https://opencode.ai/v2/docs → `npm i -g @opencode/cli`）。当前 BD-002 默认 `2.6.0`（fork 构建）/ `2.2.5`，定义在 `Dockerfile` 与 `scripts/install-tools.sh`。注意 **OpenCode 实际生效的版本来自 `Dockerfile` 里那行 `npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.2.5`**：`install-tools.sh` 只在二进制缺失时才安装，所以**升版本时这两处要同一个 commit 一起改**。OpenChamber 的 tarball 缺失时 `install-tools.sh` 才会退回 npm 的 pin（那份没有 fork 补丁），`OPENCODE_VERSION=latest` 仍可用于 opencode 临时跟车。
-- **版本怎么选**：见 `versions/README.md`。BD-002 起**不再看发布天数**，判据改成「兼容 + 上游 issue 里没有落在本环境路径上的未修重大 bug」；被判"不干净"的版本取它的前一个干净版本，并写进 `versions/BD-INDEX.md` 的 Hold 表（当前一条：magic-context 0.49.35）。BD 是可回退的，回滚方式见该手册 §7。
-- **magic-context 钉在 `0.49.34`**，写在 `opencode.jsonc` 的 `plugins`。为什么不是最新的 `0.49.35`：0.49.35 引入的 host fold 会给**没有历史的子会话**写入空压缩摘要，OpenCode 2.2 之后每轮被 `Schema validation failed` 拒绝、会话无法继续（上游 [#838](https://github.com/cortexkit/magic-context/issues/838)，未修）。0.49.34 相对 BD-001 的 `0.49.21` 已包含 0.49.29 的 **OpenCode 2.2 支持**（instruction 更新行）、0.49.25 的假「满上下文」修复、0.49.30/0.49.32 的主线程读取优化。升版本时要同步改 `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC`（启动时清理旧版本缓存），并重新用新版本仓库里的 `assets/magic-context.schema.json` 校验 `magic-context.jsonc`。
+- **三个组件都钉死版本**（OpenChamber 用 `vendor/openchamber-web-2.7.0-fork.tgz` 烘进镜像，OpenCode v2 参考 https://opencode.ai/v2/docs → `npm i -g @opencode/cli`）。当前 BD-003 默认 `2.7.0`（fork 构建）/ `2.2.6`，定义在 `Dockerfile` 与 `scripts/install-tools.sh`。注意 **OpenCode 实际生效的版本来自 `Dockerfile` 里那行 `npm i -g --allow-scripts=@opencode/cli @opencode/cli@2.2.6`**：`install-tools.sh` 只在二进制缺失时才安装，所以**升版本时这两处要同一个 commit 一起改**。OpenChamber 的 tarball 缺失时 `install-tools.sh` 才会退回 npm 的 pin（那份没有 fork 补丁），`OPENCODE_VERSION=latest` 仍可用于 opencode 临时跟车。
+- **版本怎么选**：见 `versions/README.md`。BD-002 起**不再看发布天数**，判据改成「兼容 + 上游 issue 里没有落在本环境路径上的未修重大 bug」；被判"不干净"的版本取它的前一个干净版本，并写进 `versions/BD-INDEX.md` 的 Hold 表（当前无活跃 Hold）。BD 是可回退的，回滚方式见该手册 §7。
+- **magic-context 钉在 `0.49.43`**，写在 `opencode.jsonc` 的 `plugins`。此前的 `0.49.34` 是因为 0.49.35 的 host fold 会给**没有历史的子会话**写入空压缩摘要，OpenCode 2.2 之后每轮被 `Schema validation failed` 拒绝（上游 [#838](https://github.com/cortexkit/magic-context/issues/838)）；#838 已于 2026-11-06 关闭，0.49.36–0.49.43 修掉这类问题（空/漏 fold、`/compact` 收不回空间、每 pass 工作量随会话增长、失败工具调用破坏请求 schema、废弃 instruction 行塞满窗口），并拿回 host fold 提速（25k 消息会话 1.3–2.0 s → 0.33–0.49 s/step）。升版本时要同步改 `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC`（启动时清理旧版本缓存），并重新用新版本仓库里的 `assets/magic-context.schema.json` 校验 `magic-context.jsonc`。
 - **指令文件只用 `AGENTS.md`**：OpenCode 2 读 `AGENTS.md`，**不再加载 `CLAUDE.md`**（故 `opencode-config/` 中不含 `CLAUDE.md`）。
 - **会话库自动迁移**：v1 的 `opencode.db`（含 `message`/`part` 表）会被 magic-context 判定为 `expected v2, found v1` 并拒绝访问，导致每轮对话静默中断。`entrypoint.sh` 启动时自动检测并把 v1 库改名为 `opencode.db.v1-backup-<时间戳>`（只保留最近一份），让 v2 重建新库。旧会话在 UI 中不再可见，但数据保留在备份文件里。
 
