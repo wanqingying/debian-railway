@@ -1,0 +1,461 @@
+[
+  {
+    "sid": "S1",
+    "title": "GitHub API — anomalyco/opencode",
+    "url": "https://api.github.com/repos/anomalyco/opencode",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S2",
+    "title": "OpenCode v2 docs — Intro",
+    "url": "https://opencode.ai/v2/docs",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S3",
+    "title": "本容器 opencode serve --help (v2.2.5)",
+    "url": "local://opencode-serve-help",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-09",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S4",
+    "title": "本容器探针（XDG_DATA_HOME 隔离，端口 4999）",
+    "url": "local://127.0.0.1:4999",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-09",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S5",
+    "title": "OpenChamber README",
+    "url": "https://github.com/openchamber/openchamber",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S6",
+    "title": "本容器 ps + /sys/fs/cgroup 实测",
+    "url": "local://ps",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-09",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S7",
+    "title": "debian-railway versions/BD-INDEX.md",
+    "url": "repo://versions/BD-INDEX.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-03",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S8",
+    "title": "DeepSeek Harness README",
+    "url": "https://github.com/deepseek-ai/deepseek-harness",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S9",
+    "title": "DeepSeek Harness docs — 使用 Web UI",
+    "url": "https://deepseek-harness.github.io/deepseek-harness/guide/quickstart.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S10",
+    "title": "Pi README — Packages",
+    "url": "https://raw.githubusercontent.com/earendil-works/pi/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S11",
+    "title": "GitHub API — openai/codex",
+    "url": "https://api.github.com/repos/openai/codex",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S12",
+    "title": "GitHub API — google-gemini/gemini-cli",
+    "url": "https://api.github.com/repos/google-gemini/gemini-cli",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S13",
+    "title": "GitHub API — cline/cline",
+    "url": "https://api.github.com/repos/cline/cline",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S14",
+    "title": "GitHub API — Kilo-Org/kilocode",
+    "url": "https://api.github.com/repos/Kilo-Org/kilocode",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S15",
+    "title": "GitHub API — OpenHands/OpenHands",
+    "url": "https://raw.githubusercontent.com/OpenHands/OpenHands/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S16",
+    "title": "GitHub API — Aider-AI/aider",
+    "url": "https://api.github.com/repos/Aider-AI/aider",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S17",
+    "title": "Paseo README",
+    "url": "https://github.com/getpaseo/paseo",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S18",
+    "title": "Paseo LICENSE",
+    "url": "https://raw.githubusercontent.com/getpaseo/paseo/HEAD/LICENSE",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S19",
+    "title": "Paseo docs — CLI reference / daemon",
+    "url": "https://raw.githubusercontent.com/getpaseo/paseo/HEAD/public-docs/cli.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S20",
+    "title": "CodeNomad README / requirements",
+    "url": "https://github.com/NeuralNomadsAI/CodeNomad",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S21",
+    "title": "Vibe Kanban README",
+    "url": "https://github.com/BloopAI/vibe-kanban",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S22",
+    "title": "GitHub API — simion/termic",
+    "url": "https://api.github.com/repos/simion/termic",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S23",
+    "title": "GitHub API — slopus/happy-cli",
+    "url": "https://api.github.com/repos/slopus/happy-cli",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S24",
+    "title": "GitHub API — omnara-ai/omnara",
+    "url": "https://api.github.com/repos/omnara-ai/omnara",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S25",
+    "title": "agentsroom.dev — Best Tools to Run Multiple Coding Agents (2026)",
+    "url": "https://agentsroom.dev/blog/best-multi-agent-coding-tools",
+    "tier": "T3",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S26",
+    "title": "debian-railway AGENTS.md — Architecture",
+    "url": "repo://AGENTS.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-05",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S27",
+    "title": "本容器 /sys/fs/cgroup 实测",
+    "url": "local://cgroup",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-09",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S28",
+    "title": "debian-railway opencode-config/opencode/opencode.jsonc",
+    "url": "repo://opencode-config/opencode/opencode.jsonc",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-10-26",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S29",
+    "title": "Paseo docs — Docker / Web UI",
+    "url": "https://paseo.sh/docs/docker",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S30",
+    "title": "debian-railway scripts/start-feishu-bridge.sh + AGENTS.md",
+    "url": "repo://scripts/start-feishu-bridge.sh",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-05",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S31",
+    "title": "debian-railway opencode-config/.../session-search",
+    "url": "repo://opencode-config/opencode/lib/session-search.js",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-10-28",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S32",
+    "title": "本容器 opencode --help (v2.2.5)",
+    "url": "local://opencode-cli-help",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-09",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S33",
+    "title": "本容器 /usr/bin/opencode 字符串探针 (v2.2.5)",
+    "url": "local://opencode-binary-strings",
+    "tier": "T1",
+    "access": "public",
+    "published": "2026-11-09",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S34",
+    "title": "GitHub API — QwenLM/qwen-code",
+    "url": "https://api.github.com/repos/QwenLM/qwen-code",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S35",
+    "title": "Qwen Code README",
+    "url": "https://raw.githubusercontent.com/QwenLM/qwen-code/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S36",
+    "title": "Qwen Code docs — Daemon mode (qwen serve)",
+    "url": "https://raw.githubusercontent.com/QwenLM/qwen-code/HEAD/docs/users/qwen-serve.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S37",
+    "title": "Qwen Code docs — Model Providers",
+    "url": "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
+    "tier": "T1",
+    "access": "render",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S38",
+    "title": "GitHub API — codewhale-hq/Codewhale",
+    "url": "https://api.github.com/repos/codewhale-hq/Codewhale",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S39",
+    "title": "CodeWhale docs — Runtime API & Integration Contract",
+    "url": "https://raw.githubusercontent.com/codewhale-hq/Codewhale/HEAD/docs/RUNTIME_API.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S40",
+    "title": "CodeWhale README — plugins",
+    "url": "https://raw.githubusercontent.com/codewhale-hq/Codewhale/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S41",
+    "title": "GitHub API — xai-org/grok-build",
+    "url": "https://api.github.com/repos/xai-org/grok-build",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S42",
+    "title": "Grok Build docs — Custom Models",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/HEAD/crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S43",
+    "title": "Grok Build docs — Session Management",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/HEAD/crates/codegen/xai-grok-pager/docs/user-guide/17-sessions.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S44",
+    "title": "DeepSeek-Reasonix README",
+    "url": "https://raw.githubusercontent.com/esengine/DeepSeek-Reasonix/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S45",
+    "title": "Kimi Code README",
+    "url": "https://raw.githubusercontent.com/MoonshotAI/kimi-code/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S46",
+    "title": "Goose README",
+    "url": "https://raw.githubusercontent.com/aaif-goose/goose/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S47",
+    "title": "GitHub API — charmbracelet/crush",
+    "url": "https://api.github.com/repos/charmbracelet/crush",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S48",
+    "title": "OpenClaw README",
+    "url": "https://raw.githubusercontent.com/openclaw/openclaw/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S49",
+    "title": "Orca README",
+    "url": "https://raw.githubusercontent.com/stablyai/orca/HEAD/README.md",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S50",
+    "title": "GitHub API — agent-of-empires/agent-of-empires",
+    "url": "https://api.github.com/repos/agent-of-empires/agent-of-empires",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "sid": "S51",
+    "title": "GitHub API — router-for-me/CLIProxyAPI",
+    "url": "https://api.github.com/repos/router-for-me/CLIProxyAPI",
+    "tier": "T1",
+    "access": "public",
+    "published": "undated",
+    "retrieved": "2026-11-09"
+  }
+]

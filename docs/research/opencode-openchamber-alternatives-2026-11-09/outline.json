@@ -1,0 +1,91 @@
+{
+  "slug": "opencode-openchamber-alternatives-2026-11-09",
+  "question": "在这台 Railway 自托管容器里，opencode（引擎）与 OpenChamber（工作区 UI）各自有哪些可用替代方案，哪个组合最值得换、什么时候换？",
+  "depth": "standard",
+  "budget": { "max_total_sources": 40, "max_sources_per_node": 8, "max_minutes": 30, "max_workers_per_batch": 3 },
+  "created": "2026-11-09",
+  "nodes": [
+    {
+      "id": "N1",
+      "question": "当前基线是什么：opencode v2.2.5 与 OpenChamber 2.6.0 各自提供哪一层能力，实测占用多少资源？",
+      "acceptance": [
+        "分别说明 opencode 提供的 surface（TUI/desktop/web/HTTP API/ACP）与 OpenChamber 提供的 surface（web/desktop/VS Code/mobile）",
+        "给出一条本机实测：opencode serve 是否本地提供 Web UI，以及两个进程的 RSS 与容器内存余量",
+        "引用仓库里钉住的版本（BD-002）"
+      ],
+      "families": ["anomalyco/opencode:docs+repo", "openchamber/openchamber:README", "local:command-probe", "repo:BD-INDEX"],
+      "lanes": ["A"],
+      "min_independent_sources": 2,
+      "freshness_window": "2026-06-01..",
+      "status": "open"
+    },
+    {
+      "id": "N2",
+      "question": "引擎层（替代 opencode 本体）有哪些候选，且满足「开源、Linux 可自托管、headless 服务或 ACP、BYOK/自定义 OpenAI 兼容端点、近 90 天活跃」？",
+      "acceptance": [
+        "至少 6 个候选，每个给出官方仓库 URL、许可证、最近 push 日期、star 数",
+        "明确标出哪些候选提供常驻 server 或 Web UI（可直接在本容器跑），哪些只是 TUI/SDK",
+        "给出被排除的候选及排除理由（如 developer preview、macOS-only、已停更）"
+      ],
+      "families": ["github:repos-api", "vendor docs (dsh/pi/opencode)", "pi.dev / deepseek-harness docs"],
+      "lanes": ["A"],
+      "min_independent_sources": 2,
+      "freshness_window": "2026-08-01..",
+      "status": "open"
+    },
+    {
+      "id": "N3",
+      "question": "工作区层（替代 OpenChamber）有哪些能驱动 opencode 或 ACP 的自托管 UI，各自的产品逻辑与交互差异是什么？",
+      "acceptance": [
+        "至少 6 个候选，每个给出官方仓库/站点、许可证、支持的 agent、是否有 server 模式与远程访问",
+        "对 OpenChamber / CodeNomad / Paseo / opencode 自带 web 四个直接对手给出逐项对比",
+        "指出各自独有能力（如 worktree 编排、多模型并行、手机 relay）"
+      ],
+      "families": ["github:repos-api", "openchamber.dev / paseo.sh docs", "vibe-kanban README"],
+      "lanes": ["A", "B"],
+      "min_independent_sources": 2,
+      "freshness_window": "2026-08-01..",
+      "status": "open"
+    },
+    {
+      "id": "N4",
+      "question": "在本容器的硬约束（单卷持久化、无 systemd、8C/16GB、内网 OpenAI 兼容网关、SSH 隧道访问）下，哪些候选真的能落地？",
+      "acceptance": [
+        "每个推荐候选都能对应到一条具体约束的满足方式（端口/认证/持久化/资源）",
+        "列出会直接失败的候选及失败原因"
+      ],
+      "families": ["repo:AGENTS.md+entrypoint", "local:cgroup probe", "vendor docs: deploy/docker"],
+      "lanes": ["A"],
+      "min_independent_sources": 2,
+      "freshness_window": "any",
+      "status": "open"
+    },
+    {
+      "id": "N5",
+      "question": "换引擎或换 UI 分别会丢掉什么 opencode 专属资产（magic-context、session_search、Feishu bridge、skills/插件）？",
+      "acceptance": [
+        "逐个资产说明它绑定在哪一层（引擎插件 / DB / HTTP API / UI）",
+        "给出「换 UI 不动引擎」与「换引擎」两种迁移的损失清单"
+      ],
+      "families": ["repo:opencode.jsonc+plugins+feishu scripts", "cortexkit docs"],
+      "lanes": ["A"],
+      "min_independent_sources": 2,
+      "freshness_window": "any",
+      "status": "open"
+    },
+    {
+      "id": "N6",
+      "question": "结论：保留/替换的最优组合是什么，触发条件与成本如何？",
+      "acceptance": [
+        "给出排序后的 1~3 个方案，每个含适用条件、切换成本、风险",
+        "成本归一化到「每月额外支出 + 容器内存增量」",
+        "明确写出「现在不动」也算一种方案及其触发条件"
+      ],
+      "families": ["synthesis of N1-N5"],
+      "lanes": [],
+      "min_independent_sources": 1,
+      "freshness_window": "any",
+      "status": "open"
+    }
+  ]
+}
