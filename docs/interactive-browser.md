@@ -146,7 +146,7 @@ curl -s http://127.0.0.1:9222/json/list       # -> open pages
     This is the sanctioned path; the `playwright-cli` skill (baked into the image's opencode
     skills) documents it as this container's fixed setup.
   - Playwright library: `chromium.connectOverCDP('http://127.0.0.1:9222', { noDefaults: true, isLocal: true })`
-    (`playwright` 1.64.1 is installed globally and needs **no** browser download; `NODE_PATH`
+    (`playwright` 1.65.0 is installed globally and needs **no** browser download; `NODE_PATH`
     points at the global packages).
   - or `microsoft/playwright-mcp --cdp-endpoint http://127.0.0.1:9222`,
     `chrome-devtools-mcp` with a WebSocket/CDP endpoint.
