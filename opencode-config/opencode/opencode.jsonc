@@ -69,31 +69,6 @@
         "baseURL": "https://api.commandcode.ai/provider/v1"
       },
       "models": {
-        "deepseek-v4-1-flash": {
-          "modelID": "deepseek/deepseek-v4.1-flash",
-          "name": "DeepSeek V4.1 Flash",
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "limit": {
-            "context": 1000000,
-            "output": 384000
-          },
-          "cost": {
-            "input": 0.15,
-            "output": 0.6,
-            "cache": {
-              "read": 0.003
-            }
-          }
-        },
         "deepseek-v4-flash": {
           "modelID": "deepseek/deepseek-v4-flash",
           "name": "DeepSeek V4 Flash (latest)",
