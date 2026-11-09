@@ -63,6 +63,24 @@ if [ -e "$HOME/.config/openchamber" ] && [ ! -L "$HOME/.config/openchamber" ]; t
 fi
 ln -sfn "$OPENCHAMBER_DATA_DIR" "$HOME/.config/openchamber"
 
+# lark-cli (Feishu/Lark) keeps its app credentials, DPoP key and user tokens in
+# two hardcoded paths under $HOME — ~/.lark-cli (config.json) and
+# ~/.local/share/lark-cli (credentials + update state). It honours neither
+# XDG_CONFIG_HOME nor XDG_DATA_HOME, and $HOME is ephemeral, so an authorization
+# completed by hand (QR scan) would be lost on every redeploy. Point both at the
+# volume; a real directory left behind in this container is folded in first
+# (no-clobber, the volume wins) so `ln` cannot nest the link inside it.
+LARK_CLI_DATA_DIR="${LARK_CLI_DATA_DIR:-$XDG_DATA_HOME/lark-cli}"
+mkdir -p "$LARK_CLI_DATA_DIR/config" "$LARK_CLI_DATA_DIR/data" "$HOME/.local/share"
+for pair in "$HOME/.lark-cli:$LARK_CLI_DATA_DIR/config" "$HOME/.local/share/lark-cli:$LARK_CLI_DATA_DIR/data"; do
+    src="${pair%%:*}" dst="${pair#*:}"
+    if [ -e "$src" ] && [ ! -L "$src" ]; then
+        cp -an "$src/." "$dst/" 2>/dev/null || true
+        rm -rf "$src"
+    fi
+    ln -sfn "$dst" "$src"
+done
+
 # ---- Config bootstrap: copy baked config into the persistent volume ----
 # The baked config is the source of truth; files whose content differs from the
 # baked version are overwritten so image updates (e.g. env-var refs) propagate.

@@ -260,6 +260,21 @@ elif [ "$CODEGRAPH_UPGRADE" != "0" ]; then
     || log "warning: CodeGraph install failed (continuing)"
 fi
 
+# ── lark-cli (Feishu/Lark) ──────────────────────────────────────────────────────
+# Repair path only: the image bakes it (Dockerfile, BD-004 = 1.0.99). The npm package
+# is a launcher whose postinstall fetches the Go binary from GitHub Releases, so it needs
+# --allow-scripts; that download is also why a failed fetch must be non-fatal here.
+# Credentials live in ~/.lark-cli + ~/.local/share/lark-cli, symlinked to the volume by
+# entrypoint.sh — reinstalling the CLI never touches them.
+LARK_CLI_VERSION="${LARK_CLI_VERSION:-1.0.99}"
+if command -v lark-cli >/dev/null 2>&1; then
+  log "resolved: lark-cli $(lark-cli version 2>/dev/null | awk '{print $NF}' || echo 'n/a') (pin ${LARK_CLI_VERSION})"
+else
+  log "lark-cli ${LARK_CLI_VERSION} (baked copy missing; reinstalling)"
+  npm install -g --allow-scripts=@larksuite/cli "@larksuite/cli@${LARK_CLI_VERSION}" >/dev/null 2>&1 \
+    || log "warning: lark-cli install failed (continuing)"
+fi
+
 # ── Interactive browser (Chromium + KasmVNC) ────────────────────────────────────
 # A real, windowed Chromium on a virtual X display, reachable from a laptop browser over an
 # HTML5 VNC client — so manual sign-in (QR code, CAPTCHA, 2FA, device pairing) is possible —
