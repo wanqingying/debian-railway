@@ -1,13 +1,19 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "commandcode/deepseek-v4-1-flash",
+  "model": "opencode-go/deepseek-v4.1-flash",
   "update": "notify",
+  "disabled_providers": [
+    "commandcode"
+  ],
+  "disabled_providers": [
+    "commandcode"
+  ],
   "agents": {
     "title": {
-      "model": "commandcode/deepseek-v4-1-flash"
+      "model": "opencode-go/deepseek-v4.1-flash"
     },
     "summary": {
-      "model": "commandcode/deepseek-v4-1-flash"
+      "model": "opencode-go/deepseek-v4.1-flash"
     }
   },
   "watcher": {
