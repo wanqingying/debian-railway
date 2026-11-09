@@ -271,7 +271,7 @@ fi
 # resolved version cannot drift; this only deletes leftovers — an older pin, or an
 # `@latest` copy from before the pin — so a long-running container cannot keep
 # serving a stale build from disk. Keep the version in sync with opencode.jsonc.
-MC_PLUGIN_CACHE_SPEC="@cortexkit/opencode-magic-context@0.49.34"
+MC_PLUGIN_CACHE_SPEC="@cortexkit/opencode-magic-context@0.49.43"
 for d in "$HOME/.cache/opencode/npm" "${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm"; do
     for p in "$d"/@cortexkit/opencode-magic-context@*; do
         [ -e "$p" ] || continue
