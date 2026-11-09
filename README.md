@@ -97,21 +97,7 @@ OpenChamber **2.0.1** 起，下面三种写法都会走原生 `POST /api/session
 
 ### 飞书 / Lark CLI（lark-cli）
 
-镜像里钉了官方的 [`@larksuite/cli`](https://github.com/larksuite/cli) `1.0.99`（BD-004），Agent 可以直接在终端读写飞书文档、发消息、操作多维表格/日历/任务等 200+ 命令。
-
-```bash
-lark-cli docs +fetch --doc "<飞书文档 URL>" --doc-format markdown   # 读文档（docx / wiki 链接都行）
-lark-cli docs +search --query "关键词"                            # 搜云文档 / 知识库
-lark-cli auth status                                            # 当前身份与已授权 scope
-```
-
-几个容易踩的点：
-
-- **正文在 `.data.document.content`**：`--jq '.data.content'` 会得到 `null`。
-- **判成功看 `ok` 或退出码**，不要看 `code`——成功信封里没有 `code` 字段。
-- **凭证在卷上**：`$XDG_DATA_HOME/lark-cli/{config,data}`（`entrypoint.sh` 把 `~/.lark-cli`、`~/.local/share/lark-cli` 软链到那里）。CLI 不认 `XDG_*`，所以必须靠软链；授权一次后跨重部署有效。
-- **重新授权需要人工扫码**：`lark-cli auth login --recommend --no-wait` 拿链接 → `lark-cli auth qrcode <url> --output /tmp/qr.png` → 用户完成后 `lark-cli auth login --device-code <code>`。每次重试都会作废上一轮的 device code，不要用短超时反复重试。
-- **skill 只烤了三个**（`lark-shared`、`lark-doc`、`lark-wiki`）；其余用 `lark-cli skills read <name>` 按需读，它们内嵌在二进制里，与 CLI 版本一致。
+镜像里钉了官方的 [`@larksuite/cli`](https://github.com/larksuite/cli) `1.0.99`（BD-004），Agent 可以直接读写飞书文档、发消息、操作多维表格/日历/任务。授权状态、常用命令、凭证落盘方式与排错见 [docs/lark-cli.md](docs/lark-cli.md)。
 
 ## 文档
 
