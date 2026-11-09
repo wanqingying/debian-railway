@@ -221,10 +221,19 @@ RUN npm i -g neon \
 #               scripts/start-browser.sh already runs (`attach --cdp` / connectOverCDP).
 #               PINNED, and the image also gets a `playwright-cli` shim (1.x exposes the
 #               CLI only as `playwright cli`) so the upstream skill's commands work as written.
+# lark-cli    : the official Feishu/Lark CLI (larksuite/cli). The npm package is a JS
+#               launcher whose postinstall downloads the Go binary for this platform, so it
+#               needs --allow-scripts. PINNED (BD-004 = 1.0.99): a CLI that changes under
+#               the agent's feet is the same coin flip as an unpinned opencode. Its app
+#               credentials and user tokens live in `~/.lark-cli` and `~/.local/share/lark-cli`
+#               — NOT XDG — so entrypoint.sh symlinks both onto the volume; without that a
+#               hand-completed QR authorization dies at the next redeploy.
 RUN npm i -g \
         --allow-scripts=@railway/cli \
         --allow-scripts=@opencode/cli \
+        --allow-scripts=@larksuite/cli \
         "@railway/cli" "@opencode/cli@2.2.6" "@colbymchenry/codegraph@1.6.2" "playwright@1.65.0" \
+        "@larksuite/cli@1.0.99" \
     && printf '#!/bin/sh\nexec playwright cli "$@"\n' > /usr/local/bin/playwright-cli \
     && chmod +x /usr/local/bin/playwright-cli \
     && npm cache clean --force
