@@ -95,6 +95,24 @@ OpenChamber **2.0.1** 起，下面三种写法都会走原生 `POST /api/session
 - **Web UI 里点「立即更新」**（容器内即时生效）：OpenChamber 以 daemon 模式运行，按钮会在后台执行 `npm install -g @openchamber/web@latest`、退出当前进程、再用相同参数自动重启；随后刷新页面即可，耗时取决于 npm 安装速度（几秒到几十秒）。若容器以 `--foreground` 启动，这个按钮只会报 `Foreground servers must be updated by their service manager`，因为该模式假定有 systemd 代管。⚠️ **它装的是上游包，会临时顶掉 fork 补丁**（worktree 分组开关消失），下次 `railway up` 会从镜像里的 tarball 装回 fork 构建。要用 fork 的新改动，改代码后重新生成 tarball 再 `railway up`。
 - **重新部署**（长期一致）：`/usr` 是临时文件系统，就地更新会在下次 `railway up` 时被重装一遍。**升级请改仓库里的 pin 后 `railway up`**（OpenChamber 就是换掉 `vendor/` 里的 tarball），而不是在容器里就地装。
 
+### 飞书 / Lark CLI（lark-cli）
+
+镜像里钉了官方的 [`@larksuite/cli`](https://github.com/larksuite/cli) `1.0.99`（BD-004），Agent 可以直接在终端读写飞书文档、发消息、操作多维表格/日历/任务等 200+ 命令。
+
+```bash
+lark-cli docs +fetch --doc "<飞书文档 URL>" --doc-format markdown   # 读文档（docx / wiki 链接都行）
+lark-cli docs +search --query "关键词"                            # 搜云文档 / 知识库
+lark-cli auth status                                            # 当前身份与已授权 scope
+```
+
+几个容易踩的点：
+
+- **正文在 `.data.document.content`**：`--jq '.data.content'` 会得到 `null`。
+- **判成功看 `ok` 或退出码**，不要看 `code`——成功信封里没有 `code` 字段。
+- **凭证在卷上**：`$XDG_DATA_HOME/lark-cli/{config,data}`（`entrypoint.sh` 把 `~/.lark-cli`、`~/.local/share/lark-cli` 软链到那里）。CLI 不认 `XDG_*`，所以必须靠软链；授权一次后跨重部署有效。
+- **重新授权需要人工扫码**：`lark-cli auth login --recommend --no-wait` 拿链接 → `lark-cli auth qrcode <url> --output /tmp/qr.png` → 用户完成后 `lark-cli auth login --device-code <code>`。每次重试都会作废上一轮的 device code，不要用短超时反复重试。
+- **skill 只烤了三个**（`lark-shared`、`lark-doc`、`lark-wiki`）；其余用 `lark-cli skills read <name>` 按需读，它们内嵌在二进制里，与 CLI 版本一致。
+
 ## 文档
 
 - **版本锁定（BD）**：[versions/README.md](versions/README.md) — 这套环境所有开源组件的版本锁定手册（需锁定清单、如何判定"最新稳定版"、更新/跟车/回滚流程、验证清单、已知陷阱）；当前生效版本与刻意不升级项见 [versions/BD-INDEX.md](versions/BD-INDEX.md)，逐 BD 的取舍记录在 [versions/bd/](versions/bd/)。
