@@ -41,18 +41,18 @@
   // Aliases of the same backend are useless here, so these are different models.
   "historian": {
     "opencode": {
-      "model": "commandcode/deepseek-v4-flash",
-      "fallback_models": ["commandcode/deepseek-v4-pro", "commandcode/gpt-5-6-luna"]
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "fallback_models": ["opencode-go/glm-5.3-flash", "opencode-go/kimi-k3.1-pro"]
     },
     "pi": {
-      "model": "commandcode/deepseek-v4-flash",
-      "fallback_models": ["commandcode/deepseek-v4-pro", "commandcode/gpt-5-6-luna"]
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "fallback_models": ["opencode-go/glm-5.3-flash", "opencode-go/kimi-k3.1-pro"]
     }
   },
   "dreamer": {
     "opencode": {
-      "model": "commandcode/deepseek-v4-flash",
-      "fallback_models": ["commandcode/deepseek-v4-pro", "commandcode/gpt-5-6-luna"],
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "fallback_models": ["opencode-go/glm-5.3-flash", "opencode-go/kimi-k3.1-pro"],
       "tasks": {
         // verify re-checks the file-mapped memory pool against the codebase; a batch
         // over the whole pool has timed out at the default budget before.
@@ -65,8 +65,8 @@
       }
     },
     "pi": {
-      "model": "commandcode/deepseek-v4-flash",
-      "fallback_models": ["commandcode/deepseek-v4-pro", "commandcode/gpt-5-6-luna"]
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "fallback_models": ["opencode-go/glm-5.3-flash", "opencode-go/kimi-k3.1-pro"]
     },
     // Every memory-maintenance task is listed explicitly (at the documented default
     // schedules) so this baked file stays the source of truth: an upstream default

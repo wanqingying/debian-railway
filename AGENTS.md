@@ -48,9 +48,11 @@ No build/test/lint toolchain — the Dockerfile + entrypoint script are the whol
     OpenChamber writes it into `$XDG_CONFIG_HOME/opencode/opencode.jsonc` when a provider is switched off in
     its settings UI — so a top-level `model` (or `agents.title`/`agents.summary`) pointing at a disabled
     provider fails with `Model unavailable: <provider>/<model>` (OpenChamber reports it as 503
-    `small-model-unavailable` for title/summary). Commandcode is deliberately disabled here (BD-003); the three
-    model references point at `opencode-go/deepseek-v4.1-flash`. The `providers.commandcode.models` block is kept
-    but inert while the provider is disabled.
+    `small-model-unavailable` for title/summary). **Only `opencode-go` is enabled here** (`disabled_providers`
+    lists commandcode, deepseek, github-copilot and opencode), so every model reference — the top-level `model`,
+    `agents.title`/`agents.summary` and magic-context's historian/dreamer primaries and fallbacks — must name an
+    `opencode-go/*` model. The `providers.commandcode.models` block is kept but inert while the provider is
+    disabled.
   - **`opencode.jsonc` uses the v2 config shape**: `providers` (`package`/`settings.baseURL`/`modelID`/`capabilities`), `permissions`, `plugins`, `update`, `mcp.servers`, and title/summary models under `agents` (migrated 2026-10-26 from the deprecated v1 keys, which OpenCode 2 still *accepts* but no longer documents). Whatever shape is used, the file must stay free of retired v1 keys: one `configuration normalization diagnostic` (`kind=unsupported`) is emitted per retired key on **every** config/provider/model resolution. Carrying the v1-only fields (`provider.commandcode.models.*.release_date`/`reasoning`/`attachment` × 24 models, top-level `server`, `compaction.prune`) made the idle server log ~750 lines/s (~35 MB / 3 min) and hold both opencode processes at ~40%/~16% CPU. Those were removed 2026-09-24 and the provider still activates (verified). Re-add nothing retired.
   - **Only the v2 discovery paths exist** (verified against 2.1.4 by loading a probe file in each place): `$XDG_CONFIG_HOME/opencode/{skills,plugins,agents,commands}/` are read; **`tools/` is not** — a custom tool must be a plugin calling `ctx.tool.transform`, and the plugin SDK (`@opencode/plugin`) is supplied by the host, so a local plugin needs no `node_modules`. `tui.jsonc` is likewise dead (v2 reads `cli.json`). Files whose plugins are not in `plugins` (`dcp.jsonc`, `smart-voice-notify.jsonc`) and the v1 `tools/` tree were removed 2026-10-26 — `entrypoint.sh` prunes them from the volume, because the bootstrap copy never deletes.
   - **`CLAUDE.md` is ignored**: OpenCode 2 reads project instructions from `AGENTS.md` only. `opencode-config/` therefore ships no `CLAUDE.md`, and adding one would have no effect.
