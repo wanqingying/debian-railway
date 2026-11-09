@@ -56,7 +56,7 @@
   // touch Pi/Oh My Pi, so they are the same build for OpenCode with less soak.
   // Bump together with the prune in entrypoint.sh and the notes in AGENTS.md/README.
   "plugins": [
-    "@cortexkit/opencode-magic-context@0.49.34"
+    "@cortexkit/opencode-magic-context@0.49.43"
   ],
   "providers": {
     "commandcode": {
