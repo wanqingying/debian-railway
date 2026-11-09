@@ -3,7 +3,10 @@
   "model": "opencode-go/deepseek-v4.1-flash",
   "update": "notify",
   "disabled_providers": [
-    "commandcode"
+    "commandcode",
+    "deepseek",
+    "github-copilot",
+    "opencode"
   ],
   "agents": {
     "title": {
