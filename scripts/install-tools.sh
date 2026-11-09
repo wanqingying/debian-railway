@@ -268,7 +268,7 @@ fi
 # entrypoint.sh — reinstalling the CLI never touches them.
 LARK_CLI_VERSION="${LARK_CLI_VERSION:-1.0.99}"
 if command -v lark-cli >/dev/null 2>&1; then
-  log "resolved: lark-cli $(lark-cli version 2>/dev/null | awk '{print $NF}' || echo 'n/a') (pin ${LARK_CLI_VERSION})"
+  log "resolved: lark-cli $(lark-cli --version 2>/dev/null | awk '{print $NF}' || echo 'n/a') (pin ${LARK_CLI_VERSION})"
 else
   log "lark-cli ${LARK_CLI_VERSION} (baked copy missing; reinstalling)"
   npm install -g --allow-scripts=@larksuite/cli "@larksuite/cli@${LARK_CLI_VERSION}" >/dev/null 2>&1 \
