@@ -116,10 +116,5 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 
 ## 飞书 / Lark
 
-容器里装了官方 `lark-cli`（版本锁在 `/workspace/debian-railway/versions/bd/BD-004.md`），**已经授权过**：先 `lark-cli auth status` 确认，不要随手重新登录——重登要人扫码。
-
-- 读文档：`lark-cli docs +fetch --doc "<docx 或 wiki 链接>" --doc-format markdown`。正文在 `.data.document.content`；写 `--jq '.data.content'` 会得到 `null`。
-- 搜文档：`lark-cli docs +search --query "<关键词>"`。
-- 判成功看 `ok` 或退出码，不要看 `code`——成功信封里没有这个字段。
-- 凭证在卷上（`$XDG_DATA_HOME/lark-cli`，跨重部署有效）。确实失效时：`auth login --recommend --no-wait` 拿链接 → `auth qrcode <url> --output /tmp/qr.png` 把二维码给用户 → 用户完成后 `auth login --device-code <code>`；不要用短超时反复重试，每次重试都会作废上一轮的 device code。
-- 其他域（表格、日历、任务、IM、多维表格）：`lark-cli <域> --help`，或用 `lark-cli skills read <name>` 读内嵌 skill 再动手。
+容器里装了官方 `lark-cli` 且已授权（`lark-cli auth status` 能看到 user / bot 双身份），读写飞书文档、消息、表格、日历一律用它，不要自己拼开放平台 HTTP 请求。
+命令、凭证路径与重新授权步骤见 `/workspace/debian-railway/docs/lark-cli.md`。
