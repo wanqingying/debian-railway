@@ -275,6 +275,47 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 - 三处版本说明（railway `README.md` / railway `AGENTS.md` / devcontainer `README.md`）与 `BD-INDEX.md` 的当前 BD 一致。
 - 两个仓库的提交各自独立，但**同一个 BD 里要成对出现**；`BD-INDEX.md` 的「下游同步」列记录 devcontainer 是否已跟上。
 
+### R2 产物仓库（下游取 tarball 的地方）
+
+devcontainer 不把 21 MB 的 tarball 提交进 git，它按 URL 拉取、用钉死的 sha256 校验。产物放在 Cloudflare R2 的 `personal` 桶，凭据在 `/workspace/.secrets/r2.env`（`R2_ACCOUNT_ID` / `R2_BUCKET` / `R2_ENDPOINT` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`），端点 `https://12fe5338781939c4d1929577bb948f4f.r2.cloudflarestorage.com`。
+
+| 键 | 作用 | 每次换产物时 |
+| --- | --- | --- |
+| `openchamber/<file>.tgz` | **可变指针**，下游 `OPENCHAMBER_FORK_URL` 打这里 | 覆盖 |
+| `openchamber/builds/<name>-<commit7>.tgz` | 按 commit 的**不可变**副本，回溯用 | 新增，不覆盖 |
+| `openchamber/manifest.json` | 指针元数据：`version` / `commit` / `branch` / `tag` / `builtAt` / `file` / `immutable` / `size` / `sha256` | 与指针同一次写 |
+
+`manifest.json` 的 `file` 与 `immutable` 必须与真实键名一致——两者在不同层级，不可变那份带 commit 后缀、指针那份不带，下游换 URL 时最容易指错的就是这里。
+
+上传（curl ≥ 7.75 自带 SigV4；`x-amz-content-sha256: UNSIGNED-PAYLOAD` 是 R2 的硬要求，缺了报 `Missing x-amz-content-sha256`）：
+
+```bash
+set -a; . /workspace/.secrets/r2.env; set +a
+COMMIT=$(cd /workspace/openchamber-fork && git rev-parse --short=7 HEAD)
+for K in "openchamber/builds/<name>-$COMMIT.tgz" "openchamber/<file>.tgz"; do
+  curl -s -X PUT --aws-sigv4 "aws:amz:auto:s3" --user "$R2_ACCESS_KEY_ID:$R2_SECRET_ACCESS_KEY" \
+    -H "x-amz-content-sha256: UNSIGNED-PAYLOAD" -H "Content-Type: application/gzip" \
+    --data-binary "@vendor/<file>.tgz" "$R2_ENDPOINT/$R2_BUCKET/$K"
+done
+# manifest.json 同法 PUT 一次（Content-Type: application/json）
+```
+
+写完**必须下载回来比对 sha256**，不要相信 PUT 的 200：
+
+```bash
+for K in "openchamber/<file>.tgz" "openchamber/builds/<name>-<commit7>.tgz"; do
+  curl -s --aws-sigv4 "aws:amz:auto:s3" --user "$R2_ACCESS_KEY_ID:$R2_SECRET_ACCESS_KEY" \
+    -H "x-amz-content-sha256: UNSIGNED-PAYLOAD" -o /tmp/dl.tgz "$R2_ENDPOINT/$R2_BUCKET/$K"
+  sha256sum /tmp/dl.tgz   # 必须等于仓库里那份
+done
+```
+
+三条硬规则：
+
+- **上一代对象在下游切换完成前不许删。** 删掉等于让下游校验失败、静默退回 npm 上游包——补丁消失且不报错。
+- **指针与不可变副本写同一个 sha256**，否则补丁可能在下一次拉取时消失。
+- **仓库 `vendor/` 那份与 R2 那份同源**：本容器镜像构建走仓库（离线可构建），下游走 R2，两边 sha256 必须相等。
+
 ---
 
 ## 10. 目录与命名
