@@ -683,6 +683,10 @@
           "serve",
           "--mcp"
         ]
+      },
+      "posthog": {
+        "type": "remote",
+        "url": "https://mcp.posthog.com/mcp?readonly=true&mode=cli&project_id=722617"
       }
     }
   }
