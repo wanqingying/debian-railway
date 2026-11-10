@@ -265,6 +265,7 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 | opencode | `Dockerfile` 安装行 + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | `.devcontainer/init.sh` 的 `OPENCODE_VERSION` |
 | OpenChamber | `vendor/openchamber-web-2.7.0-fork.tgz` + `Dockerfile` 的安装行 | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION` + `OPENCHAMBER_FORK_URL` / `OPENCHAMBER_FORK_SHA256`（同一份产物，下游按 URL 拉而不入 git） |
 | magic-context | `opencode-config/opencode/opencode.jsonc` 的 `plugins` + `entrypoint.sh` 的 `MC_PLUGIN_CACHE_SPEC` | `.devcontainer/opencode/opencode.jsonc` 的 `plugins` + `.devcontainer/init.sh` 的 `MC_PLUGIN_CACHE_SPEC` |
+| lark-cli（BD-004） | `Dockerfile` 的 `@larksuite/cli@<v>` + `scripts/install-tools.sh` 的 `LARK_CLI_VERSION` + `entrypoint.sh` 的两条软链 + `opencode-config/opencode/skills/lark-{shared,doc,wiki}/` | `.devcontainer/init.sh` 的 `LARK_CLI_VERSION`（含 `[3b/9]` 的软链与可选凭据注入）+ `.devcontainer/opencode/skills/lark-{shared,doc,wiki}/` + `.devcontainer/opencode/opencode.jsonc` 的 skill 白名单 `lark-*` |
 | 版本说明 | `README.md` 版本表 + `AGENTS.md` | `README.md` 的「自动升级」行 |
 
 ### 同步后的核对
