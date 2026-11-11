@@ -382,16 +382,17 @@ if [ "${BROWSER_ENABLE:-1}" != 0 ] && [ -x /scripts/start-browser.sh ]; then
     /scripts/start-browser.sh || echo "[entrypoint] warning: interactive browser failed to start (continuing)"
 fi
 
-# ---- Feishu Q&A bridge ----
-# Routes questions asked in an inspection report's topic to the session that wrote it. Started AFTER
-# OpenChamber because it talks to the embedded opencode server, and detached so a crashing bridge can
-# never take the container (or SSH) down with it. The launcher waits for opencode, holds a lock
-# (only one long connection per Feishu app may exist), installs deps when the lockfile moved, and
-# restarts the bridge with capped backoff. Log:
-#   $XDG_DATA_HOME/feishu-bridge/bridge-supervisor.log
-# Opt out with FEISHU_BRIDGE_ENABLE=0.
-if [ -x /scripts/start-feishu-bridge.sh ]; then
-    nohup /scripts/start-feishu-bridge.sh >/dev/null 2>&1 &
+# ---- Feishu work assistant (lark-work-assistant) ----
+# The assistant is the only long-connection consumer of the Feishu app: it answers every message,
+# including questions asked inside an inspection report's topic (it reads the topic ledger that
+# joops/feishu-bot's card.ts writes). The old feishu-bridge is retired — see
+# scripts/start-lark-assistant.sh for why two long connections cannot coexist.
+# Started AFTER OpenChamber because it talks to the embedded opencode server, and detached so a
+# crashing assistant can never take the container (or SSH) down with it.
+# Log: $XDG_DATA_HOME/lark-assistant/supervisor.log
+# Opt out with LWA_ENABLE=0.
+if [ -x /scripts/start-lark-assistant.sh ]; then
+    nohup /scripts/start-lark-assistant.sh >/dev/null 2>&1 &
 fi
 
 # ---- Keep the container alive ----
