@@ -34,7 +34,7 @@ if [ "${LWA_ENABLE:-1}" = 0 ]; then
     exit 0
 fi
 
-if [ ! -f "$ROOT/src/index.js" ]; then
+if [ ! -f "$ROOT/src/index.ts" ]; then
     log "no assistant at $ROOT (nothing to start)"
     exit 0
 fi
