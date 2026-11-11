@@ -97,7 +97,8 @@ fi
 restarts=0
 while true; do
     log "starting assistant (attempt $((restarts + 1)))"
-    LWA_RESTARTS="$restarts" node src/index.js >>"$LOG" 2>&1
+    # 仓库是 TypeScript（strict）：用 tsx 直接跑源码，不做构建
+    LWA_RESTARTS="$restarts" npx --no-install tsx src/index.ts >>"$LOG" 2>&1
     code=$?
     restarts=$((restarts + 1))
     log "assistant exited with $code; restarting"
