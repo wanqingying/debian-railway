@@ -94,12 +94,55 @@ if [ ! -d node_modules ] || [ "$current_stamp" != "$(cat "$STAMP" 2>/dev/null ||
     fi
 fi
 
+# A previous supervisor that was killed (SIGTERM/SIGKILL on the bash wrapper) leaves its child
+# running: `npx tsx src/index.ts` is in its own process tree and survives. That orphan is a SECOND
+# Feishu long-connection consumer, and Feishu delivers each event to only one of them — messages
+# look randomly lost. Kill stale ones before we start (the flock above means we are the only
+# supervisor, so any assistant process on this box right now is stale).
+kill_stale() {
+    local pids
+    pids="$(pgrep -f "tsx src/index.ts" 2>/dev/null | tr '\n' ' ')"
+    [ -z "${pids// /}" ] && return 0
+    log "killing stale assistant process(es): $pids"
+    # shellcheck disable=SC2086
+    kill $pids 2>/dev/null
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        sleep 0.5
+        # shellcheck disable=SC2086
+        kill -0 $pids 2>/dev/null || return 0
+    done
+    # shellcheck disable=SC2086
+    kill -9 $pids 2>/dev/null
+}
+
+child=""
+on_signal() {
+    log "supervisor received a stop signal; stopping the assistant"
+    if [ -n "$child" ]; then
+        kill -TERM "-$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+        wait "$child" 2>/dev/null
+    fi
+    exit 0
+}
+trap on_signal TERM INT
+
+kill_stale
+
 restarts=0
 while true; do
     log "starting assistant (attempt $((restarts + 1)))"
-    # 仓库是 TypeScript（strict）：用 tsx 直接跑源码，不做构建
-    LWA_RESTARTS="$restarts" npx --no-install tsx src/index.ts >>"$LOG" 2>&1
+    # Run the assistant as its own process group so a stop signal reaches npx + node together.
+    # The repo is TypeScript (strict): tsx runs the sources, there is no build step.
+    setsid env LWA_RESTARTS="$restarts" npx --no-install tsx src/index.ts >>"$LOG" 2>&1 &
+    child=$!
+    wait "$child"
     code=$?
+    child=""
+    # 被信号打断（128+n）说明是我们在收尾，别再重启
+    if [ "$code" -ge 128 ]; then
+        log "assistant stopped by signal ($code); supervisor exiting"
+        exit 0
+    fi
     restarts=$((restarts + 1))
     log "assistant exited with $code; restarting"
 
