@@ -2,28 +2,15 @@
 
 **Tradeoff:** these bias toward caution over speed; for trivial tasks, use judgment.
 
-**Hard rules — recall these first:** code & docs in English · model facts (context/price/limits) come from models.dev, never memory · never block the session on a long script — background it (§5) · minimal, surgical changes · define a verifiable goal and loop until it passes · lead the reply with the result.
+**Hard rules — recall these first:** code & docs in English · model facts: models.dev · never block the session on a long script — background it (§5) · minimal, surgical changes · define a verifiable goal and loop until it passes · lead the reply with the result.
 
 ## Environment awareness
 
 `sysinfo` (provided by the local `plugins/sysinfo/` plugin, not a built-in) reports the machine's facts — time/timezone, OS, container/CI, the container's own start time and uptime, the CPU/memory/pids quota it actually gets (cgroup, not the host's core count), disk, listening ports (externally reachable vs loopback) and Railway's public endpoints, installed tools. Use it when a task depends on them.
 
-## Model facts come from models.dev
+## Model facts
 
-For any fact about a model — context window, max output, price, modalities, tool or reasoning support — check **https://models.dev** rather than answering from memory. It aggregates 236 providers, one row per provider×model, and exposes the raw data at `https://models.dev/api.json` (~6 MB), so fetch it once and filter locally:
-
-```bash
-curl -s https://models.dev/api.json -o /tmp/models.json
-node -e 'const j=require("/tmp/models.json");
-for (const p of Object.keys(j)) for (const [id,m] of Object.entries(j[p].models||{}))
-  if (/opus-5\.5/i.test(id) || /opus 5\.5/i.test(m.name||""))
-    console.log(p, id, "ctx:", m.limit?.context, "out:", m.limit?.output, "in:", m.cost?.input, "out$:", m.cost?.output);'
-```
-
-Fields: `limit.context`, `limit.output`, `cost.input`, `cost.output`, `modalities`, plus per-model capability flags. Two rules when using it:
-
-- **Never declare a `limit` in `opencode.jsonc` from memory.** A too-small context window silently truncates long sessions; read the number off models.dev and cross-check it across the providers serving the model (Claude Opus 5.5 is 1M context / 128k output on every provider but one outlier).
-- An aggregator or reseller entry (`a6api`, `commandcode`) is only the *upstream* spec — models.dev does not promise the reseller enforces it. Say which one you are quoting.
+Context window, output cap, price: models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
 
 ## Environment: worktrees belong on the volume
 
