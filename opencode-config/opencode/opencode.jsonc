@@ -672,6 +672,75 @@
           }
         }
       }
+    },
+    // Reseller gateway in front of DeepSeek V4.1 Flash 1017 and Claude Opus 5.5.
+    // The model ids are the reseller's own and are not interchangeable: the token
+    // only authorises `deepseek-v4.1-flash-1017`, while the shorter
+    // `deepseek-v4.1-flash` answers 400 model_not_allowed.
+    // Cost is the reseller's CNY list converted at 7.1 CNY/USD (input
+    // ¥0.064016/1M, cache read ¥0.00128/1M, output priced at 4x input like the
+    // upstream model). `limit` mirrors the upstream model spec, not something the
+    // reseller guarantees, and only text input is declared because images were
+    // never exercised through this gateway.
+    "a6api": {
+      "name": "A6API",
+      "env": [
+        "A6API_API_KEY"
+      ],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "https://a6api.vip/v1"
+      },
+      "models": {
+        "deepseek-v4.1-flash-1017": {
+          "modelID": "deepseek-v4.1-flash-1017",
+          "name": "DeepSeek V4.1 Flash 1017 (a6api)",
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 384000
+          },
+          "cost": {
+            "input": 0.009,
+            "output": 0.036,
+            "cache": {
+              "read": 0.00018
+            }
+          }
+        },
+        "claude-opus-5-5": {
+          "modelID": "claude-opus-5-5",
+          "name": "Claude Opus 5.5 (a6api)",
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "cost": {
+            "input": 0.101,
+            "output": 0.505,
+            "cache": {
+              "read": 0.01
+            }
+          }
+        }
+      }
     }
   },
   "mcp": {
