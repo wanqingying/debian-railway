@@ -679,9 +679,10 @@
     // `deepseek-v4.1-flash` answers 400 model_not_allowed.
     // Cost is the reseller's CNY list converted at 7.1 CNY/USD (input
     // ¥0.064016/1M, cache read ¥0.00128/1M, output priced at 4x input like the
-    // upstream model). `limit` mirrors the upstream model spec, not something the
-    // reseller guarantees, and only text input is declared because images were
-    // never exercised through this gateway.
+    // upstream model). `limit` comes from models.dev's upstream spec (1M context,
+    // 384k output for DeepSeek V4.1 Flash; 1M / 128k for Opus 5.5), not from
+    // anything the reseller guarantees, and only text input is declared because
+    // images were never exercised through this gateway.
     "a6api": {
       "name": "A6API",
       "env": [
@@ -729,8 +730,8 @@
             ]
           },
           "limit": {
-            "context": 200000,
-            "output": 64000
+            "context": 1000000,
+            "output": 128000
           },
           "cost": {
             "input": 0.101,
