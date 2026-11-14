@@ -1,0 +1,63 @@
+<!--
+  MyMod.csproj — SDK 风格工程（VS 2022 / dotnet build 都能用）。
+  适用：BL 1.5.x，.NET Framework 4.7.2。未编译验证。
+  先设好环境变量 BANNERLORD_GAME_DIR，例如：
+    setx BANNERLORD_GAME_DIR "C:\Program Files (x86)\Steam\steamapps\common\Mount & Blade II Bannerlord"
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>MyMod</AssemblyName>
+    <RootNamespace>MyMod</RootNamespace>
+    <Platforms>x64</Platforms>
+    <!-- 直接输出到游戏模块目录，省掉手动拷 DLL -->
+    <OutputPath>$(BANNERLORD_GAME_DIR)\Modules\MyMod\bin\Win64_Shipping_Client\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <!-- 游戏 DLL：Private=false 是关键，别把 TaleWorlds.*.dll 拷进自己的输出 -->
+  <ItemGroup>
+    <Reference Include="TaleWorlds.Core">
+      <HintPath>$(BANNERLORD_GAME_DIR)\bin\Win64_Shipping_Client\TaleWorlds.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade">
+      <HintPath>$(BANNERLORD_GAME_DIR)\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.CampaignSystem">
+      <HintPath>$(BANNERLORD_GAME_DIR)\bin\Win64_Shipping_Client\TaleWorlds.CampaignSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Library">
+      <HintPath>$(BANNERLORD_GAME_DIR)\bin\Win64_Shipping_Client\TaleWorlds.Library.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Localization">
+      <HintPath>$(BANNERLORD_GAME_DIR)\bin\Win64_Shipping_Client\TaleWorlds.Localization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- 需要 ObjectSystem / SaveSystem / Gauntlet 时照此追加；缺哪个 dnSpy 里搜类名即可 -->
+  </ItemGroup>
+
+  <!--
+    框架库：只编译用，运行时由模块提供 —— IncludeAssets="compile" 必须带，
+    否则 DLL 会被拷进你的 bin，玩家装了模块后就会出现两份同名程序集。
+    版本号去 nuget.org 查当前值（这里只写结构，刻意不写死会过期的版本）：
+      Lib.Harmony                  https://www.nuget.org/packages/Lib.Harmony
+      Bannerlord.MCM               https://www.nuget.org/packages/Bannerlord.MCM
+      Bannerlord.UIExtenderEx      https://www.nuget.org/packages/Bannerlord.UIExtenderEx
+      Bannerlord.ButterLib         https://www.nuget.org/packages/Bannerlord.ButterLib
+  -->
+  <ItemGroup>
+    <!-- <PackageReference Include="Lib.Harmony" Version="X.Y.Z" IncludeAssets="compile" /> -->
+    <!-- <PackageReference Include="Bannerlord.MCM" Version="X.Y.Z" IncludeAssets="compile" /> -->
+    <!-- <PackageReference Include="Bannerlord.UIExtenderEx" Version="X.Y.Z" IncludeAssets="compile" /> -->
+    <!-- <PackageReference Include="Bannerlord.ButterLib" Version="X.Y.Z" IncludeAssets="compile" /> -->
+  </ItemGroup>
+
+</Project>
