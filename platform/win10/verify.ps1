@@ -202,6 +202,26 @@ Check 'godot 4.7 executable' {
     @(($version -like '4.7.*'), $detail)
 }
 
+Check 'uv on PATH' {
+    # godot-ai's Python server is launched by uv. What matters is that a NEW process
+    # (a freshly opened Godot editor, a new terminal) can see it — not whether this
+    # already-running shell has it, which is what a plain Get-Command measures.
+    $exe = Join-Path $env:USERPROFILE '.local\bin\uv.exe'
+    $installed = Test-Path -LiteralPath $exe
+    $onUserPath = ([Environment]::GetEnvironmentVariable('Path', 'User') -split ';') -contains (Split-Path -LiteralPath $exe)
+    $inThisShell = [bool](Get-Command uv -ErrorAction SilentlyContinue)
+    if (-not $installed -and -not $inThisShell) {
+        return @($false, 'not installed - irm https://astral.sh/uv/install.ps1 | iex, then reopen the shell and the editor')
+    }
+    $v = if ($installed) { ((& $exe --version 2>$null) -as [string]).Trim() } else { ((& uv --version 2>$null) -as [string]).Trim() }
+    if (-not $onUserPath -and -not $inThisShell) {
+        return @($false, "$v installed at $exe but not on PATH - add $(Split-Path -LiteralPath $exe) to the user PATH")
+    }
+    $where = if ($installed) { $exe } else { (Get-Command uv).Source }
+    $shellNote = if ($inThisShell) { '' } else { '  (not yet in this shell - reopen it)' }
+    @([bool]$v, "$v  $where$shellNote")
+}
+
 Check 'godot-ai mcp entry' {
     $p = (Join-Path (Join-Path $configHome 'opencode') 'opencode.jsonc')
     if (-not (Test-Path $p)) { return @($false, 'no config') }
