@@ -13,9 +13,9 @@
 
 ## 参考文档
 
-**任务 → skill**
+**skill**
 
-| Task | Use |
+| 什么时候用 | skill |
 |---|---|
 | 调研 / 研究 / 综述 / 选型对比 | `deep-research` skill |
 | 功能或需求开发（"做个 X"） | `req-to-ship` skill |
@@ -25,9 +25,7 @@
 | 部署上线 / CI 红了 | `deploy-to-vercel` · `gh-fix-ci` |
 | OpenCode 自身的问题 | `opencode` skill |
 
-This is the default when a task fits one of these shapes, not the full skill list — check the descriptions when a task fits none of them.
-
-**问题 → 文档**
+**文档**
 
 | 你在做什么 | 先读 |
 |---|---|
