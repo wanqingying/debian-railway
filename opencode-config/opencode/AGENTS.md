@@ -11,7 +11,17 @@
 - **Minimal, surgical changes**; define a verifiable goal and loop until it passes; **lead the reply with the result**.
 - **Model facts** (context window, output cap, price): models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
 
-## 常用的部分 skill、文档、工具
+## 常用：项目、skill、文档、工具
+
+**项目**
+
+| 项目 | 路径 | 是什么 |
+|---|---|---|
+| 本容器 | `/workspace/debian-railway` | 这台机器本身：Railway 远程开发容器（SSH、OpenChamber、可视浏览器） |
+| Joops | `/workspace/joops` | 产品参考 → 成品视频广告，agent 驱动；`vercel/` 前端后端、`core/` LangGraph 运行时、Neon + R2；工作树在 `/workspace/worktrees` |
+| 飞书工作助手 | `/workspace/lark-work-assistant` | 飞书里 @ 机器人查资料、读文档、跑分析；单机单进程单用户，事实层在 `assistant/` |
+| Super Factory Manager 4 | `/workspace/SuperFactoryManager`（另有副本 `/workspace/mcsfm`） | 我的世界 mod，Gradle 多平台 |
+| R2 Web | `/workspace/r2-web` | Cloudflare R2 的纯前端文件管理器，零构建零后端 |
 
 **skill**
 
