@@ -37,6 +37,8 @@ And the reason is not that agents ignore instructions — they follow them close
 
 **What fails.** The same study isolated the popular content category that buys nothing: **repository overviews**. Across both benchmarks and all agents, an overview did not reduce the number of steps before the agent touched a relevant file; for GPT-5.1-mini it *increased* steps, because the agent spent turns searching for the context file and re-reading it even though it was already in context. 100% of Sonnet-4.5-generated files contained one. Also failing: directory listings, architecture prose, and generic best practice ("write tests", "be careful") — all of it either restates the repo or restates the model.
 
+**The distinction that decides the borderline case.** An overview of the repository the agent is *already standing in* fails, because that repo answers it better and the agent ends up hunting for the file instead of reading it. A **map across projects is routing, not an overview**: no repository can say which sibling directories exist or which one implements what, so a session working in project A and asked to change project B has no other source. Such a map still owes only the *navigational* minimum — path, one identity clause, which subdirectory to enter, where the duplicate copies are — not each neighbour's tech stack, architecture or deployment story.
+
 **What passes.** Four categories survived the measurements:
 
 1. **Non-standard conventions** the agent would otherwise guess wrong — the ETH authors' own recommendation is only content "not already present in the README".
