@@ -174,11 +174,39 @@ if (Test-Path $mcStore) {
 }
 
 # --- project wiring ---------------------------------------------------------
+# The portable build is not installed system-wide, and Windows' "Extract All"
+# names the folder after the zip (so the exe can sit one level below the obvious
+# path). Search for the binary instead of hard-coding one location; GODOT_EXE
+# short-circuits the search when the layout changes.
+Check 'godot 4.7 executable' {
+    $exe = $null
+    $probe = @($env:GODOT_EXE, 'E:\APPS\godot\4.7.2\Godot_v4.7.2-stable_win64.exe',
+               'E:\APPS\godot\Godot_v4.7.2-stable_win64.exe')
+    foreach ($candidate in $probe) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) { $exe = $candidate; break }
+    }
+    if (-not $exe -and (Test-Path 'E:\APPS\godot')) {
+        $found = Get-ChildItem 'E:\APPS\godot' -Recurse -Depth 3 -File -Filter 'Godot_v4.*_win64.exe' -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notlike '*_console.exe' } |
+            Sort-Object Length -Descending | Select-Object -First 1
+        if ($found) { $exe = $found.FullName }
+    }
+    if (-not $exe) { return @($false, 'not found under E:\APPS\godot - extract the portable build or set GODOT_EXE') }
+    # The GUI build detaches from the console, so read the version from its _console sibling.
+    $consoleExe = $exe -replace '\.exe$', '_console.exe'
+    $version = ''
+    if (Test-Path -LiteralPath $consoleExe) {
+        $version = ((& $consoleExe --version 2>$null | Select-Object -First 1) -as [string]).Trim()
+    }
+    $detail = if ($version) { "$version  $exe" } else { "version unreadable  $exe" }
+    @(($version -like '4.7.*'), $detail)
+}
+
 Check 'godot-ai mcp entry' {
     $p = (Join-Path (Join-Path $configHome 'opencode') 'opencode.jsonc')
     if (-not (Test-Path $p)) { return @($false, 'no config') }
     $hit = Select-String -Path $p -Pattern 'godot-ai' -SimpleMatch -Quiet
-    @($hit, $(if ($hit) { 'present' } else { 'absent - enable the addon and press Configure in its dock' }))
+    @($hit, $(if ($hit) { 'present' } else { 'absent - install godot-ai in the project, then press Configure in its dock' }))
 }
 
 Check 'codegraph mcp entry' {

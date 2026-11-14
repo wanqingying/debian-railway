@@ -184,9 +184,11 @@ Windows 没有会重建的根文件系统，但有更坏的失效方式：**OneD
 
 ## Godot 项目约定
 
-Godot 目前**没装**（`D:\gamedev` 在本机不存在，也没有 Godot 目录），所以 godot-ai 的 MCP 条目缺失，`verify.ps1` 的 `godot-ai mcp entry` 会一直 FAIL 到装好并 Configure 为止。
+Godot **4.7.2 便携版已装**：`E:\APPS\godot\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64.exe`（`--version` → `4.7.2.stable.official.ed1daf0bf`）。外面那层同名目录是 Windows「全部解压缩」按 zip 名建的，exe 在它里面——`verify.ps1` 的 `godot 4.7 executable` 按版本找文件而不是写死路径，换布局时用 `GODOT_EXE` 指过去。现有项目都在 `E:\APPS\godot\projects\`（另有 `gms\`、`godot-demo-projects-master\`）。
 
-- **版本固定**：Godot 4.7.x 便携版放 `E:\APPS\godot-4.7.2\`，不安装、不进 PATH。换版本就是换目录，`project.godot` 里不写绝对路径。
+`godot-ai` 插件还没装，所以 MCP 条目缺失：`verify.ps1` 的 `godot-ai mcp entry` 会一直 FAIL 到装好插件、在 dock 里 Configure 为止。
+
+- **版本固定**：便携版不安装、不进 PATH；升级就是换一个 `4.7.x` 目录，`project.godot` 里不写绝对路径。
 - **编辑器必须由人开着**：`godot-ai` 是编辑器插件，agent 的所有场景/节点操作都经过它；没有编辑器就没有 undo 栈，也没有截图和输入注入。
 - **MCP 走 dock 的 Configure**：不要手抄 `uvx` 命令——v4 客户端必须通过 `godot-ai attach` 连接，手写的 URL 无法鉴权。
 - **只开需要的域**：`--exclude-domains` 或 dock 里的勾选，先开 editor / scene / node / script / game / project 六个，其余按需。
