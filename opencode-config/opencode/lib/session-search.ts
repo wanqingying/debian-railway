@@ -16,6 +16,13 @@
  * is JSON: without that step a query like `"foo"` or `a\b` matched nothing and the tool answered
  * "no such session".
  *
+ * Fork copies (measured 2026-11-14 on the live store): 17 of 101 in-scope sessions were forked
+ * children, and 22–33% of every result set was a fork copy — the same conversation twice. They are
+ * NOT dropped: 16 of those 17 carried messages their parent does not (70–100% unique for most, since
+ * a fork diverges and keeps working), and 1–6 fork hits per query had no parent hit at all. So each
+ * hit is labelled with `fork_of` + `fork_of_title` instead, and the `(fork #N)` title suffix — which
+ * made a search for "fork" return five copies of unrelated sessions — is stripped before matching.
+ *
  * Coverage: user text and assistant `text` parts. Tool output is deliberately excluded — it is
  * ~19x the text volume and the densest place for secrets, so searching it is the one change that
  * would make redaction worth its cost; revisit that decision if it is ever enabled.
@@ -44,13 +51,17 @@ const SNIPPET_PAD = 60;
 const BUSY_TIMEOUT_MS = 2_000;
 const DEFAULT_BUDGET_MS = 2_000;
 const DEADLINE_CHECK_EVERY = 512;
+// Forking appends " (fork #1)", " (fork #2)" to the title. That suffix is metadata, not content: it
+// made a search for "fork" return copies of unrelated sessions before it was excluded from matching.
+const FORK_SUFFIX = /\s*\(fork #\d+\)\s*$/i;
+const WORKSPACE_ROOT = '/workspace';
 
 export type MatchMode = 'title' | 'content' | 'both';
 
 export interface SearchSessionsOptions {
   /** Keyword (case-insensitive for ASCII; CJK as written). */
   query?: string;
-  /** Default 'content'. */
+  /** Default 'both'. */
   match?: MatchMode | string;
   /** Substring filter on the session directory. */
   directory?: string;
@@ -77,6 +88,10 @@ export interface SessionHit {
   matches: number;
   title_match: boolean;
   snippet: string;
+  /** Parent session id when this hit is a fork copy of another session; '' otherwise. */
+  fork_of: string;
+  /** Title of that parent, so a copy is recognisable without a second lookup. */
+  fork_of_title: string;
 }
 
 export interface SearchSessionsSuccess {
@@ -104,6 +119,7 @@ interface SessionRow {
   title: string | null;
   directory: string;
   time_updated: number;
+  fork_session_id: string | null;
 }
 
 interface MessageRow {
@@ -141,11 +157,18 @@ function buildSnippet(text: string, needle: string, firstOffset: number): string
   return text.slice(start, end).replace(/\s+/g, ' ').trim();
 }
 
+// `basename` collapsed 14 of the 26 in-scope directories onto an already-used name ("assistant" for
+// 12 sessions, "debian-railway" for 23), so the short label is the path below /workspace instead.
+function projectLabel(directory: string): string {
+  if (directory.startsWith(`${WORKSPACE_ROOT}/`)) return directory.slice(WORKSPACE_ROOT.length + 1);
+  return path.basename(directory) || directory;
+}
+
 export async function searchSessions(options: SearchSessionsOptions = {}): Promise<SearchSessionsResult> {
   const query = String(options.query ?? '').trim();
   if (!query) return { status: 'error', message: 'query is required' };
 
-  const match = options.match || 'content';
+  const match = options.match || 'both';
   if (!['title', 'content', 'both'].includes(match)) {
     return { status: 'error', message: "match must be 'title', 'content' or 'both'" };
   }
@@ -188,7 +211,9 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
     const whereSql = where.length ? `where ${where.join(' and ')}` : '';
 
     const sessions = db
-      .prepare(`select s.id, s.title, s.directory, s.time_updated from session_v2 s ${whereSql}`)
+      .prepare(
+        `select s.id, s.title, s.directory, s.time_updated, s.fork_session_id from session_v2 s ${whereSql}`,
+      )
       .all(...params) as unknown as SessionRow[];
     const byId = new Map(sessions.map((s) => [s.id, s]));
 
@@ -201,7 +226,8 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
 
     if (match === 'title' || match === 'both') {
       for (const s of sessions) {
-        if ((s.title || '').toLowerCase().includes(needle)) {
+        // The fork suffix is metadata: matching it made "fork" return copies of unrelated sessions.
+        if ((s.title || '').replace(FORK_SUFFIX, '').toLowerCase().includes(needle)) {
           hits.set(s.id, { matches: 0, text: '', first: 0, titleMatch: true });
         }
       }
@@ -263,24 +289,51 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
       }
     }
 
+    // Fork parents are often outside the filtered scope (archived, older than `days`), so their
+    // titles are fetched directly instead of from `byId`.
+    const forkParents = new Set<string>();
+    for (const [id] of hits) {
+      const parent = byId.get(id)?.fork_session_id;
+      if (parent) forkParents.add(parent);
+    }
+    const parentTitles = new Map<string, string>();
+    if (forkParents.size) {
+      const ids = [...forkParents];
+      const rows = db
+        .prepare(`select id, title from session_v2 where id in (${ids.map(() => '?').join(',')})`)
+        .all(...ids) as unknown as { id: string; title: string | null }[];
+      for (const row of rows) parentTitles.set(row.id, row.title || '');
+    }
+
     const results: SessionHit[] = [];
+    const updatedAt = new Map<string, number>();
     for (const [id, hit] of hits) {
       const session = byId.get(id);
       if (!session) continue;
+      const parent = session.fork_session_id || '';
+      updatedAt.set(id, session.time_updated);
       results.push({
         session: id,
         title: session.title || '',
         directory: session.directory,
-        project: path.basename(session.directory),
+        project: projectLabel(session.directory),
         at: new Date(session.time_updated).toISOString().slice(0, 16).replace('T', ' '),
         matches: hit.matches,
         title_match: hit.titleMatch,
         snippet: hit.text ? buildSnippet(hit.text, needle, hit.first) : '',
+        fork_of: parent,
+        // A deleted parent leaves only the fork's own title, which still carries the original name.
+        fork_of_title: parent ? (parentTitles.get(parent) || (session.title || '').replace(FORK_SUFFIX, '')) : '',
       });
     }
     // Heaviest coverage first: a session that mentions the term 30 times is a better lead than one
-    // that mentions it once, regardless of age.
-    results.sort((a, b) => b.matches - a.matches || (a.at < b.at ? 1 : -1));
+    // that mentions it once, regardless of age. A title match counts as one occurrence, otherwise a
+    // title-only hit sorts below every body mention and is cut off by `limit` — measured: all five
+    // title-only hits for "fork" fell outside the default 20, including "巡检 2026-11-06 20:25", the
+    // only session a date search could ever find. Ties break on the raw timestamp: `at` is truncated
+    // to the minute, so comparing it left sessions updated in the same minute in arbitrary order.
+    const rank = (h: SessionHit) => h.matches + (h.title_match ? 1 : 0);
+    results.sort((a, b) => rank(b) - rank(a) || (updatedAt.get(b.session) ?? 0) - (updatedAt.get(a.session) ?? 0));
 
     return {
       status: 'ok',
@@ -305,7 +358,7 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
 // dynamically above because it does not exist below Node 22.
 if (import.meta.main) {
   const VALUE_OPTS = new Set(['--match', '--dir', '--days', '--limit']);
-  const FLAG_OPTS = new Set(['--include-archived', '--include-children', '--include-tmp', '--json']);
+  const FLAG_OPTS = new Set(['--include-archived', '--include-children', '--include-tmp', '--json', '--help']);
   const opts: Record<string, string | boolean> = {};
   const positional: string[] = [];
   const argv = process.argv.slice(2);
@@ -313,8 +366,22 @@ if (import.meta.main) {
     const arg = argv[i];
     if (VALUE_OPTS.has(arg)) opts[arg.slice(2)] = argv[++i];
     else if (FLAG_OPTS.has(arg)) opts[arg.slice(2)] = true;
-    else if (arg.startsWith('--')) { console.error(`unknown option: ${arg}`); process.exit(1); }
+    else if (arg.startsWith('--')) { console.error(`unknown option: ${arg} (try --help)`); process.exit(1); }
     else positional.push(arg);
+  }
+
+  if (opts.help) {
+    console.log(`usage: node session-search.ts <keyword...> [options]
+
+  --match <title|content|both>  where to look (default both)
+  --dir <substring>             only sessions whose directory contains it
+  --days <n>                    only sessions updated in the last n days
+  --limit <n>                   rows to return (default 20, max 100)
+  --include-archived            include archived sessions
+  --include-children            include subagent child sessions
+  --include-tmp                 include sessions under /tmp
+  --json                        print the raw result object`);
+    process.exit(0);
   }
 
   const result = await searchSessions({
@@ -336,12 +403,17 @@ if (import.meta.main) {
     console.log(JSON.stringify(result, null, 2));
   } else {
     console.log(`${result.total} 个会话命中 · ${result.candidates} 个候选 · 解析 ${result.rows_read} 行 · ${result.elapsed_ms} ms\n`);
+    // Column widths follow the data: `project` is now a path below /workspace and can be long.
+    // Legacy worktree paths run 90+ characters, so the CLI shows their tail and the JSON keeps all.
+    const short = (p: string) => (p.length > 34 ? `…${p.slice(-33)}` : p);
+    const projectWidth = Math.min(34, Math.max(7, ...result.hits.map((h) => short(h.project).length)));
     for (const hit of result.hits) {
       // A title-only hit has zero body occurrences; printing `0×` there reads as "no match".
       const label = hit.matches > 0 ? `${hit.matches}×` : 'T';
-      console.log(`${hit.at}  ${label.padStart(4)}  ${hit.project.padEnd(22)} ${hit.title}`);
-      if (hit.snippet) console.log(`                     …${hit.snippet}…`);
-      console.log(`                     ${hit.session}`);
+      const fork = hit.fork_of ? ` ↳ fork of "${hit.fork_of_title || hit.fork_of}"` : '';
+      console.log(`${hit.at}  ${label.padStart(4)}  ${short(hit.project).padEnd(projectWidth)} ${hit.title}${fork}`);
+      if (hit.snippet) console.log(`${' '.repeat(projectWidth + 9)}…${hit.snippet}…`);
+      console.log(`${' '.repeat(projectWidth + 9)}${hit.session}`);
     }
   }
 }
