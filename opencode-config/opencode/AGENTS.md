@@ -49,6 +49,8 @@
 | a6api 网关：模型白名单、日志、配额 | `a6api.md` |
 | "我的世界"：查 mod/整合包数据集结构与字段（项目内） | `docs/mcmod-db.md` · `docs/xhh-db.md`（采集见 `docs/mcmod-stats.md`） |
 
+以上文档都在 `$XDG_CONFIG_HOME/opencode/docs/`（标「项目内」的在仓库 `docs/`）。
+
 **工具**
 
 | 什么时候用 | 工具 |
@@ -57,7 +59,6 @@
 | 要时间/时区、容器起止与配额（cgroup，不是宿主机 48 核）、磁盘、端口内外分布、Railway 端点、已装工具版本 | `sysinfo` |
 | 生成图片、改图 | `image_generate` |
 
-以上文档都在 `$XDG_CONFIG_HOME/opencode/docs/`（标「项目内」的在仓库 `docs/`）。
 
 ## 0. Language
 
