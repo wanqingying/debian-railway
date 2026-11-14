@@ -2,7 +2,7 @@ import { Plugin } from '@opencode/plugin';
 import { searchSessions } from '../../lib/session-search.ts';
 
 const DESCRIPTION =
-  'Finds which past opencode sessions dealt with something. Give it a keyword from a task, error, ticket, service or feature name and it returns one row per session — id, title, directory, last activity, how many times the term occurred in the conversation, and a short snippet — so you can answer "who already handled this, and what did they conclude?" before re-doing the work. Searches user messages and assistant replies of every project on this machine, not just the current one. Tool output is NOT searched: a clue that only ever appeared in a shell result or log dump will not be found. Defaults already exclude archived sessions, subagent sessions and /tmp scratch work; widen them only when the narrow search comes back empty.';
+  'Finds which past opencode sessions dealt with something. Give it a keyword from a task, error, ticket, service or feature name and it returns one row per session — id, title, directory, last activity, how many times the term occurred in the conversation, and a short snippet — so you can answer "who already handled this, and what did they conclude?" before re-doing the work. Searches session titles and the user messages and assistant replies of every project on this machine, not just the current one. Tool output is NOT searched: a clue that only ever appeared in a shell result or log dump will not be found. A hit marked fork_of is a copy of that other session made with fork, which diverged from it — read one of the two, not both. Defaults already exclude archived sessions, subagent sessions and /tmp scratch work; widen them only when the narrow search comes back empty.';
 
 // The SDK types `execute` args as `unknown` whenever the input is a plain JSON Schema (only an
 // effect Schema or StandardSchema carries its type through), so the shape is declared here. The
@@ -38,7 +38,7 @@ export default Plugin.define({
             match: {
               type: 'string',
               enum: ['title', 'content', 'both'],
-              description: "Where to look. 'content' (default) searches what was written, 'title' only session titles, 'both' unions them.",
+              description: "Where to look. 'both' (default) unions titles and what was written, 'content' searches only the conversation, 'title' only session titles.",
             },
             directory: {
               type: 'string',
