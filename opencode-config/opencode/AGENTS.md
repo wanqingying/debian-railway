@@ -11,7 +11,7 @@
 - **Minimal, surgical changes**; define a verifiable goal and loop until it passes; **lead the reply with the result**.
 - **Model facts** (context window, output cap, price): models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
 
-## Routing: pick the carrier first
+## 参考手册
 
 **任务 → skill**
 
@@ -27,19 +27,19 @@
 
 This is the default when a task fits one of these shapes, not the full skill list — check the descriptions when a task fits none of them.
 
-**问题 → 文档**（都在这台机器上，路径前缀 `/workspace/debian-railway/docs/`）
+**问题 → 文档**（机器级，路径前缀 `$XDG_CONFIG_HOME/opencode/docs/`，即 `/workspace/.opencode/config/opencode/docs/`；随镜像烘焙，跨 redeploy 存活）
 
 | 你在做什么 | 先读 |
 |---|---|
 | 写/改提示词、skill、工具描述、`AGENTS.md` | `prompt-skill-tool-design.md` |
-| 调研 / 选型 / 技术对比 | `research/` 存档（`<主题>-<日期>.md`）——**先查有没有同主题的旧结论，别重复调研** |
+| 调研 / 选型 / 技术对比（**仅 debian-railway 项目内**） | 项目 `docs/research/` 存档（`<主题>-<日期>.md`）——**先查有没有同主题的旧结论，别重复调研** |
 | 跑 railway CLI | `railway-cli.md`——查过再下命令，别猜参数 |
 | worktree 出错、会话目录丢失 | `worktrees.md` |
 | 浏览器卡住、要自检或恢复 | `browser-self-check.md`（自检）· `interactive-browser.md`（完整 runbook） |
 | 读需要登录的网站、Reddit | `agent-web-access.md` · `reddit-data-access.md` |
 | 算成本、挑模型、查额度与用量归因 | `ai-model-pricing.md`（选型成本，规格仍以 models.dev 为准）· `go-allowance.md`（实际额度） |
 | a6api 网关：模型白名单、日志、配额 | `a6api.md` |
-| "我的世界"游戏：查 mod/整合包数据集的结构与字段 | `mcmod-db.md` · `xhh-db.md`（采集流程见 `mcmod-stats.md`） |
+| "我的世界"游戏：查 mod/整合包数据集的结构与字段（**仅该项目内**） | 项目 `docs/mcmod-db.md` · `docs/xhh-db.md`（采集流程见 `docs/mcmod-stats.md`） |
 
 **工具**（本仓库自定义的插件工具，不是内置工具，见 `opencode-config/opencode/plugins/`）
 
@@ -128,9 +128,9 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 本容器只有一个浏览器：窗口化 Chromium（`DISPLAY=:1`，VNC `8444` 经 SSH 隧道给人看和操作；CDP `127.0.0.1:9222` 给 agent 用）。扫码、验证码、OAuth 回调这类步骤让用户在 VNC 里完成。
 
 - 接同一个实例：`pw <子命令>`，或 `connectOverCDP("http://127.0.0.1:9222", {noDefaults:true,isLocal:true})`。别用 `playwright cli open`（会导航走用户当前标签页）。
-- 不要另起浏览器：不 `--headless`、不换 profile / 端口、不删 `SingletonLock` —— 会顶掉可视浏览器。卡住先按 `/workspace/debian-railway/docs/browser-self-check.md` 自检，重启用 `/scripts/start-browser.sh`。
+- 不要另起浏览器：不 `--headless`、不换 profile / 端口、不删 `SingletonLock` —— 会顶掉可视浏览器。卡住先按 `$XDG_CONFIG_HOME/opencode/docs/browser-self-check.md` 自检，重启用 `/scripts/start-browser.sh`。
 
 ## 飞书 / Lark
 
 容器里装了官方 `lark-cli` 且已授权（`lark-cli auth status` 能看到 user / bot 双身份），读写飞书文档、消息、表格、日历一律用它，不要自己拼开放平台 HTTP 请求。
-命令、凭证路径与重新授权步骤见 `/workspace/debian-railway/docs/lark-cli.md`。
+命令、凭证路径与重新授权步骤见 `$XDG_CONFIG_HOME/opencode/docs/lark-cli.md`。
