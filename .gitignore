@@ -7,3 +7,6 @@ node_modules/
 data/*.db-wal
 data/*.db-shm
 .skill-workspace/
+
+# image_generate default output
+/generated/
