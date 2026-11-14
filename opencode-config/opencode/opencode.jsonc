@@ -742,6 +742,79 @@
           }
         }
       }
+    },
+    // V-API (https://gpt.ge) reseller gateway, docs at
+    // https://api-gpt-ge.apifox.cn. Base URL is the "全球通用" node from
+    // `/api/status`; it also lists api.vveai.com, run.v3.cm and us.gpt.ge.
+    // Model ids are the gateway's own and cover 271 models; only the two
+    // exercised here are declared. Prices are the panel's per-million list
+    // (https://gpt.ge/models/<id>), measured 2026-11-14 against the billing
+    // endpoint: DeepSeek bills $0.5/M input, $0.01/M cache read, $2/M output
+    // (peak 01:00-04:00 and 06:00-10:00 UTC weekdays doubles the cache read
+    // only). Opus 5.5 has two groups: `claude_kiro` (0.35x, reverse-engineered
+    // Kiro channel) and `claude_max` ($4/$20); a 113k-token call cost ~$0.44,
+    // so the token is billed at the `claude_max` rate and that is what is
+    // declared here. Unlike a6api's Kiro resale it honours the system prompt,
+    // reports real token counts and returns honest tool calls.
+    "gptge": {
+      "name": "V-API (gpt.ge)",
+      "env": [
+        "GPTGE_API_KEY"
+      ],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "https://api.gpt.ge/v1"
+      },
+      "models": {
+        "deepseek-v4.1-flash-1017": {
+          "modelID": "deepseek-v4.1-flash-1017",
+          "name": "DeepSeek V4.1 Flash 1017 (gpt.ge)",
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 384000
+          },
+          "cost": {
+            "input": 0.5,
+            "output": 2,
+            "cache": {
+              "read": 0.01
+            }
+          }
+        },
+        "claude-opus-5-5": {
+          "modelID": "claude-opus-5-5",
+          "name": "Claude Opus 5.5 (gpt.ge)",
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 128000
+          },
+          "cost": {
+            "input": 4,
+            "output": 20,
+            "cache": {
+              "read": 0.2
+            }
+          }
+        }
+      }
     }
     // Image generation is NOT configured as an OpenCode image model: the
     // gateway returns `revised_prompt` on every item and OpenCode decodes the
