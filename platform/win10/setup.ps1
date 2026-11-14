@@ -65,18 +65,26 @@ function Assert-Command([string]$name, [string]$hint) {
     }
 }
 
+# Read the installed version straight off the filesystem instead of shelling out to
+# `npm ls -g` per package: that call costs a round trip each time and its JSON has to
+# be flattened first (PS feeds native output line by line). One `npm root -g`, cached,
+# answers every lookup in the process.
+$script:globalRoot = $null
+function Get-GlobalRoot {
+    if (-not $script:globalRoot) {
+        $raw = (cmd /c 'npm root -g 2>nul') -join "`n"
+        $first = ($raw -split "`n" | Where-Object { $_.Trim() } | Select-Object -First 1)
+        if ($first) { $script:globalRoot = $first.Trim() }
+    }
+    return $script:globalRoot
+}
+
 function Get-GlobalPackageVersion([string]$package) {
-    # Route through cmd and join the lines first: PowerShell pipes native output
-    # line by line, so multi-line JSON only parses once flattened, and PS 5.1
-    # turns redirected stderr into error records.
-    $raw = (cmd /c 'npm ls -g --depth=0 --json 2>nul') -join "`n"
-    if (-not $raw) { return $null }
-    try { $tree = $raw | ConvertFrom-Json } catch { return $null }
-    $deps = $tree.dependencies
-    if (-not $deps) { return $null }
-    $key = $package
-    if ($deps.PSObject.Properties.Name -contains $key) { return $deps.$key.version }
-    return $null
+    $root = Get-GlobalRoot
+    if (-not $root) { return $null }
+    $pkgJson = Join-Path (Join-Path $root ($package -replace '/', '\')) 'package.json'
+    if (-not (Test-Path -LiteralPath $pkgJson)) { return $null }
+    try { return (Get-Content -Raw -LiteralPath $pkgJson | ConvertFrom-Json).version } catch { return $null }
 }
 
 function Install-NpmGlobal([string]$spec, [string]$allowScriptsFor) {
@@ -126,30 +134,40 @@ if ($SkipGlobalPackages) {
     Step '2/6 global packages (skipped)'
 } else {
     Step '2/6 global packages'
+    # Skip a package already installed at the pinned version: re-running the script is
+    # then a no-op for the toolchain, and only the config copy (step 3) does work.
     $packages = @(
-        @("@opencode/cli@$OPENCODE_VERSION", '@opencode/cli'),
-        @("@colbymchenry/codegraph@$CODEGRAPH_VERSION", $null),
-        @("playwright@$PLAYWRIGHT_VERSION", $null)
+        @{ name = '@opencode/cli';          pin = $OPENCODE_VERSION;   allow = '@opencode/cli' },
+        @{ name = '@colbymchenry/codegraph'; pin = $CODEGRAPH_VERSION;  allow = $null },
+        @{ name = 'playwright';             pin = $PLAYWRIGHT_VERSION; allow = $null }
     )
+    if (-not $SkipLark) {
+        $packages += @{ name = '@larksuite/cli'; pin = $LARK_CLI_VERSION; allow = '@larksuite/cli' }
+    }
     foreach ($package in $packages) {
-        Write-Host "  installing $($package[0])"
-        Install-NpmGlobal $package[0] $package[1]
-        Ok $package[0]
+        $have = Get-GlobalPackageVersion $package.name
+        if ($have -eq $package.pin) {
+            Ok "$($package.name) $have - already installed"
+            continue
+        }
+        $note = if ($have) { " (replacing $have)" } else { '' }
+        Write-Host "  installing $($package.name)@$($package.pin)$note"
+        Install-NpmGlobal "$($package.name)@$($package.pin)" $package.allow
+        Ok "$($package.name) $($package.pin)"
     }
 
+    if ($SkipLark) {
+        Warn 'lark-cli skipped (-SkipLark): the lark-* skills are installed but cannot run'
+    }
+
+    # The fork tarball is always reinstalled, deliberately: a rebuilt fork keeps the
+    # version 2.7.0, so a version comparison would silently keep the old build after
+    # the tarball in vendor/ is replaced. It is a local file - no registry round trip.
     Write-Host '  installing @openchamber/web from the fork tarball'
     Install-NpmGlobal $OPENCHAMBER_TARBALL
     Ok 'openchamber (fork build)'
 
-    if ($SkipLark) {
-        Warn 'lark-cli skipped (-SkipLark): the lark-* skills are installed but cannot run'
-    } else {
-        Write-Host "  installing @larksuite/cli@$LARK_CLI_VERSION"
-        Install-NpmGlobal "@larksuite/cli@$LARK_CLI_VERSION" '@larksuite/cli'
-        Ok 'lark-cli (Feishu/Lark - authorise per machine with: lark-cli auth login)'
-    }
-
-    # node-pty ships prebuilds/win32-x64/conpty.node, so no MSVC is needed.
+    # node-pty ships prebuilds/win32-x64/conpty.exe, so no MSVC is needed.
     # If this ever starts failing, install Visual Studio Build Tools and retry.
 }
 
@@ -204,6 +222,12 @@ A6API_API_KEY=
 
 # V-API (gpt.ge) resale models. Optional.
 # GPTGE_API_KEY=
+
+# Browser automation and the deep-research playwright library. Uncomment and fill
+# after `npm root -g` prints this machine's real global root.
+# PW_CDP=http://127.0.0.1:9222
+# NODE_PATH=<npm root -g>
+# PW_PKG=<npm root -g>\playwright\index.mjs
 '@
     [System.IO.File]::WriteAllText($envFile, ($template -replace "`r`n", "`n"))
     Ok "created $envFile - fill in the keys"
@@ -282,16 +306,19 @@ foreach ($package in $reported) {
 # Version managers (fnm, nvm-windows) keep global packages inside the Node
 # installation, not %APPDATA%\npm - print the real root so the Playwright env
 # hints below use the right path.
-$npmRoot = (cmd /c 'npm root -g 2>nul') -join ''
+$npmRoot = (Get-GlobalRoot)
 if ($npmRoot) { Ok "npm global root: $npmRoot" }
+# Same .env file as the keys: the profile loader injects anything named here.
 if (-not $env:NODE_PATH -or -not $env:PW_PKG) {
     Warn 'NODE_PATH / PW_PKG not set - the playwright library (deep-research) needs them:'
-    Write-Host "    setx NODE_PATH `"$npmRoot`""
-    Write-Host "    setx PW_PKG `"$npmRoot\playwright\index.mjs`""
+    Write-Host "    add to $envFile :"
+    Write-Host "      NODE_PATH=$npmRoot"
+    Write-Host "      PW_PKG=$npmRoot\playwright\index.mjs"
 }
 if (-not $env:PW_CDP) {
     Warn 'PW_CDP not set for browser automation:'
-    Write-Host '    setx PW_CDP "http://127.0.0.1:9222"   (Chrome started with --remote-debugging-port=9222)'
+    Write-Host "    add to $envFile :  PW_CDP=http://127.0.0.1:9222"
+    Write-Host '    (start Chrome with --remote-debugging-port=9222)'
 }
 
 Write-Host ''

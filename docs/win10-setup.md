@@ -30,6 +30,11 @@ KasmVNC/ttyd/tini. This branch (`win10-compat`) is `main` plus `platform/win10/`
 4. `powershell -ExecutionPolicy Bypass -File platform\win10\setup.ps1`
    - `-WorktreeRoot D:\gamedev\worktrees` overrides where worktrees go (default is that path).
    - `-SkipLark` skips `@larksuite/cli` and leaves the `lark-*` skills without a CLI.
+   - `-SkipGlobalPackages` copies config only.
+   - Re-runs are cheap: a package already at the pinned version prints
+     `already installed` and is skipped. The fork tarball is the one exception — it is
+     reinstalled every run, because a rebuilt fork keeps the version `2.7.0` and a
+     version comparison would leave the old build in place.
 5. Put the keys in `%USERPROFILE%\.config\opencode\.env` (created by `setup.ps1`, never
    overwritten afterwards), then **open a new shell**:
 
