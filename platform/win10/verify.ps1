@@ -118,6 +118,18 @@ Check 'global AGENTS.md installed' {
     @((Test-Path $p), $p)
 }
 
+# The runtime reads ~/.config/opencode/AGENTS.md, not this repo's copy: an edit here
+# reaches the prompt only after setup.ps1 copies it over. Compare so an unpropagated
+# edit shows up as a failure instead of silently doing nothing.
+Check 'global AGENTS.md in sync' {
+    $inst = Join-Path (Join-Path $configHome 'opencode') 'AGENTS.md'
+    $src = Join-Path $PSScriptRoot 'AGENTS.win10.md'
+    if (-not (Test-Path -LiteralPath $src)) { return @($false, "no source: $src") }
+    if (-not (Test-Path -LiteralPath $inst)) { return @($false, 'not installed') }
+    $same = (Get-FileHash -LiteralPath $inst).Hash -eq (Get-FileHash -LiteralPath $src).Hash
+    @($same, $(if ($same) { 'matches platform\win10\AGENTS.win10.md' } else { 'stale: edit is not in the runtime prompt - run setup.ps1' }))
+}
+
 Check 'plugins present' {
     $dir = (Join-Path (Join-Path $configHome 'opencode') 'plugins')
     $found = @(Get-ChildItem $dir -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)

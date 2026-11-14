@@ -13,8 +13,22 @@
 
 > Windows edition. The shared sections (0–6, the routing tables, codegraph) are copies of
 > the container's `opencode-config/opencode/AGENTS.md`; the environment sections are this
-> machine's own. `platform/win10/verify.ps1` warns when a shared section goes missing, so a
-> rule added on `main` cannot silently skip this file.
+> machine's own, measured on it — change a path or command here only after checking it.
+> `platform/win10/verify.ps1` warns when a shared section goes missing, so a rule added on
+> `main` cannot silently skip this file.
+
+## 本机（实测）
+
+- Windows 10 专业版 19045 / `DESKTOP-VH235CC`；i5-12490F（6 核 12 线程）/ 32 GB / RX 6650 XT；一块 2 TB SSD 分两个区：**C: 系统盘（空闲 ~78 GB）**、**E: 数据盘（空闲 ~617 GB）**。**没有 D: 盘**，旧文档里的 `D:\gamedev\...` 全部作废。
+- 时区、端口、已装工具版本等现况直接调 `sysinfo`，别靠记忆。
+- 终端是 Alacritty + PowerShell 7（`pwsh` 7.6.9）。**命令一律用 `pwsh` 跑。**
+
+## 终端与 Node 版本
+
+- `pwsh` 7 的 profile 里有 fnm 钩子 → `node v24.22.2`。**Windows PowerShell 5.1 没有**（它的 profile 只有 `.env` loader）→ `node v23.9.0`，`opencode` 会落到 `%APPDATA%\npm` 里残留的旧 `opencode-ai@1.1.45`（v1）。
+- 因此在 5.1 窗口里跑 `platform\win10\verify.ps1` 时，`node >= 24.14` 与 `BD pins installed` 两行 FAIL 是**假警报**；用 `pwsh` 复跑即 5/5 通过。
+- BD-004 的全局包都装在 fnm 的 v24.22.2 下：`@opencode/cli` 2.2.6、`@openchamber/web` 2.7.0（fork，dist 里有 `groupRootWorktrees`）、`@colbymchenry/codegraph` 1.6.2、`playwright` 1.65.0、`@larksuite/cli` 1.0.99。`npm root -g` 指向 `%LOCALAPPDATA%\fnm_multishells\<id>\node_modules`，每个 shell 的 `<id>` 都不同——别把那个路径写进脚本，用 `npm root -g` 现算。
+- `openchamber` 在 `127.0.0.1:3000`，内嵌 opencode v2.2.6。`pnpm`/`bun` 没装，本机用 npm。
 
 ## 项目、skill、文档、工具（列出部分常用的-并非全部）
 
@@ -22,8 +36,10 @@
 
 | 项目 | 路径 | 是什么 |
 |---|---|---|
-| 本机 checkout | `D:\gamedev\debian-railway` | 这份仓库：agent 配置、BD 版本锁、本 overlay 的来源 |
-| Godot 游戏项目 | `D:\gamedev\<项目>` | 用 Godot 4.7 + godot-ai MCP 做的游戏；编辑器必须由人开着 |
+| 本机 checkout | `E:\code\github\debian-railway` | 这份仓库（分支 `win10-compat` = `main` + `platform\win10\` overlay）：agent 配置、BD 版本锁 |
+| 其他仓库 | `E:\code\github\<repo>` | 同一个 checkout 根下的其它项目 |
+| worktree | `E:\code\github\worktrees` | 已写进 `opencode.jsonc` 的 `worktree.directory`；OpenChamber 的 New worktree 也落这里 |
+| Godot 游戏项目 | `E:\code\github\<项目>`（尚未创建） | Godot 4.7 + godot-ai MCP；**Godot 还没装**，见下 |
 
 容器那台机器上的项目（joops、飞书工作助手、我的世界 mod 等）在这里不存在——本文件是本机视角。
 
@@ -34,8 +50,8 @@
 | 调研 / 研究 / 综述 / 选型对比 | `deep-research` skill |
 | 功能或需求开发（"做个 X"） | `req-to-ship` skill |
 | 交付或合并之前 | `code-review` skill |
-| 飞书文档 · 知识库 · 授权 | `lark-doc` · `lark-wiki` · `lark-shared`（先 `lark-cli auth login`） |
-| 浏览器操作、页面验证 | `PW_CDP` + `connectOverCDP`（见「浏览器」） |
+| 飞书文档 · 知识库 · 授权 | `lark-doc` · `lark-wiki` · `lark-shared`（先 `lark-cli config init --new` + `auth login`，见「飞书」） |
+| 浏览器操作、页面验证 | `connectOverCDP("http://127.0.0.1:9222", …)`（见「浏览器」） |
 | OpenCode 自身的问题 | `opencode` skill |
 
 **文档**
@@ -55,6 +71,16 @@
 | 回忆以前哪个会话做过什么、某件事之前怎么定的 | `session_search` |
 | 要本机时间/时区、OS、CPU/内存/磁盘、端口、已装工具版本 | `sysinfo`（Windows 上没有 cgroup 与 Railway 段） |
 | 生成图片、改图 | `image_generate`（需 `A6API_API_KEY`） |
+
+## Git：用前缀区分兼容改动与通用改动
+
+目的是维护和合并时一眼分得清：哪些是只为这台 Windows 机器打的补丁（合并时可以整条丢掉），哪些是两边共享的通用改动（必须回流 `main`）。所以一条提交只做一件事，不要混。
+
+- **兼容改动**：只对 Windows 有意义的东西（`platform\win10\`、本文件、`docs\win10-setup.md`、`worktree.directory` 这类为这台机器改写的一个值），commit message 用 **`win10:`** 开头，例如 `win10: point worktrees at E:\code\github\worktrees`。
+- **通用改动**：`opencode-config\`、`scripts\`、`versions\`、skill、文档等两边都受益的，**不加 `win10:`**，沿用 `feat(scope):` / `fix(scope):`，并且先在 `main` 落地再 merge 下来。
+- 需要同时动两边时，提交两次：先通用那次（回流 `main`），再 `win10:` 那次（本机适配）。
+- 合并/排查时这样看：`git log --oneline main..win10-compat` 里带 `win10:` 的是本机私有部分，其余是还没回流 `main` 的通用改动；`git log --oneline win10-compat..main` 是 `main` 上还没同步下来的。
+- push 前确认在 `win10-compat` 分支上。
 
 ## 0. Language
 
@@ -124,37 +150,41 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 
 Windows 没有会重建的根文件系统，但有更坏的失效方式：**OneDrive / Dropbox / 网络盘**。同步目录会在 Godot 导入或 `git` 操作底下改文件，毁掉 `.godot/` 缓存、偶尔毁掉 index。
 
-- 仓库放**本地固定盘**（`D:\gamedev\...`），绝不放 `C:\Users\<you>\OneDrive`。
-- worktree 放在仓库旁边：`git worktree add D:\gamedev\worktrees\<branch> -b <branch>`，别放 `%TEMP%`。`setup.ps1` 已把 `opencode.jsonc` 的 `worktree.directory` 改成这个根目录（容器那份是 `/workspace/worktrees`），所以 OpenChamber 的「New worktree」也落在同一处。
-- 临时文件（日志、探针脚本、构建产物）可以放 `%TEMP%`——按定义就是一次性的。以后要再找到的东西放项目目录下。
+- 仓库放**本地固定盘**：`E:\code\github\<repo>`，worktree 放旁边 `E:\code\github\worktrees\<branch>`（`git worktree add E:\code\github\worktrees\<branch> -b <branch>`）。绝不放 `C:\Users\<you>\OneDrive`，别放 `%TEMP%`（一次性）。
+- C: 是系统盘，只剩 ~78 GB：代码、模型、构建产物一律放 E:（空闲 ~617 GB）。
+- 临时文件（日志、探针脚本、构建输出）可以放 `%TEMP%`——按定义就是一次性的。以后要再找到的东西放项目目录下。
 - 不要把仓库克隆到 WSL 路径（`\\wsl.localhost\...`）再让 Godot 去读：9p 文件系统会把导入和 `git status` 拖慢好几倍。
 
 ## Windows：密钥与环境变量
 
 密钥放在 `%USERPROFILE%\.config\opencode\.env`（`setup.ps1` 创建，之后不再覆盖），由它写进两个 PowerShell profile 的 loader 载入，所以每个新终端都有，`opencode` 和 `openchamber serve` 直接继承——不用 `setx`，也不进机器级环境变量。
 
+- 现在里面只有 `EMBEDDING_API_KEY`、`A6API_API_KEY`；`PW_CDP` / `NODE_PATH` / `PW_PKG` 没设（见「浏览器」）。
 - 改完 `.env` 要**开新终端**；已经在跑的 `openchamber serve` 用 `openchamber restart` 才能拿到新值。
-- 供应商 key 也可以 `opencode auth login` 存进 `auth.json`，那样 `.env` 里留空即可；`OpenCode Go` 订阅只能这样登录，没有 env 形式。
+- 供应商 key 也可以 `opencode auth login` 存进 `auth.json`，那样 `.env` 里留空即可。**`opencode-go` 订阅还没登录**（本机没有 `auth.json`），而 `opencode.jsonc` 的默认 model 是 `opencode-go/deepseek-v4.1-flash`：用默认 model 前先登录，否则 401。当前可用的路径是 a6api（走 `.env` 的 key）。
 - 这个文件是机器本地的，**不要复制进仓库**，也不要提交。
 
 ## 附：codegraph（分析代码的首选）
 
 - 分析 / 查看代码优先用 `codegraph_explore`；搜索参数和符号用**英文**（代码符号都是英文字母，别用中文搜索）。
 - 执行搜索 / 分析前先 `codegraph sync` 同步代码变更。常用：`sync`（增量） · `index`（重建） · `status` · `files`。
-- **没有 `.codegraph/` 的项目不要自己 `codegraph init`** —— 建索引是用户的决定；告知用户该目录未建索引，然后用 grep/glob 继续。
+- **没有 `.codegraph/` 的项目不要自己 `codegraph init`** —— 建索引是用户的决定；告知用户该目录未建索引，然后用 grep/glob 继续。本仓库 `E:\code\github\debian-railway` 目前就没建。
 
 ## 浏览器
 
-本机浏览器就是你日常用的 Chrome 或 Edge，加一个专用调试端口。扫码、验证码、OAuth 回调这类步骤由人在这同一个窗口里完成，agent 之后接同一个会话。
+本机浏览器就是日常用的 Chrome（137），加一个专用调试端口。扫码、验证码、OAuth 回调这类步骤由人在这同一个窗口里完成，agent 之后接同一个会话。
 
-- 启动：`chrome.exe --remote-debugging-port=9222 --user-data-dir=D:\gamedev\.chrome-agent`（独立 profile，避免和日常窗口抢锁；登录一次就能长期复用）。
-- 接同一个实例：设置 `PW_CDP=http://127.0.0.1:9222`，脚本里用 `connectOverCDP(url, { noDefaults: true, isLocal: true })`。别用 `playwright cli open`（会导航走你当前标签页）。
-- 不要另起浏览器：不 `--headless`、不换端口、不删 `SingletonLock` —— 会顶掉你正在操作的窗口。
+- 启动：`& "E:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="E:\chrome-debug"`（独立 profile，避免和日常窗口抢锁；登录一次就能长期复用）。现在 9222 已在监听。
+- 接同一个实例：`connectOverCDP('http://127.0.0.1:9222', { noDefaults: true, isLocal: true })`。别用 `playwright cli open`（会导航走你当前标签页）。
+- `.env` 里没有 `PW_CDP`：要用就在脚本里写字面量，或把 `PW_CDP=http://127.0.0.1:9222` 加进 `.env`。
+- 不要另起浏览器：不 `--headless`、不换 profile / 端口、不删 `SingletonLock` —— 会顶掉你正在操作的窗口。
 - 不要为了看一眼页面去截图再读图：优先读 DOM，只在必须判断视觉效果时才截图。
 
 ## Godot 项目约定
 
-- **版本固定**：Godot 4.7.x 便携版放在 `D:\gamedev\tools\godot-4.7.2\`，不安装、不进 PATH。换版本就是换目录，`project.godot` 里不写绝对路径。
+Godot 目前**没装**（`D:\gamedev` 在本机不存在，也没有 Godot 目录），所以 godot-ai 的 MCP 条目缺失，`verify.ps1` 的 `godot-ai mcp entry` 会一直 FAIL 到装好并 Configure 为止。
+
+- **版本固定**：Godot 4.7.x 便携版放 `E:\APPS\godot-4.7.2\`，不安装、不进 PATH。换版本就是换目录，`project.godot` 里不写绝对路径。
 - **编辑器必须由人开着**：`godot-ai` 是编辑器插件，agent 的所有场景/节点操作都经过它；没有编辑器就没有 undo 栈，也没有截图和输入注入。
 - **MCP 走 dock 的 Configure**：不要手抄 `uvx` 命令——v4 客户端必须通过 `godot-ai attach` 连接，手写的 URL 无法鉴权。
 - **只开需要的域**：`--exclude-domains` 或 dock 里的勾选，先开 editor / scene / node / script / game / project 六个，其余按需。
@@ -163,4 +193,4 @@ Windows 没有会重建的根文件系统，但有更坏的失效方式：**OneD
 
 ## 飞书 / Lark
 
-`setup.ps1` 装官方 `@larksuite/cli`（BD-004 钉 1.0.99），凭证是**每台机器各自登录**的：先 `lark-cli auth login`，`lark-cli auth status` 能看到身份再用 `lark-doc` / `lark-wiki` / `lark-shared`。不要自己拼开放平台 HTTP 请求；命令细节见 `docs/lark-cli.md`。装的时候用了 `-SkipLark` 的话，这三个 skill 在盘上但跑不起来。
+官方 `@larksuite/cli` 已装（BD-004 钉 1.0.99），但**还没配置**：`lark-cli auth status` 返回 `not_configured`。首次使用先在后台跑 `lark-cli config init --new`，从输出里取验证 URL 在浏览器里完成，再 `lark-cli auth login`；`auth status` 能看到身份后才用 `lark-doc` / `lark-wiki` / `lark-shared`。不要自己拼开放平台 HTTP 请求；命令细节见 `docs/lark-cli.md`。
