@@ -27,6 +27,16 @@
  * ~19x the text volume and the densest place for secrets, so searching it is the one change that
  * would make redaction worth its cost; revisit that decision if it is ever enabled.
  *
+ * Multi-term search (added 2026-11-14): `query` is a literal substring, so a 17-character question
+ * matched nothing in every one of five measurements — `{"total":0}` then reads exactly like "this
+ * never happened". The tool cannot segment the query itself: this SQLite has no ICU, FTS5 trigram
+ * needs 3 characters (so 2-character Chinese terms index nothing), and a measured bigram splitter
+ * ranked unrelated sessions first ("worktree /tmp" → 我的世界抓取) because function-word bigrams
+ * outrank real terms. The model is the better tokenizer here, so it passes `keywords` and the tool
+ * does what it is good at: one scan, per-term hit counts, and coverage ranking (how many distinct
+ * terms a session contains, before raw occurrence count). `require: 'all'` filters to sessions
+ * containing every term.
+ *
  * Output is NOT redacted, decided 2026-10-28 after measuring. It protected nothing here: the corpus
  * held no real credentials (0 of 6,909 messages matched a provider-token, JWT, url-credential or
  * private-key pattern), `session.messages` hands out the same text unredacted so the rule was never
@@ -55,12 +65,18 @@ const DEADLINE_CHECK_EVERY = 512;
 // made a search for "fork" return copies of unrelated sessions before it was excluded from matching.
 const FORK_SUFFIX = /\s*\(fork #\d+\)\s*$/i;
 const WORKSPACE_ROOT = '/workspace';
+const MAX_TERMS = 6;
 
 export type MatchMode = 'title' | 'content' | 'both';
+export type RequireMode = 'any' | 'all';
 
 export interface SearchSessionsOptions {
-  /** Keyword (case-insensitive for ASCII; CJK as written). */
+  /** One literal substring (case-insensitive for ASCII; CJK as written). */
   query?: string;
+  /** Several terms: the model supplies the segmentation the database cannot do. */
+  keywords?: string[];
+  /** 'any' (default) keeps sessions matching one term, 'all' requires every term. */
+  require?: RequireMode | string;
   /** Default 'both'. */
   match?: MatchMode | string;
   /** Substring filter on the session directory. */
@@ -86,6 +102,9 @@ export interface SessionHit {
   project: string;
   at: string;
   matches: number;
+  /** Distinct query terms this session contains: the primary sort key. */
+  coverage: number;
+  matched_terms: string[];
   title_match: boolean;
   snippet: string;
   /** Parent session id when this hit is a fork copy of another session; '' otherwise. */
@@ -97,6 +116,9 @@ export interface SessionHit {
 export interface SearchSessionsSuccess {
   status: 'ok';
   query: string;
+  /** The terms actually searched: `keywords` when given, else `[query]`. */
+  terms: string[];
+  require: string;
   match: string;
   candidates: number;
   rows_read: number;
@@ -104,6 +126,8 @@ export interface SearchSessionsSuccess {
   /** The parse loop hit its budget: the answer is real but built from part of the matching rows. */
   truncated: boolean;
   elapsed_ms: number;
+  /** Present only when nothing matched: what to do instead, so 0 is not read as "never happened". */
+  hint?: string;
   hits: SessionHit[];
 }
 
@@ -130,7 +154,10 @@ interface MessageRow {
 
 interface Hit {
   matches: number;
+  // Which of the query's terms this session contains — the coverage score.
+  terms: Set<string>;
   text: string;
+  firstTerm: string;
   first: number;
   titleMatch: boolean;
 }
@@ -166,7 +193,23 @@ function projectLabel(directory: string): string {
 
 export async function searchSessions(options: SearchSessionsOptions = {}): Promise<SearchSessionsResult> {
   const query = String(options.query ?? '').trim();
-  if (!query) return { status: 'error', message: 'query is required' };
+  // The model supplies the segmentation: `keywords` wins when present, `query` is the 1-term case.
+  const keywords = (options.keywords ?? []).map((k) => String(k).trim()).filter(Boolean);
+  const terms = [...new Set(keywords.length ? keywords : query ? [query] : [])];
+  if (!terms.length) {
+    return { status: 'error', message: 'pass `query` with one keyword, or `keywords` with 1-6 terms' };
+  }
+  if (terms.length > MAX_TERMS) {
+    return {
+      status: 'error',
+      message: `${terms.length} keywords given, max ${MAX_TERMS}: pass the most distinctive ones (e.g. one noun and one error string)`,
+    };
+  }
+
+  const require = options.require || 'any';
+  if (!['any', 'all'].includes(require)) {
+    return { status: 'error', message: "require must be 'any' or 'all'" };
+  }
 
   const match = options.match || 'both';
   if (!['title', 'content', 'both'].includes(match)) {
@@ -217,34 +260,38 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
       .all(...params) as unknown as SessionRow[];
     const byId = new Map(sessions.map((s) => [s.id, s]));
 
-    const needle = query.toLowerCase();
+    // Lowercased once: SQL LIKE is case-insensitive for ASCII, and the in-JS counting has to agree
+    // with what the prefilter selected or a row would match in SQL and contribute nothing here.
+    const lowerTerms = terms.map((t) => t.toLowerCase());
     // The full text is kept for the first hit in each session so the snippet can be cut from it
     // after sorting — but only for sessions that hit, never for every row scanned.
-    const hits = new Map<string, Hit>(); // session id -> { matches, text, first, titleMatch }
+    const hits = new Map<string, Hit>(); // session id -> { matches, terms, text, firstTerm, first }
     let rowsRead = 0;
     let truncated = false;
 
     if (match === 'title' || match === 'both') {
       for (const s of sessions) {
         // The fork suffix is metadata: matching it made "fork" return copies of unrelated sessions.
-        if ((s.title || '').replace(FORK_SUFFIX, '').toLowerCase().includes(needle)) {
-          hits.set(s.id, { matches: 0, text: '', first: 0, titleMatch: true });
+        const title = (s.title || '').replace(FORK_SUFFIX, '').toLowerCase();
+        const inTitle = terms.filter((_, i) => title.includes(lowerTerms[i]));
+        if (inTitle.length) {
+          hits.set(s.id, { matches: 0, terms: new Set(inTitle), text: '', firstTerm: '', first: 0, titleMatch: true });
         }
       }
     }
 
     if (match === 'content' || match === 'both') {
-      // The stored row is JSON, so `"` and `\` appear escaped there. Escape the keyword the same way
+      // The stored row is JSON, so `"` and `\` appear escaped there. Escape each term the same way
       // before building the LIKE pattern: a raw pattern for `"浅合并"` would match nothing and the
       // tool would answer "no such session" instead of scanning. JSON.stringify also leaves CJK
       // alone, which is why CJK queries need no special case.
-      const jsonEscaped = JSON.stringify(query).slice(1, -1);
-      const escaped = jsonEscaped.replace(/[\\%_]/g, (c) => `\\${c}`);
+      const escape = (t: string) => JSON.stringify(t).slice(1, -1).replace(/[\\%_]/g, (c) => `\\${c}`);
+      const clauses = terms.map(() => "m.data like ? escape '\\'").join(' or ');
       const selectRows = `select m.session_id, m.type, m.data from session_message m
              join session_v2 s on s.id = m.session_id ${whereSql}`;
       const rows = db
-        .prepare(`${selectRows}${whereSql ? ' and' : ' where'} m.data like ? escape '\\'`)
-        .all(...params, `%${escaped}%`) as unknown as MessageRow[];
+        .prepare(`${selectRows}${whereSql ? ' and' : ' where'} (${clauses})`)
+        .all(...params, ...terms.map((t) => `%${escape(t)}%`)) as unknown as MessageRow[];
       rowsRead = rows.length;
 
       let sinceCheck = 0;
@@ -269,22 +316,48 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
         }
 
         const lower = text.toLowerCase();
-        let from = 0;
         let count = 0;
+        let firstTerm = '';
         let first = -1;
-        while ((from = lower.indexOf(needle, from)) !== -1) {
-          if (first < 0) first = from;
-          count++;
-          from += needle.length;
+        const hitTerms: string[] = [];
+        for (let i = 0; i < terms.length; i++) {
+          const needle = lowerTerms[i];
+          let from = 0;
+          let occurrences = 0;
+          let at = -1;
+          while ((from = lower.indexOf(needle, from)) !== -1) {
+            if (at < 0) at = from;
+            occurrences++;
+            from += needle.length;
+          }
+          if (!occurrences) continue;
+          hitTerms.push(terms[i]);
+          count += occurrences;
+          if (first < 0 || at < first) {
+            first = at;
+            firstTerm = terms[i];
+          }
         }
-        if (count === 0) continue;
+        if (!hitTerms.length) continue;
 
         const existing = hits.get(row.session_id);
         if (existing) {
           existing.matches += count;
-          if (!existing.text) { existing.text = text; existing.first = first; }
+          for (const term of hitTerms) existing.terms.add(term);
+          if (!existing.text) {
+            existing.text = text;
+            existing.firstTerm = firstTerm;
+            existing.first = first;
+          }
         } else {
-          hits.set(row.session_id, { matches: count, text, first, titleMatch: false });
+          hits.set(row.session_id, {
+            matches: count,
+            terms: new Set(hitTerms),
+            text,
+            firstTerm,
+            first,
+            titleMatch: false,
+          });
         }
       }
     }
@@ -319,34 +392,57 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
         project: projectLabel(session.directory),
         at: new Date(session.time_updated).toISOString().slice(0, 16).replace('T', ' '),
         matches: hit.matches,
+        coverage: hit.terms.size,
+        matched_terms: [...hit.terms],
         title_match: hit.titleMatch,
-        snippet: hit.text ? buildSnippet(hit.text, needle, hit.first) : '',
+        snippet: hit.text ? buildSnippet(hit.text, hit.firstTerm.toLowerCase(), hit.first) : '',
         fork_of: parent,
         // A deleted parent leaves only the fork's own title, which still carries the original name.
         fork_of_title: parent ? (parentTitles.get(parent) || (session.title || '').replace(FORK_SUFFIX, '')) : '',
       });
     }
-    // Heaviest coverage first: a session that mentions the term 30 times is a better lead than one
-    // that mentions it once, regardless of age. A title match counts as one occurrence, otherwise a
-    // title-only hit sorts below every body mention and is cut off by `limit` — measured: all five
-    // title-only hits for "fork" fell outside the default 20, including "巡检 2026-11-06 20:25", the
-    // only session a date search could ever find. Ties break on the raw timestamp: `at` is truncated
-    // to the minute, so comparing it left sessions updated in the same minute in arbitrary order.
+    // Coverage first: with several terms, a session containing four of them is a better lead than one
+    // that repeats a single term 80 times. Then raw occurrences, then recency. A title match counts
+    // as one occurrence, otherwise a title-only hit sorts below every body mention and `limit` cuts
+    // it — measured: all five title-only hits for "fork" fell outside the default 20, including
+    // "巡检 2026-11-06 20:25", the only session a date search could ever find. Ties break on the raw
+    // timestamp: `at` is truncated to the minute, so comparing it left sessions updated in the same
+    // minute in arbitrary order.
     const rank = (h: SessionHit) => h.matches + (h.title_match ? 1 : 0);
-    results.sort((a, b) => rank(b) - rank(a) || (updatedAt.get(b.session) ?? 0) - (updatedAt.get(a.session) ?? 0));
+    results.sort(
+      (a, b) =>
+        b.coverage - a.coverage ||
+        rank(b) - rank(a) ||
+        (updatedAt.get(b.session) ?? 0) - (updatedAt.get(a.session) ?? 0),
+    );
+
+    // `require: 'all'` filters after scoring so the hint below can say whether 'any' would have hit.
+    const matchedAny = results.length;
+    const kept = require === 'all' ? results.filter((h) => h.coverage === terms.length) : results;
+
+    let hint: string | undefined;
+    if (!kept.length) {
+      hint =
+        require === 'all' && matchedAny > 0
+          ? `No session contains all ${terms.length} terms. ${matchedAny} contain at least one — retry with require:'any'.`
+          : `No session contains ${terms.length > 1 ? 'these terms' : JSON.stringify(terms[0])} verbatim. Matching is a literal substring, not word-AND: pass one shorter, distinctive term in query, or several in keywords[] with require:'any'.`;
+    }
 
     return {
       status: 'ok',
       query,
+      terms,
+      require,
       match,
       candidates: sessions.length,
       rows_read: rowsRead,
-      total: results.length,
+      total: kept.length,
       // True when the parse loop hit the budget and stopped early: the answer is real but built from
       // only part of the matching rows, which is worth saying rather than reporting as complete.
       truncated,
       elapsed_ms: Date.now() - t0,
-      hits: results.slice(0, limit),
+      ...(hint ? { hint } : {}),
+      hits: kept.slice(0, limit),
     };
   } finally {
     db.close();
@@ -357,8 +453,8 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
 // Same code path as the tool, so a failure here is a failure there. `node:sqlite` is imported
 // dynamically above because it does not exist below Node 22.
 if (import.meta.main) {
-  const VALUE_OPTS = new Set(['--match', '--dir', '--days', '--limit']);
-  const FLAG_OPTS = new Set(['--include-archived', '--include-children', '--include-tmp', '--json', '--help']);
+  const VALUE_OPTS = new Set(['--match', '--dir', '--days', '--limit', '--keywords']);
+  const FLAG_OPTS = new Set(['--include-archived', '--include-children', '--include-tmp', '--json', '--help', '--all']);
   const opts: Record<string, string | boolean> = {};
   const positional: string[] = [];
   const argv = process.argv.slice(2);
@@ -373,6 +469,8 @@ if (import.meta.main) {
   if (opts.help) {
     console.log(`usage: node session-search.ts <keyword...> [options]
 
+  --keywords "a,b"              several terms, comma separated (max 6)
+  --all                         require every term (default: any one)
   --match <title|content|both>  where to look (default both)
   --dir <substring>             only sessions whose directory contains it
   --days <n>                    only sessions updated in the last n days
@@ -386,6 +484,8 @@ if (import.meta.main) {
 
   const result = await searchSessions({
     query: positional.join(' '),
+    keywords: typeof opts.keywords === 'string' ? opts.keywords.split(',').map((k) => k.trim()).filter(Boolean) : undefined,
+    require: opts.all ? 'all' : undefined,
     match: opts.match as string | undefined,
     directory: opts.dir as string | undefined,
     days: opts.days as string | undefined,
@@ -403,6 +503,7 @@ if (import.meta.main) {
     console.log(JSON.stringify(result, null, 2));
   } else {
     console.log(`${result.total} 个会话命中 · ${result.candidates} 个候选 · 解析 ${result.rows_read} 行 · ${result.elapsed_ms} ms\n`);
+    if (result.hint) console.error(`hint: ${result.hint}`);
     // Column widths follow the data: `project` is now a path below /workspace and can be long.
     // Legacy worktree paths run 90+ characters, so the CLI shows their tail and the JSON keeps all.
     const short = (p: string) => (p.length > 34 ? `…${p.slice(-33)}` : p);
@@ -411,9 +512,11 @@ if (import.meta.main) {
       // A title-only hit has zero body occurrences; printing `0×` there reads as "no match".
       const label = hit.matches > 0 ? `${hit.matches}×` : 'T';
       const fork = hit.fork_of ? ` ↳ fork of "${hit.fork_of_title || hit.fork_of}"` : '';
-      console.log(`${hit.at}  ${label.padStart(4)}  ${short(hit.project).padEnd(projectWidth)} ${hit.title}${fork}`);
-      if (hit.snippet) console.log(`${' '.repeat(projectWidth + 9)}…${hit.snippet}…`);
-      console.log(`${' '.repeat(projectWidth + 9)}${hit.session}`);
+      // With several terms the coverage is the useful number: 4/6 says more than 12×.
+      const cover = result.terms.length > 1 ? ` ${hit.coverage}/${result.terms.length}` : '';
+      console.log(`${hit.at}  ${label.padStart(4)}${cover.padEnd(6)} ${short(hit.project).padEnd(projectWidth)} ${hit.title}${fork}`);
+      if (hit.snippet) console.log(`${' '.repeat(projectWidth + 12)}…${hit.snippet}…`);
+      console.log(`${' '.repeat(projectWidth + 12)}${hit.session}`);
     }
   }
 }
