@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ModuleData\Languages\简体中文\std_module_strings_xml.xml — 物品中文名。
+  适用 BL 1.5.x；未在游戏里实跑验证。
+
+  规则（官方本地化文档）：
+    * 字符串 id 全局唯一，8 位随机字母数字是社区惯例；
+    * 英文（默认语言）用 items.xml 里 {=id} 后面的内联文本；
+    * 其它语言用本文件里同一 id 的译文，所以这里只放译文，不重复英文；
+    * <tag language> 必须和文件夹名一致，否则那套译文不会被加载。
+
+  改名的一个前提：物品的 name 用的是"你自己的新 key"。
+  若沿用原版 key，本文件里写同 id 只会覆盖同模块；跨模块覆盖未验证（见 howto-items.md §3）。
+-->
+<base type="string">
+  <tags>
+    <tag language="简体中文" />
+  </tags>
+  <strings>
+    <string id="myarrows01" text="我的箭" />
+    <string id="myarrows02" text="我的破甲箭" />
+  </strings>
+</base>
