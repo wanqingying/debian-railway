@@ -1,5 +1,5 @@
 /**
- * Tests for lib/session-search.js. Run: node --test opencode-config/opencode/lib/session-search.test.js
+ * Tests for lib/session-search.ts. Run: node --test opencode-config/opencode/lib/session-search.test.ts
  *
  * Every case runs against a throwaway SQLite fixture, never the real session store: the tool reads
  * another process's live database, so a test that depended on its contents would rot within a day.
@@ -11,7 +11,27 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { searchSessions } from './session-search.js';
+import { searchSessions } from './session-search.ts';
+
+interface FixtureMessage {
+  type: string;
+  data: string;
+}
+
+interface FixtureSession {
+  id: string;
+  title?: string;
+  directory?: string;
+  parentId?: string;
+  archived?: boolean;
+  updated?: number;
+  messages?: FixtureMessage[];
+}
+
+interface Fixture {
+  dbPath: string;
+  cleanup: () => void;
+}
 
 // The two tables the tool touches, with only the columns it selects or filters on.
 const SCHEMA = `
@@ -27,18 +47,18 @@ const SCHEMA = `
 
 const NOW = Date.now();
 
-function userText(text) {
+function userText(text: string): string {
   return JSON.stringify({ time: { created: NOW }, text, files: [] });
 }
 
-function assistantText(parts) {
+function assistantText(parts: string[]): string {
   return JSON.stringify({
     time: { created: NOW },
     content: parts.map((text) => ({ type: 'text', text })),
   });
 }
 
-function buildFixture(sessions) {
+function buildFixture(sessions: FixtureSession[]): Fixture {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'session-search-'));
   const dbPath = path.join(dir, 'opencode.db');
   const db = new DatabaseSync(dbPath);
@@ -78,6 +98,7 @@ test('a query containing a double quote still finds the text', async () => {
   try {
     const r = await searchSessions({ query: '"浅合并"', dbPath: fx.dbPath });
     assert.equal(r.status, 'ok');
+    if (r.status !== 'ok') return;
     assert.equal(r.total, 1);
     assert.match(r.hits[0].snippet, /浅合并/);
   } finally {
@@ -97,6 +118,7 @@ test('snippets keep config values readable', async () => {
   ]);
   try {
     const r = await searchSessions({ query: 'GITHUB_TOKEN', dbPath: fx.dbPath });
+    if (r.status !== 'ok') throw new Error(`expected ok, got ${r.status}`);
     assert.equal(r.total, 1);
     assert.match(r.hits[0].snippet, /GITHUB_TOKEN=abc123def/);
   } finally {
@@ -105,7 +127,7 @@ test('snippets keep config values readable', async () => {
 });
 
 test('defaults drop archived, child and /tmp sessions', async () => {
-  const message = [{ type: 'user', data: userText('needle in the haystack') }];
+  const message: FixtureMessage[] = [{ type: 'user', data: userText('needle in the haystack') }];
   const fx = buildFixture([
     { id: 'ses_live', title: 'live', messages: message },
     { id: 'ses_arch', title: 'archived', archived: true, messages: message },
@@ -114,6 +136,7 @@ test('defaults drop archived, child and /tmp sessions', async () => {
   ]);
   try {
     const narrow = await searchSessions({ query: 'needle', dbPath: fx.dbPath });
+    if (narrow.status !== 'ok') throw new Error(`expected ok, got ${narrow.status}`);
     assert.deepEqual(narrow.hits.map((h) => h.session), ['ses_live']);
 
     const wide = await searchSessions({
@@ -123,6 +146,7 @@ test('defaults drop archived, child and /tmp sessions', async () => {
       includeChildren: true,
       includeTmp: true,
     });
+    if (wide.status !== 'ok') throw new Error(`expected ok, got ${wide.status}`);
     assert.equal(wide.total, 4);
   } finally {
     fx.cleanup();
@@ -151,11 +175,13 @@ test('limit is clamped and success carries a status', async () => {
   const fx = buildFixture(sessions);
   try {
     const all = await searchSessions({ query: 'common', limit: 999, dbPath: fx.dbPath });
+    if (all.status !== 'ok') throw new Error(`expected ok, got ${all.status}`);
     assert.equal(all.status, 'ok');
     assert.equal(all.total, 5);
     assert.equal(all.hits.length, 5);
 
     const one = await searchSessions({ query: 'common', limit: 1, dbPath: fx.dbPath });
+    if (one.status !== 'ok') throw new Error(`expected ok, got ${one.status}`);
     assert.equal(one.hits.length, 1);
     assert.equal(one.total, 5); // total counts every hit, not just the page
   } finally {
@@ -175,6 +201,7 @@ test('a tiny budget returns partial hits instead of discarding them', async () =
   const fx = buildFixture(sessions);
   try {
     const r = await searchSessions({ query: 'busy', budgetMs: 0, dbPath: fx.dbPath });
+    if (r.status !== 'ok') throw new Error(`expected ok, got ${r.status}`);
     assert.equal(r.status, 'ok');
     assert.equal(r.truncated, true);
     assert.ok(r.total > 0, 'partial hits should still be returned');
@@ -188,6 +215,7 @@ test('title-only hits are marked and carry no snippet', async () => {
   const fx = buildFixture([{ id: 'ses_title', title: 'light merge 冲突处理', messages: [] }]);
   try {
     const r = await searchSessions({ query: 'light merge', match: 'title', dbPath: fx.dbPath });
+    if (r.status !== 'ok') throw new Error(`expected ok, got ${r.status}`);
     assert.equal(r.total, 1);
     assert.equal(r.hits[0].title_match, true);
     assert.equal(r.hits[0].matches, 0);

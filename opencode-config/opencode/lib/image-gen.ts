@@ -1,6 +1,6 @@
 // Image generation through the a6api gateway. Used by the `image_generate`
 // tool (plugins/image-gen/index.ts) and runnable on its own:
-//   node lib/image-gen.js "a red apple on a wooden table" /tmp/apple.jpg
+//   node lib/image-gen.ts "a red apple on a wooden table" /tmp/apple.jpg
 //
 // Why this exists instead of OpenCode's built-in image model support: the
 // gateway's /images/generations response carries `revised_prompt` (and an empty
@@ -9,16 +9,51 @@
 // for every request (measured 2026-11-14 with both `b64_json` and `url`
 // response_format). Nothing in the config can drop an unexpected response field,
 // so the call is made here and only the bytes are handed back.
+//
+// TypeScript, run by Node's own type stripping (Node >= 24): no build step.
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const DEFAULT_BASE_URL = 'https://a6api.vip/v1';
 const DEFAULT_MODEL = 'nano-banana-2.1';
 const REQUEST_TIMEOUT_MS = 180_000;
 const DOWNLOAD_TIMEOUT_MS = 60_000;
 
-function authKey() {
+export interface GenerateImageOptions {
+  prompt: string;
+  /** Destination file, session-relative or absolute. */
+  path?: string;
+  /** Requested size, e.g. "1024x1024"; the gateway maps it to an aspect. */
+  size?: string;
+  /** Local paths or URLs used to edit the picture or as style/subject references. */
+  images?: string[];
+  model?: string;
+  baseURL?: string;
+  /** Base for a relative `path` (the session directory when called as a tool). */
+  cwd?: string;
+}
+
+export interface GeneratedImage {
+  path: string;
+  model: string;
+  format: string;
+  bytes: number;
+  width?: number;
+  height?: number;
+  requestedSize: string | null;
+  revisedPrompt?: string;
+  elapsedMs: number;
+}
+
+interface ImageItem {
+  b64_json?: string;
+  url?: string;
+  revised_prompt?: string;
+}
+
+function authKey(): string {
   if (process.env.A6API_API_KEY) return process.env.A6API_API_KEY;
   const dataHome = process.env.XDG_DATA_HOME || path.join(process.env.HOME || '/root', '.local', 'share');
   const file = path.join(dataHome, 'opencode', 'auth.json');
@@ -29,7 +64,7 @@ function authKey() {
   throw new Error('No a6api key: set A6API_API_KEY or store one in auth.json');
 }
 
-function sniff(buf) {
+function sniff(buf: Buffer): string {
   if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8) return 'jpg';
   if (buf.length > 8 && buf.subarray(0, 4).toString('latin1') === 'PNG') return 'png';
   if (buf.length > 12 && buf.subarray(0, 4).toString('latin1') === 'RIFF' && buf.subarray(8, 12).toString('latin1') === 'WEBP') return 'webp';
@@ -39,7 +74,7 @@ function sniff(buf) {
 
 // Dimensions straight from the container, so a caller can tell an actual
 // aspect/size result apart from what it asked for.
-function dimensions(buf, format) {
+function dimensions(buf: Buffer, format: string): { width?: number; height?: number } {
   try {
     if (format === 'png') return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
     if (format === 'gif') return { width: buf.readUInt16LE(6), height: buf.readUInt16LE(8) };
@@ -64,7 +99,7 @@ function dimensions(buf, format) {
   return {};
 }
 
-function mediaType(file) {
+function mediaType(file: string): string {
   const ext = path.extname(file).toLowerCase();
   if (ext === '.png') return 'image/png';
   if (ext === '.webp') return 'image/webp';
@@ -74,7 +109,7 @@ function mediaType(file) {
 
 // A prompt is all the gateway needs to name a file after; keep it short and
 // filesystem-safe so `generated/` stays readable.
-function slug(text) {
+function slug(text: string): string {
   return (text || 'image')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -84,17 +119,8 @@ function slug(text) {
 
 /**
  * Generate (or edit, when `images` is given) one image and write it to disk.
- *
- * @param {object} options
- * @param {string} options.prompt
- * @param {string} [options.path]   destination file, session-relative or absolute
- * @param {string} [options.size]   e.g. "1024x1024" (the gateway maps it to an aspect)
- * @param {string[]} [options.images] local paths or URLs used as edit sources / references
- * @param {string} [options.model]
- * @param {string} [options.baseURL]
- * @param {string} [options.cwd]    base for a relative `path`
  */
-export async function generateImage(options = {}) {
+export async function generateImage(options: GenerateImageOptions): Promise<GeneratedImage> {
   const { prompt, size, model, baseURL, cwd } = options;
   if (!prompt || !prompt.trim()) throw new Error('prompt is required');
 
@@ -104,7 +130,7 @@ export async function generateImage(options = {}) {
   const images = options.images || [];
   const started = Date.now();
 
-  let response;
+  let response: Response;
   if (images.length > 0) {
     // Edits take multipart; the field name is `image` and repeats per reference.
     const form = new FormData();
@@ -112,8 +138,8 @@ export async function generateImage(options = {}) {
     form.append('prompt', prompt);
     if (size) form.append('size', size);
     for (const [index, ref] of images.entries()) {
-      let bytes;
-      let type;
+      let bytes: Buffer;
+      let type: string;
       if (/^https?:\/\//i.test(ref)) {
         const fetched = await fetch(ref, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
         if (!fetched.ok) throw new Error(`Failed to download reference ${ref}: HTTP ${fetched.status}`);
@@ -140,7 +166,9 @@ export async function generateImage(options = {}) {
     });
   }
 
-  const body = await response.json().catch(() => null);
+  const body = (await response.json().catch(() => null)) as
+    | { data?: ImageItem[]; error?: { message?: string }; msg?: string }
+    | null;
   if (!response.ok) {
     const detail = body?.error?.message || body?.msg || JSON.stringify(body)?.slice(0, 200) || `HTTP ${response.status}`;
     throw new Error(`a6api ${response.status}: ${detail}`);
@@ -149,7 +177,7 @@ export async function generateImage(options = {}) {
   const item = body?.data?.[0];
   if (!item) throw new Error('a6api returned no image');
 
-  let bytes;
+  let bytes: Buffer;
   if (item.b64_json) {
     bytes = Buffer.from(item.b64_json, 'base64');
   } else if (item.url) {
@@ -185,16 +213,16 @@ export async function generateImage(options = {}) {
   };
 }
 
-// CLI: node lib/image-gen.js "prompt" [out.jpg] [size]
-if (process.argv[1] && process.argv[1].endsWith('image-gen.js')) {
+// CLI: node lib/image-gen.ts "prompt" [out.jpg] [size]
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [prompt, out, size] = process.argv.slice(2);
   if (!prompt) {
-    console.error('usage: node lib/image-gen.js "prompt" [out.jpg] [1024x1024]');
+    console.error('usage: node lib/image-gen.ts "prompt" [out.jpg] [1024x1024]');
     process.exit(2);
   }
   generateImage({ prompt, path: out, size })
     .then((result) => console.log(JSON.stringify(result, null, 2)))
-    .catch((error) => {
+    .catch((error: Error) => {
       console.error(error.message);
       process.exit(1);
     });

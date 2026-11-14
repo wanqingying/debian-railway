@@ -1,5 +1,5 @@
 import { Plugin } from '@opencode/plugin';
-import { searchSessions } from '../../lib/session-search.js';
+import { searchSessions } from '../../lib/session-search.ts';
 
 const DESCRIPTION =
   'Finds which past opencode sessions dealt with something. Give it a keyword from a task, error, ticket, service or feature name and it returns one row per session — id, title, directory, last activity, how many times the term occurred in the conversation, and a short snippet — so you can answer "who already handled this, and what did they conclude?" before re-doing the work. Searches user messages and assistant replies of every project on this machine, not just the current one. Tool output is NOT searched: a clue that only ever appeared in a shell result or log dump will not be found. Defaults already exclude archived sessions, subagent sessions and /tmp scratch work; widen them only when the narrow search comes back empty.';
