@@ -354,6 +354,7 @@ Calls per task (many redundant → bad pagination defaults), error rate per para
 - [ ] No dynamic content in the prefix; tools stable and append-only; critical rules first, current state last.
 - [ ] Response-style rules carry their carve-outs: requested explanations, error reports and failing test output, security warnings, destructive-action confirmations, and progress on long jobs.
 - [ ] No time-sensitive statements; terminology consistent.
+- [ ] **The edit reached the file that is actually read.** After changing the global prompt, confirm the volume copy is the one you edited: `grep -c '^# Coding Guidelines' $XDG_CONFIG_HOME/opencode/AGENTS.md` returns 1, and it matches `opencode-config/opencode/AGENTS.md` byte for byte. Two files named `AGENTS.md` sit one `cp` apart; a wrong-source copy is silent and only a grep finds it.
 - [ ] Deterministic repeated work is a script, not an instruction.
 - [ ] Tool: name says the task, params unambiguous, output bounded, errors actionable, boundaries stated.
 - [ ] Every rule's source is dated; a rule resting only on a pre-2026 source is phrased as a hypothesis, not a `MUST`.
