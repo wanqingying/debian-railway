@@ -41,6 +41,14 @@ This is the default when a task fits one of these shapes, not the full skill lis
 | a6api 网关：模型白名单、日志、配额 | `a6api.md` |
 | "我的世界"游戏：查 mod/整合包数据集的结构与字段 | `mcmod-db.md` · `xhh-db.md`（采集流程见 `mcmod-stats.md`） |
 
+**工具**（本仓库自定义的插件工具，不是内置工具，见 `opencode-config/opencode/plugins/`）
+
+| 什么时候用 | 工具 |
+|---|---|
+| 回忆以前哪个会话做过什么、某件事之前怎么定的 | `session_search` |
+| 要时间/时区、容器起止与配额（cgroup，不是宿主机 48 核）、磁盘、端口内外分布、Railway 端点、已装工具版本 | `sysinfo` |
+| 生成图片、改图 | `image_generate` |
+
 ## 0. Language
 
 All code comments and documentation (README, docs, commit messages, PR descriptions) in **English**; keep existing content in its current language unless asked to translate. Replies in Simplified Chinese.
@@ -105,10 +113,9 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 
 > 例外：连续三轮失败时停止改代码，先质疑假设。
 
-## Environment facts
+## Filesystem: only `/workspace` survives a redeploy
 
 - **Only `/workspace` is a mounted volume.** `/tmp`, `/var/tmp`, `/root`, `/run`, `/usr` are rebuilt from the image on every redeploy. Create worktrees **only** with `wt new <branch> [base-ref]` → `$WORKTREE_ROOT/<branch>` (default `/workspace/worktrees`); `wt list` / `wt remove` / `wt prune` for the rest. Never `git worktree add /tmp/...` and never `session_move` into such a path: a worktree on the root filesystem disappears and its session then dies with `Directory not found` — this has already cost one session 13 hours. Scratch files (logs, probe scripts, build output) may live in `/tmp`; anything a later session must find again — including a repository checkout whose work must outlive the deploy — goes under `/workspace`, because a clone in `/tmp` loses its own history too.
-- **`sysinfo`** (a local plugin, not a built-in) reports time/timezone, OS, container start and uptime, the cgroup CPU/memory/pids quota it actually gets (not the host's 48 cores), disk, listening ports split into external vs loopback, and Railway's public endpoints. Call it when a task depends on those facts.
 
 ## 附：codegraph（分析代码的首选）
 
