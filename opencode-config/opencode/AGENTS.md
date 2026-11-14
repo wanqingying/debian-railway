@@ -20,9 +20,6 @@
 | 调研 / 研究 / 综述 / 选型对比 | `deep-research` skill |
 | 功能或需求开发（"做个 X"） | `req-to-ship` skill |
 | 交付或合并之前 | `code-review` skill |
-| 讲清原理 / 画图 / 做成可视页 | `answer-me-with-html` skill |
-| 硬 bug、性能回退 | `diagnosing-bugs` skill |
-| 先写测试再实现 | `tdd` skill |
 | 飞书文档 · 知识库 · 授权 | `lark-doc` · `lark-wiki` · `lark-shared` |
 | 浏览器操作、页面验证 | `pw <cmd>`（见「浏览器」） |
 | 部署上线 / CI 红了 | `deploy-to-vercel` · `gh-fix-ci` |
@@ -40,10 +37,9 @@ This is the default when a task fits one of these shapes, not the full skill lis
 | worktree 出错、会话目录丢失 | `worktrees.md` |
 | 浏览器卡住、要自检或恢复 | `browser-self-check.md`（自检）· `interactive-browser.md`（完整 runbook） |
 | 读需要登录的网站、Reddit | `agent-web-access.md` · `reddit-data-access.md` |
-| 动 Dockerfile 的安装层 | `image-baking.md`——七条规则和踩过的坑都在里面 |
 | 算成本、挑模型、查额度与用量归因 | `ai-model-pricing.md`（选型成本，规格仍以 models.dev 为准）· `go-allowance.md`（实际额度） |
 | a6api 网关：模型白名单、日志、配额 | `a6api.md` |
-| 查数据集结构与字段 | `mcmod-db.md` · `xhh-db.md`（采集流程见 `mcmod-stats.md`） |
+| "我的世界"游戏：查 mod/整合包数据集的结构与字段 | `mcmod-db.md` · `xhh-db.md`（采集流程见 `mcmod-stats.md`） |
 
 ## 0. Language
 
