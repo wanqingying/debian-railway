@@ -10,3 +10,7 @@ data/*.db-shm
 
 # image_generate default output
 /generated/
+
+# vendor log dumps pulled by scripts/*-logs.mjs (a6api, gptge); ~0.5 MB each and
+# regenerable, so they are scratch data, not part of the committed dataset
+/data/*-logs.json
