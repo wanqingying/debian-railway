@@ -1,289 +1,224 @@
 # Prompt and Skill Design Guidelines
 
-Prompts and skills are both instructional documents written for agents. They share common design principles: **clarity over comprehensiveness, rules over explanation, and action-driven content**. This guide covers both.
+`AGENTS.md` and `SKILL.md` are the same kind of artefact — natural-language instructions written for an agent — loaded at different times and with different budgets. One design discipline covers both. Every non-obvious rule below carries the source that produced it; numbers in brackets are measured, not estimated.
 
-## Shared Principles
+## 0. Pick the carrier first
 
-### 1. Verifiable rules, not aspirational prose
-
-A rule is only useful if you can tell whether it worked. Test it:
-- "Be clear" is not a rule; "Explain the root cause in one sentence, not vague language" is.
-- "Avoid `sleep` loops" is aspirational. "Replace `sleep N; command` with `timeout 900 command --watch` or background the wait" is testable.
-- Measured data: across 220 sessions and 27k shell calls, foreground `sleep ≥60s` blocked 25.7 hours of wall time despite the rule existing for a month. Rules adopted at **~2.9%** without structural enforcement.
-
-**Implication:** A rule you cannot measure adoption for should not be in the document. Either make it testable or delete it.
-
-### 2. One action per rule
-
-Don't explain *why* the action works—that belongs in a detailed reference guide, not the prompt or skill.
-
-- ❌ "Background long scripts because foreground calls block the session and prevent observability of progress."
-- ✅ "Background scripts >~10s: `shell` tool with `background: true` returns a shell ID and delivers a `<shell id=… state="completed">` completion event mid-turn."
-
-**Implication:** Separate mechanism explanation from the rule. Move long reasoning to `docs/` files that the prompt can reference.
-
-### 3. Global prompt stays lean; detail goes to `docs/`
-
-Measured result (commit `0ec813f`): moving Lark tool details from the global prompt to `docs/lark-cli.md` did not reduce adoption. The prompt only needs: "the tool exists, it's authorized, go read this file for commands."
-
-- Global prompt: ~100 lines (roughly 1,000 tokens); over that, rules stop being scanned.
-- Detailed reference: `docs/<tool>.md` with commands, pitfalls, error messages, credentials, troubleshooting.
-
-**Implication:** Keep the global prompt under 120 lines. Use links to `docs/` for everything that is not a rule you apply every session.
-
-### 4. Specificity over generality
-
-Use language and examples from the agent's actual environment:
-
-- ❌ "Handle errors gracefully."
-- ✅ "If a git command fails, run `git status` and `git log -1 --oneline` to show what changed; if a network call fails, show the HTTP status and response body."
-
-For prompts: name the specific tools, files, paths, environment variables. For skills: name the exact output format, filenames, API fields.
-
-### 5. Rules are assets that evolve
-
-- Every time a model violates a rule, document *why* it happened (misplaced rule, ambiguous wording, triggering condition not met).
-- Add a note to the document explaining the trap.
-- If adoption is still <10% after a fix, delete the rule—it is noise.
-- Archive rules that nobody encounters anymore.
-
----
-
-## Prompt Design (AGENTS.md)
-
-### Structure
-
-A global prompt is loaded at the start of every session and defines:
-- Coding style and quality gates (goal-driven execution, surgical changes, verification).
-- Environment facts (worktree paths, cgroup resource quotas, installed tools, secret locations).
-- Rule routing (when to use which tool, which skill, which document).
-- Guardrails (what not to do; what requires explicit user confirmation).
-
-### Writing a Rule
-
-**Format:**
-1. **Title:** one action or constraint (verb-first, imperative).
-2. **Rule:** 1–3 sentences, testable, specific to your environment.
-3. **Example (if needed):** ❌ / ✅ pair showing what not to do and what to do.
-4. **Reference:** link to `docs/` if the rule needs more explanation.
-
-**Length:** Each rule ≤ 4 lines in the rendered document; if longer, pull the detail into `docs/`.
-
-**Checklist:**
-- [ ] Can you measure whether the rule was followed?
-- [ ] Does it name specific files, tools, or paths instead of generic terms?
-- [ ] Would a senior engineer looking at logs be able to verify it?
-- [ ] Is there a shorter way to phrase it?
-
-### Rules That Work
-
-Measured over 220 sessions:
-
-| Rule | Adoption | Notes |
+| Carrier | Loaded | Use it for |
 |---|---|---|
-| Background long scripts (`background: true`) | ~2.9% | Existed for 1 month in 30-line section; measurement prompted redesign. Better enforcement: link to tool docs (which already describe it); top-level routing in prompt. |
-| Never `cp AGENTS.md <global-location>` | 100% after prevention added | Prevention (warning in the repo file) worked where instruction alone did not. Lesson: structural enforcement > rules. |
-| Foreground `sleep` ≥60s instead of polling | ~2% despite clear rule | 600 calls, 25.7 hours blocked in 220 sessions. Lesson: aspiration without alternative (e.g., `--watch` flag) is ignored. |
-| Use `codegraph` before analyzing | ~80% (high when nearby skill exists) | Paired with a concrete routing rule ("code analysis → use codegraph") adoption rose to ~80%; named tool repo (`codegraph sync`) helped. |
-| Worktrees on `/workspace/worktrees`, not `/tmp` | ~95% | Structural enforcement: wrapper script (`wt` refusing out-of-scope paths). |
+| `AGENTS.md` (global / project) | Every turn, always | Rules that hold for every task, and **routing**: which tool, skill or doc applies |
+| Skill (`SKILL.md` + `references/`) | Only when triggered | A class of task the agent often gets wrong, with its traps |
+| Tool / plugin / MCP | When the agent calls it | One deterministic action |
+| Hook / CI / wrapper script | Automatically | Anything that must hold 100% of the time |
 
-**Pattern:** Direct guidance + named alternative + named tool that automates it = higher adoption.
+The loading difference is not cosmetic. In Vercel's Next.js 16 eval suite, a skill was **never invoked in 56% of cases**, and a skill available-but-unused scored exactly the baseline (53% → 53%, +0pp); with an explicit instruction to use it, trigger rate rose above 95% and the pass rate to 79%; a **compressed 8 KB docs index inside `AGENTS.md` reached 100%** (40 KB compressed to 8 KB at no loss).
 
-### Common Pitfalls
+Two conclusions, both counter-intuitive:
 
-1. **Buried important rules in prose.** "Never do X" is more likely to be followed if it's its own numbered rule with a title, not paragraph 3 of a wall of text.
-2. **Generic verbs as triggers.** "Improve code quality" applies to any code fix; "Run linters and tests before pushing" is actionable. Without specificity, rules compete for the agent's attention.
-3. **Explaining why instead of what.** "Because Y limits Z" is trivia; "Do X" is actionable. Save the reasoning for the linked reference doc.
-4. **Rules that require memorization.** "Remember to check the environment before running long tasks" → Replace with a rule that structures it: "Every task >~10s goes to `background: true`; the tool returns a shell ID."
-5. **Forgetting to measure.** If you never measure adoption, you won't know which rules are cargo cult.
+1. **Passive context beats on-demand retrieval for horizontal knowledge.** If the agent must decide whether to look something up, it often doesn't. Put the index in `AGENTS.md`; put the detail in files it can then read.
+2. **Active retrieval still wins for vertical workflows** — explicitly triggered tasks ("upgrade this", "review this PR"). That is what skills are for.
 
----
+So: a skill nobody calls is worth nothing, and the fix is a routing line in `AGENTS.md`, not a better-written skill.
 
-## Skill Design (SKILL.md, references/)
+## 1. Shared principles
 
-### What Goes in a Skill
+### 1.1 Content must come from real execution
 
-A skill packages a **repeatable workflow** that agents often get wrong, paired with **traps and conventions** specific to your domain. Skills work best for:
+Human-authored skills raise pass rates by **+16.6 pp** across 87 tasks, 8 domains and 18 model–harness configurations (33.9% → 50.5%, +4.1 to +25.7 pp per configuration). LLM-authored skills given only a general prompt show **no measurable gain**. A refinement loop that diagnoses trigger precision and instruction compliance closes 47–67% of that gap, but never by asking a model to imagine a skill from scratch.
 
-- Multi-step task flows (example: "code review with context from the codebase and a style guide").
-- Traps that are counter-intuitive or environment-specific (example: "this repo's monorepo layout breaks the usual import pattern").
-- Conventions that vary between repos (example: "this team's naming style for branches, commits, PRs").
+Practical form: do the task once with the agent, note every correction you make, then extract the pattern. Or synthesise from artefacts you already have — runbooks, incident reports, review comments, the actual patch history. Never from "best practices for X".
 
-Skills don't work for:
-- One-off facts or a single decision (put that in `docs/` or the global prompt).
-- Rules that require enforcement (a skill's instructions can be ignored; use CI hooks or wrapper scripts instead).
-- Perfect information that the model already has (a skill can't override what it learned from the training data or from reading the code).
+### 1.2 Evals before prose
 
-### Structure: SKILL.md + references/
+The first question is not "what should I write" but "what does the agent get wrong without this?" Write the check before the instruction.
 
-**`SKILL.md` (the visible part):**
-- `description` (1–3 sentences, under 1024 characters): when to use this skill. Trigger conditions, not content summary. Use the agent's language and jargon.
-- **Workflow** (≤500 lines, ~5,000 tokens): key steps, traps, defaults, constraints. What changes between task instances? Highlight it. What's always the same? Move to a reference.
-- **Example** (optional): a real task and the steps taken.
+- Split success into **outcome** (did the task complete), **process** (did it call the skill and run the intended commands), **style** (conventions), **efficiency** (no thrashing, no token blowup).
+- 10–20 prompts is enough to catch regressions. Each row: `id, should_trigger, prompt`.
+- **Include negative controls.** A prompt that *should not* trigger the skill is what catches over-eager matching.
+- Score the **trace**, not just the output: did it run the command, in that order, how many commands, how many tokens, was `git status --porcelain` clean afterwards.
 
-**`references/` (the detailed part):**
-- One file per category or sub-topic (example: `references/git-conventions.md`, `references/code-review-checklist.md`).
-- Pull exact commands, error messages, edge cases, fallback procedures here.
-- Each file starts with "Read this when…" so the agent knows when it's relevant.
+Without a baseline you cannot tell an improvement from a change in behaviour. That is the whole reason to write evals first.
 
-**Total skill size:** SKILL.md + all references ≤ ~50 KB (a bound that keeps context usage predictable).
+### 1.3 The delete test
 
-### Writing the `description`
+For every sentence: **would the agent get this wrong without it?** If no, cut it. If unsure, test it.
 
-The description determines whether the skill is called at all. Measured on multiple agent platforms: without a strong description, **recall is 20–50%** even on tasks where the skill applies.
+This is the same test in three sources, and it is the single most effective editing rule. Corollaries:
 
-**Do:**
-- Write **triggering conditions** ("when X happens" / "if you encounter Y" / "before submitting a Z").
-- Use the user's actual language (code review patterns, error messages, repo structure names).
-- Include domain-specific anchors (file extensions, artifact names, internal tool names) that won't compete with other skills.
-- Keep it **short**: 1–3 sentences; 1–3 clauses per sentence.
-- Be grammatically active and declarative: "Use this skill to…" "Call this when…" not "For situations where…"
+- Don't explain what the agent already knows (what a PDF is, how HTTP works, what a migration does).
+- Don't restate a mechanism the tool description already carries.
+- Terse beats complete. Agents are not human readers who need motivation.
 
-**Don't:**
-- Summarize the workflow. ("This skill teaches you how to do code review.") The user won't see the workflow before the decision, so that detail doesn't help.
-- Use generic verbs: "analyze," "evaluate," "improve." Use your domain's specific terms.
-- Compete with neighboring skills. Name the boundaries: "This covers API changes; for schema changes, use [other-skill]."
+### 1.4 One rule, one action
 
-**Example (good):**
+A rule the agent can't act on is decoration:
+
+- ❌ "Handle errors appropriately." / "Be thorough."
+- ✅ "Every HTTP call gets an explicit timeout — a missing one once hung a run for 464 s."
+
+Prefer the imperative and the concrete noun (file path, flag, command). Long rationale goes one level down, in a reference file.
+
+### 1.5 Progressive disclosure, one level deep
+
+Two budgets, both real:
+
+- **`AGENTS.md`** is in the system prompt every turn. Every line is paid forever.
+- **`SKILL.md`** is paid only when loaded — but once loaded it competes with the whole conversation.
+
+Rules that follow:
+
+- `SKILL.md` body under **500 lines** (≈5,000 tokens). Past that, split.
+- Reference files must hang **directly off `SKILL.md`**. Nested references get half-read (`head -100`) and the agent proceeds with partial information.
+- Say **when** to read a file, not just that it exists: "if the API returns non-200, read `references/api-errors.md`" beats "see `references/`".
+- Reference files over ~100 lines get a table of contents at the top, so a partial read still shows the shape.
+- **`≤3` focused modules beat a large bundle** — measured across the SkillsBench inventory. One skill with references beats several small siblings that fight for the same trigger.
+
+### 1.6 Defaults over menus, procedures over answers
+
+Give one recommended path plus the escape hatch:
+
+- ✅ "Use `pdfplumber`. For scanned PDFs, `pdf2image` + `pytesseract`."
+- ❌ "You can use pypdf, pdfplumber, PyMuPDF, or pdf2image…"
+
+Four equal options make the agent try several; a default makes it act. Same for answers vs methods: teach how to approach the class of task ("read the schema, join on `_id`, apply the user's filters") rather than the answer to one instance ("join orders to customers where region='EMEA'").
+
+### 1.7 Match specificity to fragility
+
+Think of the agent walking a path. A narrow bridge over a cliff needs explicit footwork; an open field needs a direction.
+
+- **Fragile, ordered, destructive** → exact command, do not modify: `python scripts/migrate.py --verify --backup`.
+- **Multiple valid approaches** → state the goal and the constraint, let the agent choose.
+- Explaining *why* raises quality in the free case (the agent generalises correctly); it adds nothing in the fragile case (there is one way).
+
+All-caps MUST is a weak tool: it doesn't generalise and it competes with every other MUST in the doc.
+
+### 1.8 Consistency and time
+
+- **One term throughout.** Pick "endpoint" and never also say "route", "URL", "path". Inconsistent naming silently splits one concept into several.
+- **No time-sensitive statements.** "Before August 2025 use the old API" rots. Put superseded material under an "old patterns" heading, or delete it.
+- **Scripts over model inference** for anything deterministic, repeated, or needing precision — a script gives the same answer twice, is testable, and costs no context to run.
+
+## 2. `AGENTS.md`
+
+### What belongs
+
+1. Rules that apply to every task (language, change discipline, verification loop).
+2. Environment facts the agent cannot infer — paths, quotas, which tool is already installed and authorised.
+3. **Routing**: task type → skill / doc / command. This is the highest-value content after the rules, because it converts "has access" into "actually used".
+4. Guardrails: what is destructive, what needs confirmation.
+
+### What does not
+
+- Reference material (commands, flags, pitfalls) → `docs/`, linked from one line.
+- Anything duplicated from a tool's own description.
+- Anything the agent already knows, or can find by reading the repo.
+
+### Wording is load-bearing
+
+Vercel measured that the *same* skill with the *same* docs produced different results purely from the trigger instruction: "You MUST invoke the skill" made the agent read docs first and miss project context; "explore the project first, then consult the skill" made it build a model first and use docs as reference — and it caught changes the first variant missed entirely. Write the sequence you actually want, not emphasis.
+
+### Rule format
+
 ```
-description: Use this skill when reviewing a pull request where the diff touches business logic, database schemas, API contracts, or infrastructure code. Call it after reading the PR description but before approving or requesting changes.
-```
-
-**Example (weak):**
-```
-description: Learn best practices for code review and improve your feedback on pull requests.
-```
-
-### Writing SKILL.md (Workflow)
-
-**Start with traps, not theory.**
-
-Order by fragility (what breaks silently vs. what fails noisily):
-1. Assumptions that are often wrong (example: "this repo's CI always passes on the first run" — it doesn't; there are known flakes).
-2. Conventions that vary (example: "branch naming: feat/, fix/, docs/ prefixes").
-3. Standard steps that work every time (example: "read the PR description, skim the diff, check the CI status").
-
-**Use defaults, not menus.**
-
-One recommended path + exceptions. Don't list all ways a thing *could* be done:
-- ✅ "Run `gh pr checks <n> --watch` to wait for CI; if it doesn't have a `--watch` flag, use `timeout 900 gh pr checks <n>`."
-- ❌ "You can check CI by running: 1) `gh pr checks`, 2) `gh pr view <n> --web`, 3) polling the GitHub API, or 4) checking the web UI."
-
-**Teach the method, not the answer.**
-
-Write rules that generalize to the whole class of tasks, not just this one instance:
-- ✅ "Rename all references to a symbol: use `codegraph` to find them, then `grep -r` to verify, then replace."
-- ❌ "In this PR, change `AuthService.login()` to `AuthService.authenticate()` in 12 files: …"
-
-**Constraint by consequences.**
-
-Explain *why* a rule exists so the model can generalize to cases you didn't mention:
-- ✅ "Don't push to `main` directly; PRs are required because they trigger CI and allow peer review. Open a PR for any change, even docs."
-- ❌ "MUST NOT push to main. Use feature branches only."
-
-**Delete test: if the skill still makes sense without this sentence, delete it.** Many sentences are context-setting that a smart agent can infer from the code.
-
-### Example Skill Structure
-
-```
-# SKILL.md
-
-**Description:**
-Use this skill when reviewing a pull request that modifies application code, 
-business logic, or infrastructure. Read this before approving changes or 
-requesting revisions.
-
-## Workflow
-
-### Before you start
-
-1. **Repo context:** Does this repo have a code-review `SKILL.md` or `REVIEW.md`? 
-   Read it first; its rules override this one.
-2. **PR scope:** Read the PR description. Limit your review to that scope; 
-   don't demand unrelated improvements.
-
-### Traps
-
-- **Flaky CI:** This repo's main branch sometimes fails CI on the first push. 
-  If CI shows a network timeout or `ECONNREFUSED`, wait 5 min and re-run; 
-  don't blame the PR author.
-- **Stale branch:** The PR branch may be weeks old. Run `codegraph sync` on 
-  your local checkout to pick up recent refactors, or context-search the 
-  session history for "why did we rename X?"
-
-### Steps
-
-1. **Skim the diff** (≤1000 lines is fast; >3000 lines, ask the author to split).
-   Mark anything suspicious.
-
-2. **Read the code in context.** Use `codegraph_explore` or `grep` to see how 
-   each changed symbol is used. Suspicious = calling it wrong or breaking 
-   the contract.
-
-3. **Check CI.** Run `timeout 900 gh pr checks <PR#> --watch`. If it fails, 
-   read the logs. If it's a real bug the PR author can fix, tell them how. 
-   If it's flaky (see Traps above), re-run.
-
-4. **Decide.** Approve with no changes, request specific revisions, or ask 
-   for clarification. Link to the code line when requesting changes.
-
-## References
-
-- See `references/code-review-checklist.md` for domain-specific checks 
-  (e.g., performance, security, schema changes).
-- See `references/style-guide.md` for this repo's naming and structure conventions.
+**Bold action.** One to three sentences: what to do, the concrete command, the measured consequence.
 ```
 
-### Verification
+Include the number that makes the rule credible. Our own case, measured over 220 sessions and 26,976 shell calls:
 
-**Baseline first:** Measure the model's error rate *without* the skill. What specifically does it get wrong? (Example: it approves PRs with failing CI, or it rewrites code it shouldn't touch.)
+- Foreground `sleep` ≥ 60 s: **600 calls, 25.7 hours of blocked wall time**, worst session 87 calls / 229 minutes.
+- Background shell usage: **0.4% in September** (before the rule existed) → 1.9% in October → 2.9% in November. Whether that rise is the rule or habit is not separated; the sleep figure is the honest one.
+- 601 of 640 background jobs were followed up later in the same session, so backgrounding does not mean abandoning the job.
 
-**Test in two dimensions:**
-1. **Triggering:** Will the model call this skill when it should?
-   - Write 3–5 real user prompts where this skill applies.
-   - Write 3–5 near-miss prompts (similar domain, but a different skill or no skill).
-   - Did the model call this one and not others?
+A rule stated as "never block the session on a long script" achieved 2.9%. A rule stated as "`sleep N` polling is banned; wait with `timeout 900 gh pr checks <n> --watch` or background it" is checkable in a log. Prefer the second form: **name the banned pattern and name its replacement.**
 
-2. **Execution:** Once called, does it follow the workflow correctly?
-   - Point-name the skill (`use the code-review skill now`).
-   - Run the same task 3–5 times; read the execution path, not just the output.
-   - Did it hit the traps? Did it take the recommended path?
+### Budget
 
-**Compare to baseline:** Same task 3–5 times, with and without the skill, on a clean context each time. Does the skill improve the metric? (Fewer wrong decisions, faster, more complete?)
+As a project convention (not a measurement): keep the global prompt under ~120 lines. Above that, rules stop being scanned and the routing table gets buried. Move detail out, leave the pointer.
 
-**If you change the `description` or add a trap, re-test triggering and the adjusted execution.**
+## 3. Skills
 
-### Maintenance
+### Description: when, not what
 
-- **Who owns this?** Assign a person; during model updates, they re-run the eval.
-- **Measure adoption:** If the skill is never called in real sessions, or if the model calls it but ignores 50%+ of the workflow, redesign or delete it.
-- **Archive stale rules:** If nobody encounters a trap anymore (because the repo's tooling changed), remove that paragraph.
+The description is injected into the system prompt for every skill; it is the only thing the agent sees before deciding. Measured trigger rates for available-but-unadvertised skills are poor by default (56% never invoked in Vercel's suite), so the description's job is narrow and mechanical.
 
-### Safety and Practices
+**A summary invites the agent to act on the summary and skip the skill.** So:
 
-- **Treat third-party skills as external code:** Read every file before installing. The workflow text can contain adversarial instructions.
-- **Minimal permissions.** If the skill hands the model a token or credential, that's a red flag. Exception: if the tool already handles auth (like `gh` or `lark-cli`), reference the tool's permissions, don't repeat them.
-- **Persist data on the volume** (`/workspace/…`), not in the skill directory. Skill directories get overwritten on deploy.
-- **License and preamble:** If vendoring a third-party skill, keep the LICENSE file. Adaptations go in a preamble at the top of SKILL.md, not inline comments.
+- **Lead with the trigger**, in the user's own words, including Chinese colloquial forms when that is how the ask arrives.
+- One short clause of *what* is allowed — both Anthropic and agentskills.io ask for "what + when" — but the *when* must dominate. This is the one place the sources disagree (Sam McLeod argues for when-only); lead with when, keep what to ≤1 clause.
+- **30–55 words**, imperative, third person ("Processes…", "Use when…"), ± assertive enough to fire.
+- **Domain anchors only**: file extensions, artefact names, internal system names. Generic verbs ("review", "analyse", "improve") steal other skills' triggers.
+- Name the neighbour and the boundary when one exists.
+- One line, quoted, under 1024 characters. No `>-` block scalars, no XML tags.
 
----
+If the skill must not be model-invoked, hide it in frontmatter rather than writing a worse description.
 
-## Checklist: When to Refine a Prompt or Skill
+### Body
 
-- [ ] Measured adoption or execution correctness.
-- [ ] Deleted rules where adoption <10% or unachievable without enforcement.
-- [ ] Every rule is specific to your environment (names paths, tools, files, not generic verbs).
-- [ ] Moved detail to `docs/` if the prompt/skill exceeds its size budget.
-- [ ] Tested triggering (for skills) or scanning (for prompts) with real user language.
-- [ ] Archived traps or conventions that no longer apply.
-- [ ] Assigned owner and re-test plan after model updates.
+Order by fragility, not by narrative:
 
----
+1. **Gotchas first.** Counter-intuitive environment facts are the highest-value content in most skills — the agent will make exactly these mistakes without being told. When the agent errs and you correct it, that correction belongs here.
+2. **Workflow.** Numbered steps, each with the command. For anything long, tell the agent to copy the checklist and tick it off; agents drift and declare done early, and a visible checklist stops that. End multi-step work with a review pass over the whole deliverable.
+3. **Verification.** A validation loop — do the work, run the validator, fix, repeat until it passes — beats a description of what good looks like. For batch or destructive work, insert a plan file between "decide" and "act": produce the plan, validate it against the source of truth, then execute.
+4. **Templates.** For output format, a concrete template beats prose description, because agents pattern-match against structure.
+5. **References and scripts.** Bulky detail in `references/`, deterministic work in `scripts/` (`uv run scripts/x.py`). Say whether to *run* a script or *read* it as reference.
 
-## References and Data
+**Never put "when to use this" in the body.** If the agent is already reading it, it's too late — and it wastes the most expensive real estate in the file.
 
-- **Shared principle sources:** [agentskills.io](https://agentskills.io/skill-creation/best-practices), [Anthropic skill authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices), [OpenCode skills](https://opencode.ai/docs/skills/)
-- **Prompt structure:** [Vercel agents.md beats skills](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals), [HN discussion](https://news.ycombinator.com/item?id=46809708)
-- **Adoption barriers:** [Triggering; UiPath measurement](https://www.reddit.com/r/claudeskills/comments/1waq4j9/), [Sam McLeod pitfalls](https://smcleod.net/2026/07/writing-and-reviewing-agent-skills-common-pitfalls)
-- **Skill effectiveness:** [SkillsBench (human-sourced +16.6 pp)](https://arxiv.org/abs/2602.12670), [SkillAxe (LLM-written 0 improvement)](https://arxiv.org/abs/2606.10546)
-- **This project's data:** debian-railway 220 sessions, 27k shell calls, 2.9% background adoption on a long rule in a 30-line section → redesigned to 5 lines with routing → under active measurement.
+### Triggering is a separate problem from execution
+
+Triggering and compliance fail independently, so test them independently:
+
+- Trigger test: realistic prompts that should fire, plus near-misses that should not.
+- Compliance test: point at the skill explicitly (`use the <skill> skill`) to remove triggering from the equation, then read the trace.
+- Change a description → retest the neighbouring skills too, since they compete for the same prompts.
+
+SkillAxe's four diagnostic dimensions are a usable checklist when a skill underperforms: quality impact (does it move the metric at all), trigger precision (does it fire on the right prompts), instruction compliance with fault attribution (does it follow the steps, and is the failure the instruction's or the model's), and solution-path coverage (does it cover the paths real tasks take).
+
+### OpenCode v2 specifics
+
+Verified against the current docs, because several assumptions that circulate are wrong:
+
+- **The ID comes from the path, not from frontmatter `name`.** `<source>/git-release/SKILL.md` → `git-release`; `name: Git Release` is a display label only. IDs are case-sensitive kebab-case.
+- Discovery: `~/.config/opencode/skills` (global), `.opencode/skills` (project), plus `.claude/skills` / `.agents/skills` compatibility paths. A file must be a root-level `*.md` or a nested file named exactly `SKILL.md`; a directory containing `SKILL.md` is one skill, not searched further.
+- **`metadata.opencode/autoinvoke: false` hides a skill from the model's list but keeps it loadable by ID.** `disable-model-invocation: true` is *not* ignored — v2 honours it, and `opencode/autoinvoke` wins when both are set. An earlier note in this repo claimed otherwise; that was wrong.
+- Loading injects the body without frontmatter, the skill's base directory, and up to ten supporting file paths — supporting contents are **not** auto-loaded, which is what makes progressive disclosure work.
+- `@skill-id` in a prompt loads a skill explicitly; permissions use the `skill` action with the ID as resource (`allow` / `ask` / `deny`), and `deny` hides it from the list entirely.
+- v2 does **not** enforce description length, name/directory agreement, or the kebab-case pattern. Portability is your responsibility.
+
+## 4. Review checklist
+
+Before merging a prompt or skill change:
+
+- [ ] Can you state what the agent does wrong **without** this instruction? Was a baseline measured?
+- [ ] Every rule names a concrete action, path, command, or threshold.
+- [ ] The delete test was applied sentence by sentence.
+- [ ] Rules that scored below ~10% adoption were rewritten with a named replacement, or deleted.
+- [ ] Routing exists where the artefact needs to be discovered (a line in `AGENTS.md`, not just a better description).
+- [ ] Trigger tests include negative controls.
+- [ ] Reference files hang one level deep, with *when* to read each.
+- [ ] No time-sensitive statements; superseded material is under "old patterns" or gone.
+- [ ] Terminology is consistent across the whole document.
+- [ ] Deterministic repeated work is a script, not an instruction.
+- [ ] Third-party skills were read in full before install; no secrets; least privilege.
+
+## 5. This container's constraints
+
+- Global prompt: `opencode-config/opencode/AGENTS.md` → baked to `/opt/opencode-config`, synced to `$XDG_CONFIG_HOME/opencode/AGENTS.md` at boot, **overwriting** the volume copy. Editing the volume file alone is lost on redeploy; editing the repo is what ships.
+- Skills: `opencode-config/opencode/skills/<name>/`, synced the same way. The sync **copies, never deletes** — removing or renaming a skill needs an explicit cleanup in `entrypoint.sh`.
+- Devcontainer copy lives at `.devcontainer/opencode/skills/` and does **not** sync with the Railway one; both must be changed (Railway first).
+- No same-named command: a command shadows the native `/skill` path.
+- Skill persistent data belongs on `/workspace`, never inside the skill directory — the directory is replaced by the next image.
+- Vendor third-party skills with their LICENSE and put local adaptations in a preamble at the top of `SKILL.md`, so re-vendoring stays cheap.
+
+## 6. Sources
+
+| Source | What it contributed |
+|---|---|
+| [agentskills.io — best practices](https://agentskills.io/skill-creation/best-practices) | Extract from a hands-on task; refine from traces; delete test; coherent units; fragility-matched specificity; gotchas; plan-validate-execute |
+| [Anthropic — skill authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) | 500-line / 1024-char budgets; third person; one-level-deep references; TOC over 100 lines; degrees of freedom; "old patterns"; terminology; rubric checklists |
+| [Vercel — `AGENTS.md` beats skills](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals) | 56% never invoked, +0pp; 95%+ with explicit routing, 79%; 8 KB index 100%; 40→8 KB compression; trigger-wording fragility |
+| [OpenAI — testing skills with evals](https://developers.openai.com/blog/eval-skills) | Four goal categories; 10–20 prompt CSV with negative controls; trace-based deterministic checks; thrashing/token/repo-cleanliness signals |
+| [SkillsBench (2602.12670)](https://arxiv.org/abs/2602.12670) | +16.6 pp over 87 tasks / 18 configs; focused ≤3-module skills beat bundles; small model + skills ≈ large model without |
+| [SkillAxe (2606.10546)](https://arxiv.org/abs/2606.10546) | Human +16.2 pp vs LLM-authored no gain; four quality dimensions; 47–67% gap closed by evaluation-guided refinement |
+| [Sam McLeod — common pitfalls](https://smcleod.net/2026/07/writing-and-reviewing-agent-skills-common-pitfalls) | Description = trigger only, 30–55 words; "when to use" in body is too late; scripts over inference; third-party review |
+| [OpenCode — skills](https://opencode.ai/docs/skills/) | Discovery paths, path-derived IDs, `autoinvoke`, precedence, load semantics, permissions |
