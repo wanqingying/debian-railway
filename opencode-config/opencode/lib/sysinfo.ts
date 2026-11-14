@@ -7,15 +7,72 @@ import { spawnSync } from 'node:child_process';
 // user/resources, and which developer tools are installed. One call, one
 // shape — there is no cheap/full split. Tool versions are cached briefly.
 // Only non-sensitive values are read: never the whole process.env.
+//
+// TypeScript, run by Node's own type stripping (Node >= 24): no build step, and
+// no `enum`/`namespace`/parameter properties, which stripping cannot erase.
 
 const VERSION_TIMEOUT_MS = 4_000;
 const TOOLS_CACHE_TTL_MS = 300_000;
+
+interface ToolProbe {
+  name: string;
+  args: string[];
+  /** Renames the entry when the binary differs from the tool people know it by. */
+  label?: string;
+}
+
+interface ProbeResult {
+  status: 'present' | 'absent' | 'error';
+  version?: string | null;
+}
+
+interface ToolsReport {
+  present: string[];
+  missing: string[];
+  errored: string[];
+}
+
+interface CgroupLimits {
+  source: string;
+  cpuCores?: number;
+  cpu?: string;
+  memoryBytes?: number;
+  memoryUsedBytes?: number;
+  memory?: string;
+  pidsMax?: number;
+  pids?: string;
+  hostView?: string;
+}
+
+interface ContainerInfo {
+  init?: string;
+  started?: string;
+  uptime?: string;
+}
+
+interface ListeningPorts {
+  external?: number[];
+  loopback?: number[];
+}
+
+interface PortsInfo {
+  configured?: Record<string, number>;
+  listening?: ListeningPorts;
+}
+
+interface DiskSpace {
+  free: number;
+  total: number;
+}
+
+/** Every key is optional: each section is omitted when the platform says nothing. */
+type SystemSnapshot = Record<string, unknown>;
 
 // Every listed tool is treated the same: presence is a free PATH scan, and a
 // present tool gets one `--version` process so its version is reported.
 // `label` renames the entry when the binary differs from the tool people know it
 // by (e.g. the KasmVNC X server lives in `Xvnc`).
-const TOOL_PROBES = [
+const TOOL_PROBES: ToolProbe[] = [
   { name: 'git', args: ['--version'] },
   { name: 'node', args: ['--version'] },
   { name: 'npm', args: ['--version'] },
@@ -48,7 +105,7 @@ const TOOL_PROBES = [
   { name: 'opencli', args: ['--version'] },
 ];
 
-const formatUtcOffset = (minutes) => {
+const formatUtcOffset = (minutes: number): string => {
   const sign = minutes >= 0 ? '+' : '-';
   const absolute = Math.abs(minutes);
   const hours = String(Math.floor(absolute / 60)).padStart(2, '0');
@@ -56,7 +113,7 @@ const formatUtcOffset = (minutes) => {
   return `${sign}${hours}:${mins}`;
 };
 
-const formatBytes = (bytes) => {
+const formatBytes = (bytes: number): string | null => {
   if (!Number.isFinite(bytes) || bytes < 0) return null;
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let value = bytes;
@@ -68,18 +125,18 @@ const formatBytes = (bytes) => {
   return `${value.toFixed(index === 0 || value >= 100 ? 0 : 1)}${units[index]}`;
 };
 
-const readFirstLine = (value) => {
+const readFirstLine = (value: unknown): string => {
   const text = typeof value === 'string' ? value.replace(/\r/g, '') : '';
   const line = text.split('\n').find((entry) => entry.trim().length > 0);
   return line ? line.trim() : '';
 };
 
-const extractVersion = (text) => {
+const extractVersion = (text: string): string => {
   const match = text.match(/\d+(?:\.\d+)+/);
   return match ? match[0] : '';
 };
 
-const collectTime = () => {
+const collectTime = (): string => {
   const now = new Date();
   const offsetMinutes = -now.getTimezoneOffset();
   const shifted = new Date(now.getTime() + offsetMinutes * 60_000);
@@ -89,10 +146,10 @@ const collectTime = () => {
   return `${local} ${timezone} (${weekday})`;
 };
 
-const readLinuxDistro = () => {
+const readLinuxDistro = (): string | null => {
   try {
     const raw = fs.readFileSync('/etc/os-release', 'utf8');
-    const fields = {};
+    const fields: Record<string, string> = {};
     for (const line of raw.split('\n')) {
       const match = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
       if (match) fields[match[1]] = match[2].replace(/^"|"$/g, '');
@@ -103,7 +160,7 @@ const readLinuxDistro = () => {
   }
 };
 
-const readFileIfPresent = (file) => {
+const readFileIfPresent = (file: string): string => {
   try {
     return fs.readFileSync(file, 'utf8');
   } catch {
@@ -111,8 +168,8 @@ const readFileIfPresent = (file) => {
   }
 };
 
-const collectEnvFlags = () => {
-  const flags = [];
+const collectEnvFlags = (): string[] => {
+  const flags: string[] = [];
   if (fs.existsSync('/.dockerenv')) flags.push('docker');
   const cgroup = readFileIfPresent('/proc/1/cgroup');
   // Under cgroup v2 `/proc/1/cgroup` is a bare `0::/`, so the runtime is only
@@ -128,7 +185,7 @@ const collectEnvFlags = () => {
   return flags;
 };
 
-const collectUser = () => {
+const collectUser = (): string | null => {
   try {
     return os.userInfo().username || null;
   } catch {
@@ -136,7 +193,7 @@ const collectUser = () => {
   }
 };
 
-const collectDisk = (target) => {
+const collectDisk = (target: string): DiskSpace | null => {
   try {
     const stats = fs.statfsSync(target);
     return { free: stats.bavail * stats.bsize, total: stats.blocks * stats.bsize };
@@ -149,9 +206,9 @@ const CGROUP_ROOT = '/sys/fs/cgroup';
 // cgroup v1 reports "no limit" as a near-infinite byte count instead of "max".
 const UNLIMITED_BYTES = 2 ** 60;
 
-const readCgroupFile = (dir, name) => (dir ? readFileIfPresent(path.join(dir, name)).trim() : '');
+const readCgroupFile = (dir: string | null, name: string): string => (dir ? readFileIfPresent(path.join(dir, name)).trim() : '');
 
-const formatDuration = (ms) => {
+const formatDuration = (ms: number): string => {
   const totalMinutes = Math.max(0, Math.round(ms / 60_000));
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
@@ -163,8 +220,8 @@ const formatDuration = (ms) => {
 
 // Which cgroup this process is in, per controller: v2 states it once on the
 // `0::/path` line, v1 on every `N:controller[,controller]:/path` line.
-const ownCgroupPaths = () => {
-  const paths = {};
+const ownCgroupPaths = (): Record<string, string> => {
+  const paths: Record<string, string> = {};
   for (const line of readFileIfPresent('/proc/self/cgroup').split('\n')) {
     const match = /^\d+:([^:]*):(\/.*)$/.exec(line.trim());
     if (!match) continue;
@@ -178,7 +235,7 @@ const ownCgroupPaths = () => {
 // With a private cgroup namespace the mount root already is this process's own
 // cgroup (`/`); without one it is the host root and the path must be appended.
 // v1 keeps one hierarchy per controller, hence several candidate names.
-const findCgroupDir = (names, groupPath) => {
+const findCgroupDir = (names: string[], groupPath?: string): string | null => {
   const suffixes = groupPath && groupPath !== '/' ? [groupPath, '/'] : ['/'];
   for (const name of names) {
     for (const suffix of suffixes) {
@@ -194,9 +251,20 @@ const findCgroupDir = (names, groupPath) => {
 // build under an 8-core quota ran ~70x slower than one sized to the quota).
 // The cgroup — v2 (unified) or v1 (one hierarchy per controller) — states what
 // this machine may actually use, so that wins.
-const collectLimits = () => {
+const collectLimits = (): CgroupLimits | null => {
   const paths = ownCgroupPaths();
-  const quota = {};
+  // Every field is filled by whichever branch runs; the defaults only make the
+  // shape total so the arithmetic below needs no optional handling.
+  const quota = {
+    source: '',
+    cpuQuota: 0,
+    cpuPeriod: 0,
+    memoryBytes: 0,
+    memoryUsedBytes: 0,
+    memoryPeakBytes: 0,
+    pidsMax: 0,
+    pidsCurrent: 0,
+  };
   const unifiedDir = findCgroupDir([''], paths.v2);
 
   if (unifiedDir && fs.existsSync(path.join(unifiedDir, 'cgroup.controllers'))) {
@@ -230,7 +298,7 @@ const collectLimits = () => {
     });
   }
 
-  const limits = { source: quota.source };
+  const limits: CgroupLimits = { source: quota.source };
 
   if (quota.cpuQuota > 0 && quota.cpuPeriod > 0) {
     limits.cpuCores = Math.round((quota.cpuQuota / quota.cpuPeriod) * 10) / 10;
@@ -261,8 +329,8 @@ const collectLimits = () => {
 
 // Wall-clock start and age of PID 1 — the container's own lifetime, unlike
 // /proc/uptime, which counts from the *host* boot.
-const collectContainer = () => {
-  const info = {};
+const collectContainer = (): ContainerInfo | null => {
+  const info: ContainerInfo = {};
   const init = readFileIfPresent('/proc/1/cmdline').split('\0').filter(Boolean).join(' ');
   if (init) info.init = init;
 
@@ -285,14 +353,14 @@ const collectContainer = () => {
 // IPv4 (little-endian) or 4 little-endian words for IPv6. Only loopback needs
 // recognising — it separates services reachable from outside the container
 // from ones that need a tunnel.
-const isLoopbackAddress = (hex) => {
+const isLoopbackAddress = (hex: string): boolean => {
   if (hex.length === 8) return hex.slice(6, 8).toUpperCase() === '7F';
   if (/^0{16}FFFF0000$/i.test(hex.slice(0, 24))) return hex.slice(30, 32).toUpperCase() === '7F';
   return /^0{24}01000000$/.test(hex); // ::1
 };
 
-const collectListeningPorts = () => {
-  const bound = new Map(); // port -> every listener on it is loopback
+const collectListeningPorts = (): ListeningPorts => {
+  const bound = new Map<number, boolean>(); // port -> every listener on it is loopback
   for (const file of ['/proc/net/tcp', '/proc/net/tcp6']) {
     for (const line of readFileIfPresent(file).split('\n').slice(1)) {
       const fields = line.trim().split(/\s+/);
@@ -304,7 +372,7 @@ const collectListeningPorts = () => {
     }
   }
   const ports = [...bound.keys()].sort((a, b) => a - b);
-  const listening = {};
+  const listening: ListeningPorts = {};
   const external = ports.filter((port) => !bound.get(port));
   const loopback = ports.filter((port) => bound.get(port));
   if (external.length > 0) listening.external = external;
@@ -314,9 +382,9 @@ const collectListeningPorts = () => {
 
 // Ports the process was told to serve on (`PORT`, `SSH_PORT`, …) plus the ones
 // actually listening, split by whether the container may be reached on them.
-const collectPorts = () => {
-  const ports = {};
-  const configured = {};
+const collectPorts = (): PortsInfo | null => {
+  const ports: PortsInfo = {};
+  const configured: Record<string, number> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (!/^(?:[A-Z0-9]+_)*PORT$/.test(key) || key.startsWith('RAILWAY_')) continue;
     const port = Number(value);
@@ -330,9 +398,9 @@ const collectPorts = () => {
 
 // How this container is exposed publicly: Railway's TCP proxy mapping for the
 // SSH endpoint and the HTTP domain for the web UI.
-const collectRailway = () => {
-  const info = {};
-  const sources = {
+const collectRailway = (): Record<string, string> | null => {
+  const info: Record<string, string> = {};
+  const sources: Record<string, string> = {
     project: 'RAILWAY_PROJECT_NAME',
     service: 'RAILWAY_SERVICE_NAME',
     environment: 'RAILWAY_ENVIRONMENT_NAME',
@@ -356,7 +424,7 @@ const collectRailway = () => {
   return Object.keys(info).length > 0 ? info : null;
 };
 
-const resolveExecutable = (name) => {
+const resolveExecutable = (name: string): string | null => {
   const platform = os.platform();
   const pathValue = process.env.PATH || process.env.Path || '';
   const delimiter = platform === 'win32' ? ';' : ':';
@@ -382,7 +450,7 @@ const resolveExecutable = (name) => {
   return null;
 };
 
-const probeTool = (name, args) => {
+const probeTool = (name: string, args: string[]): ProbeResult => {
   const executable = resolveExecutable(name);
   if (!executable) return { status: 'absent' };
 
@@ -399,13 +467,13 @@ const probeTool = (name, args) => {
 };
 
 // Versions change slowly; cache the spawn results so repeated calls stay cheap.
-let toolsCache = null;
-const collectTools = () => {
+let toolsCache: { at: number; value: ToolsReport } | null = null;
+const collectTools = (): ToolsReport => {
   const now = Date.now();
   if (toolsCache && now - toolsCache.at < TOOLS_CACHE_TTL_MS) {
     return toolsCache.value;
   }
-  const value = { present: [], missing: [], errored: [] };
+  const value: ToolsReport = { present: [], missing: [], errored: [] };
   for (const probe of TOOL_PROBES) {
     const result = probeTool(probe.name, probe.args);
     const label = probe.label || probe.name;
@@ -417,10 +485,10 @@ const collectTools = () => {
   return value;
 };
 
-export const collectSystemInfo = ({ diskTarget } = {}) => {
+export const collectSystemInfo = ({ diskTarget }: { diskTarget?: string } = {}): SystemSnapshot => {
   const platform = os.platform();
   const limits = collectLimits();
-  const snapshot = {
+  const snapshot: SystemSnapshot = {
     time: collectTime(),
     os: `${os.type()} ${os.arch()}`,
     distro: platform === 'linux' ? readLinuxDistro() : null,
@@ -432,7 +500,7 @@ export const collectSystemInfo = ({ diskTarget } = {}) => {
     env: collectEnvFlags(),
     cpu: limits?.cpuCores || os.cpus().length,
     mem: limits?.memoryBytes
-      ? `${formatBytes(limits.memoryBytes - limits.memoryUsedBytes)} free of ${formatBytes(limits.memoryBytes)}`
+      ? `${formatBytes(limits.memoryBytes - (limits.memoryUsedBytes ?? 0))} free of ${formatBytes(limits.memoryBytes)}`
       : `${formatBytes(os.freemem())} free of ${formatBytes(os.totalmem())}`,
     limits,
     container: collectContainer(),
@@ -457,7 +525,7 @@ export const collectSystemInfo = ({ diskTarget } = {}) => {
   return snapshot;
 };
 
-// Run this file directly for a snapshot without OpenCode: `node sysinfo.js`.
+// Run this file directly for a snapshot without OpenCode: `node sysinfo.ts`.
 // `import.meta.main` is false when OpenCode imports it as a tool dependency.
 if (import.meta.main) {
   process.stdout.write(`${JSON.stringify(collectSystemInfo(), null, 2)}\n`);
