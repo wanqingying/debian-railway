@@ -25,8 +25,10 @@
 
 ## 终端与 Node 版本
 
-- `pwsh` 7 的 profile 里有 fnm 钩子 → `node v24.22.2`。**Windows PowerShell 5.1 没有**（它的 profile 只有 `.env` loader）→ `node v23.9.0`，`opencode` 会落到 `%APPDATA%\npm` 里残留的旧 `opencode-ai@1.1.45`（v1）。
-- 因此在 5.1 窗口里跑 `platform\win10\verify.ps1` 时，`node >= 24.14` 与 `BD pins installed` 两行 FAIL 是**假警报**；用 `pwsh` 复跑即 5/5 通过。
+- Node 只有一个来源：**fnm 的 v24.22.2**。两个 profile（`pwsh` 7 和 Windows PowerShell 5.1）都装了 fnm 钩子，哪个窗口打开都是 `node v24.22.2` + `opencode v2.2.6`。
+- 2026-11-14 清掉了两处抢在前面的旧版本：机器 PATH 上的 `E:\Program Files\nodejs`（`node.exe` 报 23.9.0，winget 记录却是 `OpenJS.NodeJS.22` 22.13.0）已整体卸载，`%APPDATA%\npm` 里残留的 `opencode-ai@1.1.45`（v1）也删了——v1 会去开 v2 的 `opencode.db`，那正是"每轮回复都被中断"的来源。卸载前的机器/用户 PATH 备份在 `~\.config\opencode\backup\`。
+- 代价：**没有 profile 的进程**（`-NoProfile`、cmd、部分 IDE 任务）现在找不到 `node`/`npm`/`opencode`。跑 Node 一律用 `pwsh`；真要裸环境，把 fnm 的安装目录 `%APPDATA%\fnm\node-versions\v24.22.2\installation` 加进机器 PATH——它会自动成为那台 npm 的全局 prefix，装的还是 BD 那套。
+- `platform\win10\verify.ps1` 的 `node >= 24.14` / `BD pins installed` 两行只在带 profile 的窗口里有意义。
 - BD-004 的全局包都装在 fnm 的 v24.22.2 下：`@opencode/cli` 2.2.6、`@openchamber/web` 2.7.0（fork，dist 里有 `groupRootWorktrees`）、`@colbymchenry/codegraph` 1.6.2、`playwright` 1.65.0、`@larksuite/cli` 1.0.99。`npm root -g` 指向 `%LOCALAPPDATA%\fnm_multishells\<id>\node_modules`，每个 shell 的 `<id>` 都不同——别把那个路径写进脚本，用 `npm root -g` 现算。
 - `openchamber` 在 `127.0.0.1:3000`，内嵌 opencode v2.2.6。`pnpm`/`bun` 没装，本机用 npm。
 
@@ -39,7 +41,7 @@
 | 本机 checkout | `E:\code\github\debian-railway` | 这份仓库（分支 `win10-compat` = `main` + `platform\win10\` overlay）：agent 配置、BD 版本锁 |
 | 其他仓库 | `E:\code\github\<repo>` | 同一个 checkout 根下的其它项目 |
 | worktree | `E:\code\github\worktrees` | 已写进 `opencode.jsonc` 的 `worktree.directory`；OpenChamber 的 New worktree 也落这里 |
-| Godot 游戏项目 | `E:\code\github\<项目>`（尚未创建） | Godot 4.7 + godot-ai MCP；**Godot 还没装**，见下 |
+| Godot 游戏项目 | `E:\APPS\godot\projects\<项目>` | Godot 4.7.2 便携版已装；godot-ai MCP 还没接，见「Godot 项目约定」 |
 
 容器那台机器上的项目（joops、飞书工作助手、我的世界 mod 等）在这里不存在——本文件是本机视角。
 
