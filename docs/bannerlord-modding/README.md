@@ -5,8 +5,9 @@
 | 文件 | 什么时候读 |
 |---|---|
 | [guide.md](guide.md) | **主文档**。从 0 到能跑的 mod：三条路线、SubModule.xml、C# 扩展点、框架库依赖、资源/场景、调试、发布、维护清单 |
+| [howto-items.md](howto-items.md) | **物品专题**：以箭为例——改原版名字、改一袋支数、新增一支；含 `{=key}` 本地化陷阱与坑表 |
 | [links.md](links.md) | 官方文档 / 社区文档 / 框架库 / 发布平台的全部链接，标注了 2026-11-14 的 HTTP 核验状态 |
-| [snippets/](snippets/) | 可直接抄的模板：`SubModule.xml`、入口类、CampaignBehavior、Harmony patch、csproj |
+| [snippets/](snippets/) | 可直接抄的模板：`SubModule.xml`、入口类、CampaignBehavior、Harmony patch、csproj、箭的 XML 与语言文件 |
 
 ## 建议的阅读顺序
 

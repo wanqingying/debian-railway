@@ -149,6 +149,8 @@ Steam 库里把筛选切到 **工具（Tools）**，搜 `Mount & Blade II: Banne
 
 由此推出一条实务规则：改原版数据时**只写你要改的那几个字段所在的完整对象**，不要复制整个原版文件（复制了就把原版那一类数据整体冻结在旧版本，游戏一更新就漂移）。
 
+> 具体的"改一支箭的名字/数量、新增一支箭"的完整操作（含本地化 key 的坑）：[howto-items.md](howto-items.md)。
+
 ### 2.4 运行
 
 启动器 → Singleplayer → Mods → 勾上 `MyMod` → Play。看不到 mod 就检查：文件夹名/`Id` 是否一致、XML 是否 well-formed、`<Xmls>` 的 `path` 是否拼错。

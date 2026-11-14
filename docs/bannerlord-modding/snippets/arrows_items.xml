@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ModuleData\my_arrows.xml — 箭：改原版 + 新增一支。
+  适用 BL 1.5.x，未在游戏里实跑验证。
+
+  放在：Modules\MyMod\ModuleData\my_arrows.xml
+  并确保 SubModule.xml 里有：
+      <Xmls><XmlNode><XmlName id="Items" path="my_arrows"/></XmlNode></Xmls>
+
+  覆盖语义：同 id 的两个 <Item> 是整对象互相覆盖（后加载的赢），不是字段级合并。
+  所以第 1 段必须抄全原版那一段，只改你要改的字段。
+
+  先做这一步：把下面 vanilla_arrow_id / mesh / 原有数值，换成
+  你在 Modules\SandBoxCore\ModuleData\items\ 里搜 weapon_class="Arrow" 找到的真实值。
+-->
+<Items>
+
+  <!-- ============================================================
+       1) 改原版箭：名字 + 一袋支数
+       ============================================================ -->
+  <Item id="vanilla_arrow_id"
+        name="{=myarrows01}我的箭"
+        mesh="arrow"
+        culture="Culture.vlandia"
+        weight="0.05"
+        value="30"
+        is_merchandise="true"
+        Type="Arrows">
+    <ItemComponent>
+      <Weapon weapon_class="Arrow"
+              ammo_class="Arrow"
+              stack_amount="80"
+              thrust_damage="2"
+              thrust_damage_type="Pierce"
+              missile_speed="75"
+              item_usage="arrow_right"
+              physics_material="missile"
+              sticking_position="0,-0.97,0"
+              sticking_rotation="90,0,0"/>
+    </ItemComponent>
+  </Item>
+
+  <!-- ============================================================
+       2) 新增一支箭：新 id，不影响原版
+       mesh 直接复用原版模型（抄原版那行），省掉美术也能先跑通。
+       ============================================================ -->
+  <Item id="my_arrows"
+        name="{=myarrows02}My Bodkin Arrows"
+        mesh="arrow"
+        culture="Culture.empire"
+        weight="0.05"
+        value="45"
+        is_merchandise="true"
+        Type="Arrows">
+    <ItemComponent>
+      <Weapon weapon_class="Arrow"
+              ammo_class="Arrow"
+              stack_amount="40"
+              thrust_damage="4"
+              thrust_damage_type="Pierce"
+              missile_speed="80"
+              item_usage="arrow_right"
+              physics_material="missile"
+              sticking_position="0,-0.97,0"
+              sticking_rotation="90,0,0"/>
+    </ItemComponent>
+  </Item>
+
+</Items>
