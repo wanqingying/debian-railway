@@ -35,6 +35,7 @@
 | https://moddocs.bannerlord.com/war-sails/ship_creation/ | War Sails 造船 | 200 |
 | https://moddocs.bannerlord.com/steam-workshop/uploading_updating_mod/ | **必读**：Publish Module + WorkshopCreate.xml + `SteamWorkshop.exe` | 200 |
 | https://apidoc.bannerlord.com/ | 官方 API 文档（按版本；2026-11-14 只到 1.4.8，落后于 1.5.7） | 200 |
+| https://apidoc.bannerlord.com/v/1.4.8/class_tale_worlds_1_1_core_1_1_item_object.html | `ItemObject` 类页，含 `ItemTypeEnum` 全部成员（`Arrows`/`Bolts`/`Goods`…） | 200 |
 | https://apidoc.bannerlord.com/v/1.4.8/ | 单个版本入口示例 | 200 |
 | https://github.com/TaleWorlds/Documentations | 官方文档源码，可提 PR 纠错 | 200 |
 | https://forums.taleworlds.com/index.php?forums/the-smithy-mod-development.643/ | 官方 mod 开发论坛（The Smithy） | 403（Cloudflare） |
@@ -47,6 +48,11 @@
 | https://docs.bannerlordmodding.com/_intro/getting-started | 入门：工具清单、建模块 | 200 |
 | https://docs.bannerlordmodding.com/_intro/folder-structure | 模块目录结构详解 | 200 |
 | https://docs.bannerlordmodding.com/_xmldocs/submodule | **SubModule.xml 逐字段说明** + 合并/覆盖语义 | 200 |
+| https://docs.bannerlordmodding.com/_xmldocs/Items | Items 的 XML 结构总览（Item / ItemComponent / Weapon / Armor / Food） | 200 |
+| https://docs.bannerlordmodding.com/_xmldocs/Items/Item/ItemComponent/Weapon/ | **Weapon 属性全表**（`stack_amount`、`ammo_class`、`weapon_class`、`item_usage`…） | 200 |
+| https://docs.bannerlordmodding.lt/modding/items/ | Items 专题：查 ItemID/mesh、ItemRoster、价格、商店与战利品规则、坏物品导致后续不加载 | 200 |
+| https://docs.bannerlordmodding.lt/modding/localization/ | 语言文件目录结构、`{=key}` 机制 | 200 |
+| https://docs.bannerlordmodding.com/_csharp-api/localization/ | **官方本地化规则**：字符串 id 全局唯一、英文走内联文本、译文放 `Languages\<语言>\` | 200 |
 | https://docs.bannerlordmodding.com/_tutorials/basic-csharp-mod | **官方教程之外最好的 C# 入门**（Hello World + 调试参数） | 200 |
 | https://docs.bannerlordmodding.com/_tutorials/packing_mods_for_vortex | 打包给 Vortex 用 | 200 |
 | https://docs.bannerlordmodding.com/zh/_intro/getting-started | 上面同样内容的**中文版** | 200 |
