@@ -89,6 +89,45 @@ GET /api/user/self                              // quota, used_quota, group, req
 GET /api/token/?p=1&page_size=20                // per-token remain_quota, group, expiry
 ```
 
+### Per-request log
+
+This is the surface that answers "what did that call actually cost". Each row carries
+the group it was routed to and an `other` JSON blob with the **full price breakdown**,
+so a billing question never has to be inferred from list prices:
+
+```jsonc
+{
+  "created_at": 1794639371, "model_name": "claude-opus-5-5",
+  "group": "claude_kiro", "quota": 16499,          // = $0.032998
+  "prompt_tokens": 19, "completion_tokens": 6,     // note: 19, not the whole prompt
+  "is_stream": true, "use_time": 3, "ip": "152.55.176.99",
+  "token_id": 167772, "token_name": "img-edit",
+  "request_id": "2026111414560797323220778210122",
+  "upstream_request_id": "202611140656080165056358268d9d6ZKvdrGnF",
+  "content": "Host:api.gpt.ge，Size:76.46KB",
+  "other": "{\"group_ratio\":0.35,\"input_price\":4,\"output_price\":20,\
+            \"cached_creation_tokens\":18814,\"cached_tokens\":44,\
+            \"price_items\":[{\"k\":\"input\",\"t\":19,\"p\":4},\
+                            {\"k\":\"cache_read\",\"t\":44,\"p\":0.2},\
+                            {\"k\":\"cache_write\",\"t\":18814,\"p\":5},\
+                            {\"k\":\"output\",\"t\":6,\"p\":20}],\
+            \"pricing_source\":\"catalog_usd\",\"stream_outcome\":\"completed\"}"
+}
+```
+
+Three things that are only visible here:
+
+- **`price_items` is the truth.** `t` is the token count, `p` the list price per million;
+  `quota` = Σ(t × p / 1e6 × 500000) × `group_ratio`. A 18 k-token prompt billed `19` visible
+  input tokens because everything else was a **cache write** at $5/M — which is why the
+  `prompt_tokens` field alone understates a long-context call by three orders of magnitude.
+- **`group_ratio` varies per row** (0.35 vs 1 for Opus on this token), so two identical
+  requests can differ 3× in price.
+- **DeepSeek bills `reasoning` as output**: a row shows `output 7` and `reasoning 133`, both
+  at `p: 4` (the pre-ratio output price), i.e. thinking tokens are not free.
+
+`p` and `page_size` behave like a6api's (`p` is 1-based, `page_size` ≤ 100).
+
 ### Price points measured
 
 List prices come from each model's public page, `https://gpt.ge/models/<id>` (no auth
@@ -97,7 +136,7 @@ needed), and every one below was then confirmed against a real log row.
 | Item | Group | Price |
 | --- | --- | --- |
 | `deepseek-v4.1-flash-1017` | `deepseek` (0.5×) | `$0.5`/M input, `$2`/M output, `$0.01`/M cache read |
-| `claude-opus-5-5` | `claude_max` (1×) | `$4`/M input, `$20`/M output, `$0.2`/M cache read, `$5`/M cache write (5 m), `$8`/M (1 h) |
+| `claude-opus-5-5` | `claude_max` (1×) or `claude_kiro` (0.35×), per request | `$4`/M input, `$20`/M output, `$0.2`/M cache read, `$5`/M cache write (5 m), `$8`/M (1 h) |
 
 - **DeepSeek peak pricing** multiplies the *cache read* only, to `$0.02`/M, on
   weekdays `01:00–04:00` and `06:00–10:00` UTC (= Beijing 09–12 and 14–18). Input and
@@ -107,13 +146,14 @@ needed), and every one below was then confirmed against a real log row.
   Kiro), `claude_fzl` 0.6× (反重力), `claude_cc` 0.8× (cursor/Kiro), `claude_max` 1×
   ("pure max account, best quality, cannot be distilled"), plus `claude` 2.6×
   (enterprise, "may be out of stock").
-- **The group is a property of the token, set in the panel — not of the request.**
-  Adding `"group": "claude_kiro"` to the chat body is silently ignored: the log row
-  still says `claude_max`. This token carries `gemini_cli,deepseek,sale,default`
-  (`auto_group_enabled: true`), and `claude-5-5` resolves through `default` to
-  `claude_max`. Getting the 0.35× channel means changing the token's group in the
-  panel, and that channel is the Kiro resale whose behaviour a6api's copy gets wrong
-  (see below), so it must be re-verified before use.
+- **The group is chosen per request, not by the caller.** Adding `"group": "claude_kiro"`
+  to the chat body is silently ignored, but the token has `auto_group_enabled: true`, so
+  consecutive Opus calls land in *different* groups: the same 20-minute window produced rows
+  on both `claude_max` (ratio 1) and `claude_kiro` (ratio 0.35). With 0.35× the same call is
+  ~3× cheaper, and nothing in the request picks it — so a budget must be built from the log
+  rows, not from one assumed price. The panel's token group list (`gemini_cli,deepseek,sale,
+  default`) is what auto-routing chooses from; a6api's Kiro-only channel is the behaviour to
+  watch for, and `claude_kiro` is that same reverse-engineered channel.
 - **Cache writes are billed at full price and the cache is per-request-write only for
   a first call.** Two consecutive 125 k-token Opus calls billed `312571` quota each
   ($0.625) with `prompt_tokens: 4` — the other 125 041 tokens were the cache write,
@@ -133,6 +173,13 @@ Both models were driven end to end over HTTP, not just via the `models` list.
 | `/v1/messages` (Anthropic) | — | yes, with signed `thinking` blocks |
 | Prompt cache | 5248 of 5392 tokens on the 2nd call (97 %) | `cache_write_tokens` on every call; no read-side hit without a pinned session |
 | Context / max output (panel) | 1 M / 384 K | 1 M / 128 K, knowledge cutoff 2026-06 |
+| Through OpenCode itself | `gptge/deepseek-v4.1-flash-1017` answered a prompt | `gptge/claude-opus-5-5` answered a prompt |
+
+Those last two rows are the end-to-end proof: after the redeploy that baked the provider,
+`POST /api/session/{id}/model` (`{"model":{"providerID":"gptge","id":"claude-opus-5-5"}}` —
+the key is `id`, not `modelID`) followed by `POST /api/session/{id}/prompt` produced assistant
+messages whose `model.providerID` is `gptge`, and matching rows appeared in `/api/log/self`
+with `group_ratio` 0.5 (DeepSeek) and 0.35 (Opus, `claude_kiro`).
 
 Cost of the same agent step, on this token, versus the two other gateways:
 
@@ -168,7 +215,10 @@ Two operational notes:
   the file changed, including a live `cp` into `$XDG_CONFIG_HOME/opencode/`), so the
   models show up only after opencode restarts — i.e. after the next redeploy.
 - Costs in the config are the panel's per-million list prices above; they are
-  metadata for OpenChamber's UI and the allowance meter, not what the gateway charges.
+  metadata for OpenChamber's UI, not what the gateway charges. Measured on one
+  DeepSeek step: OpenCode reported `cost: 0.00007788555` while `/api/log/self`
+  billed `quota: 4808` = `$0.009616` — off by ~120×, so never take a gptge spend
+  figure from the UI or from `session_message.cost`; read the log rows.
 
 ## Image generation
 
