@@ -1,0 +1,24 @@
+[
+ {
+  "id": "C050",
+  "node": "N4",
+  "url": "http://kjs.customs.gov.cn/kjs/fileDir/resource/cms/article/2596230/6906637/2025122418290565612.pdf",
+  "verdict": "supported",
+  "hits": "1/1",
+  "status": 200,
+  "kind": "pdf",
+  "lane": "http",
+  "len": 7994
+ },
+ {
+  "id": "C051",
+  "node": "N4",
+  "url": "https://www.tc260.org.cn/tc260/sjzn/202508/c0908483cf934b919e3f43cbe51d49d1/files/c05e9f9eca704c0985d72c40f7218ca1.pdf",
+  "verdict": "not-found",
+  "hits": "0/1",
+  "status": 200,
+  "kind": "pdf",
+  "lane": "http",
+  "len": 15071
+ }
+]

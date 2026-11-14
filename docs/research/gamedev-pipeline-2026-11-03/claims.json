@@ -1,0 +1,512 @@
+[
+  {
+    "claim_id": "C001",
+    "node": "N1",
+    "source_id": "S1",
+    "claim": "垂直切片是本体量下最重要的门槛：20 分钟到 1 小时，但必须完整且抛光，不能有占位",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C002",
+    "node": "N1",
+    "source_id": "S2",
+    "claim": "Vertical Slice 的作用是测试生产管线本身，而不只是验证想法",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C003",
+    "node": "N1",
+    "source_id": "S2",
+    "claim": "独立项目的资金通常要在垂直切片结束时到位，否则团队会在几个月内耗尽资源或动力",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C004",
+    "node": "N1",
+    "source_id": "S1",
+    "claim": "Alpha（Feature Complete）通常出现在生产期的约三分之二处",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C005",
+    "node": "N1",
+    "source_id": "S1",
+    "claim": "到 Alpha 必须能不靠开发者协助跑完一整遍，才能采集留存、节奏、时长等指标",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C006",
+    "node": "N1",
+    "source_id": "S1",
+    "claim": "最常见的流程失败是把预生产当成早期生产，提前进入内容量制作，然后在后面撞墙",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C007",
+    "node": "N1",
+    "source_id": "S3",
+    "claim": "完整周期是八个阶段，上线后由长线运营继续延伸",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C008",
+    "node": "N1",
+    "source_id": "S3",
+    "claim": "概念阶段：独立项目数周到三个月，AAA 项目最多六个月",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C009",
+    "node": "N1",
+    "source_id": "S3",
+    "claim": "Beta（内容完成）应在发售前 8–12 周到达；AAA 大约在生产第九个月",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C010",
+    "node": "N1",
+    "source_id": "S3",
+    "claim": "进入 Beta 时构建不稳定是最常见失败，会压缩 QA 窗口并造成连锁延期",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C011",
+    "node": "N1",
+    "source_id": "S2",
+    "claim": "先把核心“动词”（功能）锁定，后面的一切才可预测；内容是可以排期的，功能不行",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C012",
+    "node": "N1",
+    "source_id": "S4",
+    "claim": "原型阶段本身可以淘汰项目：有些游戏永远走不过原型",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C013",
+    "node": "N1",
+    "source_id": "S4",
+    "claim": "预生产通常占总制作时间的 20% 以内",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C014",
+    "node": "N1",
+    "source_id": "S5",
+    "claim": "Alpha 与 Beta 的区别是：Alpha 问“功能在不在、能不能用”，Beta 问“在真实条件下能不能出货”",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C015",
+    "node": "N1",
+    "source_id": "S5",
+    "claim": "中型项目的 QA 节奏：Alpha 6–12 周，封闭+开放 Beta 4–10 周，RC 到 Gold 2–6 周",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C016",
+    "node": "N2",
+    "source_id": "S6",
+    "claim": "育碧开放世界的 AAA 开发需要 400–600 人，分布在多个国家的多个工作室",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C017",
+    "node": "N2",
+    "source_id": "S6",
+    "claim": "AA（双 A）工作室通常在 50–100 人规模",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C018",
+    "node": "N2",
+    "source_id": "S6",
+    "claim": "2024–2025 年立项的 AAA 平均开发预算约 2 亿美元，2018 年是 5000 万–1.5 亿",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C019",
+    "node": "N2",
+    "source_id": "S6",
+    "claim": "成本上升促使发行商只投成熟 IP，AAA 里实验性项目变少",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C020",
+    "node": "N2",
+    "source_id": "S6",
+    "claim": "单款失败可能直接导致工作室关闭",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C021",
+    "node": "N2",
+    "source_id": "S6",
+    "claim": "AAA 是加班（crunch）问题最突出的环境之一",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C022",
+    "node": "N3",
+    "source_id": "S7",
+    "claim": "发行商没有耐心听“等做完就顺了”这类解释",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C023",
+    "node": "N2",
+    "source_id": "S7",
+    "claim": "试玩切片要在前 30 秒同时给出：清楚的玩法、稳定的性能、与最终一致的视觉风格",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C024",
+    "node": "N3",
+    "source_id": "S8",
+    "claim": "发行商看试玩第一指标是留存曲线",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C025",
+    "node": "N3",
+    "source_id": "S9",
+    "claim": "30 份非手游独立发行协议的均值：预付 31.8 万美元；只看有预付的协议则 46 万；区间 10 万–200 万",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C026",
+    "node": "N3",
+    "source_id": "S9",
+    "claim": "平均分成是开发者 60/发行商 40；无预付的协议开发者拿 71%，有预付的只有 55%",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C027",
+    "node": "N3",
+    "source_id": "S9",
+    "claim": "42% 的协议要求预付全额回收后开发者才拿到第一笔分成",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C028",
+    "node": "N3",
+    "source_id": "S9",
+    "claim": "发行协议常把资金绑在里程碑上，发行商可以用“验收不通过”拖延付款并要求改需求",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C029",
+    "node": "N3",
+    "source_id": "S10",
+    "claim": "预付回收期（pre-recoup）的分成从 0/100 到 50/50，0/100 越来越常见",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C030",
+    "node": "N3",
+    "source_id": "S10",
+    "claim": "回收完成后的分成最常见是 50/50（上下 10%）",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C031",
+    "node": "N3",
+    "source_id": "S10",
+    "claim": "在回收期内，平台拿到的钱可能多于开发者",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C032",
+    "node": "N4",
+    "source_id": "S11",
+    "claim": "首发周销量/wishlist 的中位数是 0.17x，但区间从 1 倍到 10 倍",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C033",
+    "node": "N4",
+    "source_id": "S11",
+    "claim": "只算首发时 wishlist 超过 2.5 万的游戏，中位数降到 0.15x",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C034",
+    "node": "N4",
+    "source_id": "S11",
+    "claim": "只算售价高于 10 美元的游戏，中位数进一步降到 0.10x",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C035",
+    "node": "N4",
+    "source_id": "S11",
+    "claim": "转化差的那批游戏，上市 7 天后的中位好评率只有 67%（Mixed），而转化最好的 20 款是 91%",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C036",
+    "node": "N4",
+    "source_id": "S11",
+    "claim": "滞销游戏平均在 Steam 挂了 411 天才发售，高转化组只挂了 214 天",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C037",
+    "node": "N4",
+    "source_id": "S11",
+    "claim": "买量来的 wishlist 质量更差，转化成销量更弱",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C038",
+    "node": "N4",
+    "source_id": "S11",
+    "claim": "没有证据表明 wishlist→销量 的转化率在整体下滑，变化的是游戏数量变多",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C039",
+    "node": "N4",
+    "source_id": "S12",
+    "claim": "免费 Demo + Next Fest 是这套漏斗里最大的单个杠杆（Timberborn：10 万人试玩，三周 +9.1 万 wishlist）",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C040",
+    "node": "N5",
+    "source_id": "S13",
+    "claim": "Early Access 不是众筹手段",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C041",
+    "node": "N5",
+    "source_id": "S13",
+    "claim": "没有可玩内容就不该开 EA（只有技术演示太早）",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C042",
+    "node": "N5",
+    "source_id": "S13",
+    "claim": "EA 阶段不许对未来做具体承诺",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C043",
+    "node": "N5",
+    "source_id": "S13",
+    "claim": "EA 期间拿不到完整的首发曝光，正式发布才有",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C044",
+    "node": "N5",
+    "source_id": "S13",
+    "claim": "EA 超过 12 个月没更新，Steam 会在商店页加“很久没更新”的提示",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C045",
+    "node": "N5",
+    "source_id": "S13",
+    "claim": "涨价后 30 天内不能打折，包括从 EA 转正式版的发售折扣",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C046",
+    "node": "N5",
+    "source_id": "S14",
+    "claim": "Valve 自己的经验是大型内容更新间隔最多 1–2 个月",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C047",
+    "node": "N5",
+    "source_id": "S14",
+    "claim": "Valve 建议读反馈与社区责任归开发团队，而不是外包给 PR 或社区经理",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C048",
+    "node": "N5",
+    "source_id": "S15",
+    "claim": "差评轰炸分两类：跑题的（Valve 会剔除，分数恢复）与切题的（全额计入，只能靠解决问题恢复）",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C049",
+    "node": "N5",
+    "source_id": "S15",
+    "claim": "所有有记录的恢复案例，第一步都是解决问题本身，而不是做公关解释",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C050",
+    "node": "N5",
+    "source_id": "S15",
+    "claim": "索尼在 3 天内反转决定，近期评价在一周内翻回正面",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C051",
+    "node": "N5",
+    "source_id": "S15",
+    "claim": "跑题的差评轰炸由 Valve 标记后整体剔除，分数立即完全恢复",
+    "tier": "T2",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  }
+]

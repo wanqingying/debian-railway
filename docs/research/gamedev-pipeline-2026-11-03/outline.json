@@ -1,0 +1,12 @@
+{
+  "slug": ".",
+  "question": "",
+  "depth": "standard",
+  "budget": {
+    "max_sources_per_node": 8,
+    "max_minutes": 20,
+    "max_workers_per_batch": 3
+  },
+  "created": "2026-11-03",
+  "nodes": []
+}

@@ -1,0 +1,56 @@
+{
+  "question": "AI + agent 辅助在单机游戏开发中的强项与薄弱点是什么，对品类型号与管线自动化有何决策含义",
+  "depth": "standard",
+  "cutoff": "2026-11-03",
+  "nodes": [
+    {
+      "id": "N1",
+      "question": "业界实际采用率与态度（分职能）",
+      "acceptance": "给出 2026 年 GDC 调查的使用率与态度数字，并按职能分层",
+      "min_independent_sources": 2,
+      "families": ["gdconf.com", "gamedeveloper.com", "gamesindustry.biz"],
+      "freshness_window": "2026-01..2026-11"
+    },
+    {
+      "id": "N2",
+      "question": "可测量的生产力效果：RCT 与自报数据是否一致",
+      "acceptance": "至少一个 RCT 的量化结果 + 一个自报调查，并指出两者方向是否一致",
+      "min_independent_sources": 2,
+      "families": ["metr.org", "arxiv.org"],
+      "freshness_window": "2025-01..2026-11"
+    },
+    {
+      "id": "N3",
+      "question": "Agent 的可靠性边界：能完成 vs 能信任的时间跨度",
+      "acceptance": "给出 50% 与高可靠度两个口径的任务时长数字，并给出至少一个长程基准的成功率",
+      "min_independent_sources": 2,
+      "families": ["metr.org", "arxiv.org", "epoch.ai"],
+      "freshness_window": "2025-01..2026-11"
+    },
+    {
+      "id": "N4",
+      "question": "游戏开发中的强项：哪些环节有实证收益",
+      "acceptance": "至少三类环节各有一个可引用证据（自动化测试/平衡验证/内容生成/工具链）",
+      "min_independent_sources": 2,
+      "families": ["arxiv.org", "acm.org", "ieee.org", "gdcvault.com"],
+      "freshness_window": "2023-01..2026-11"
+    },
+    {
+      "id": "N5",
+      "question": "游戏开发中的薄弱点：哪些环节无实证或反证",
+      "acceptance": "至少三类环节各有一个可引用证据（趣味性/手感/美术一致性/引擎 API/资产管线）",
+      "min_independent_sources": 2,
+      "families": ["arxiv.org", "gamedeveloper.com", "github.com"],
+      "freshness_window": "2024-01..2026-11"
+    },
+    {
+      "id": "N6",
+      "question": "市场侧后果：供给洪水与披露比例的规模",
+      "acceptance": "给出可量化的供给增长或披露比例数字",
+      "min_independent_sources": 2,
+      "families": ["gamedeveloper.com", "steamdb.info", "itch.io"],
+      "freshness_window": "2025-01..2026-11"
+    }
+  ],
+  "budget": {"sources": 24, "workers_per_batch": 3, "wall_clock_min": 25}
+}

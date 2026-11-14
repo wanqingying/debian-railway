@@ -26,7 +26,7 @@ Do **not** use it for a single fact, a quick definition, or when the user wants 
 1. **Primary sources first.** Prefer the thing itself — the paper, the official docs, the repository, the filing, the standard — over articles that describe it.
 2. **Provenance on every non-obvious claim.** URL, retrieval date, the exact supporting quote, the tier, and the access lane.
 3. **Triangulate.** A load-bearing claim needs ≥2 independent sources. One source means say so and lower confidence.
-4. **Freshness with a number.** For "latest/current/recent" questions, name the window you searched and the cutoff date; version- or date-sensitive facts name the version or date.
+4. **Freshness with a number.** Naming the window you searched is not enough — a report can state a window and then cite three sources from before it. So timeliness is measured like accuracy is: every source records the date *it was published*, and `stats --window` reports how many load-bearing claims fall inside the window. A claim from before it is allowed, but it has to carry a `stale_reason` saying why it still holds; a testable claim with no date is `undated`, reported as unknown rather than counted as fresh.
 5. **Surface disagreement.** Show both sides and explain the difference; never silently pick one or average them.
 6. **Separate fact from inference.** Label what you derived.
 7. **Uncertainty is data.** State what could not be verified and how that bounds the conclusion.
@@ -67,7 +67,7 @@ Restate the question in one or two sentences, then write `outline.json` (schema:
 - `acceptance` — the test that decides whether it is answered. Write it as something a stranger could apply to the finished report: *"three deployable options, each with an official docs link and a version number from the last 6 months"*, not *"analyze the options"*. If you cannot imagine a result that would fail the test, the test is not one;
 - `families` — the source families or exact recipes to try (from `references/source-routing.md`);
 - `min_independent_sources` — usually 2 for load-bearing nodes, counted in **distinct source families**, not URLs (see Phase 4);
-- `freshness_window` — the date range you will accept, or `any`.
+- `freshness_window` — the date range you will accept, or `any`. Its start date is what you pass to `stats --window`, so write it as a real date (`"2025-06-01.."`) whenever the question is time-sensitive; `any` opts the node out of the freshness metric, and that opt-out is visible in the report.
 
 Then check the plan is **arithmetically possible**: sum `min_independent_sources` across nodes and compare it with the total source budget. Seven nodes at 2 sources each is 14 sources; if the budget is 8, the plan cannot be executed, and an agent under that pressure silently starts cutting the per-node floor — which is how evidence quality degrades while the report still looks fine. When the numbers do not fit, cut **nodes** (merge overlapping ones, drop the ones that are nice-to-have), never the per-node floor. Record the arithmetic in `outline.json` so the trade-off is visible afterwards.
 
@@ -118,19 +118,23 @@ Open the cited URL for **every** load-bearing claim and decide, per claim, wheth
 
 Fixing a record goes through the register, never through a text editor: `node scripts/evidence.mjs edit <dir> --claim C0xx '<json of the fields to change>'` corrects a claim in place — recomputing its source family when the `url` moves — and `--delete` removes one outright. Hand-editing `evidence.jsonl` is how ids and derived fields drift apart from the numbers the report quotes. When one claim needs two pages to stand up, do not give it two URLs: edit it down to the first, and `append` the second as its own record.
 
-`node scripts/evidence.mjs stats <dir>` then gives you the number that goes in the report header:
+`node scripts/evidence.mjs stats <dir> --window <YYYY-MM-DD>` then gives you the two numbers that go in the report header:
 
 ```
 citation accuracy = SUPPORTED / (load-bearing claims with a verdict)
 ```
 
-Record it even when it is bad; a report that admits 88% is more useful than one that claims 100% and cannot show its work. Below ~95% on a load-bearing topic, the deliverable is not ready: keep fixing, or move the failing claims into the report's uncertainty section. Run `references/quality-checklist.md` as the final sweep.
+Record it even when it is bad; a report that admits 88% is more useful than one that claims 100% and cannot show its work. Below ~95% on a load-bearing topic, the deliverable is not ready: keep fixing, or move the failing claims into the report's uncertainty section.
+
+The same pass settles **timeliness**: for every claim published before the node's `freshness_window`, either drop it, replace it with something current, or record why the older source still holds in `stale_reason` (`edit <dir> --claim C0xx '{"stale_reason":"…"}'`). A 2019 number is often the right number — the failure is presenting it as if it were from last month, and the fix is one clause of explanation, not a hunt for a fresher page. `render --gate --window <date>` fails on any outdated claim that does not carry that clause.
+
+Run `references/quality-checklist.md` as the final sweep.
 
 ### 7 · Deliver
 
 - `docs/research/<slug>-<date>/report.md` — the deliverable, with the accuracy line in its header.
 - Alongside it: `outline.json`, `evidence.jsonl`, `sources.json` — the audit trail that lets a later session re-check a claim without redoing the research.
-- In chat: 3–6 lines — strongest conclusion, biggest uncertainty, the one source you would trust most, and the measured accuracy.
+- In chat: 3–6 lines — strongest conclusion, biggest uncertainty, the one source you would trust most, and the measured accuracy and freshness.
 
 ## Running workers
 

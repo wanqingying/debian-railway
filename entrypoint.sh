@@ -63,6 +63,24 @@ if [ -e "$HOME/.config/openchamber" ] && [ ! -L "$HOME/.config/openchamber" ]; t
 fi
 ln -sfn "$OPENCHAMBER_DATA_DIR" "$HOME/.config/openchamber"
 
+# lark-cli (Feishu/Lark) keeps its app credentials, DPoP key and user tokens in
+# two hardcoded paths under $HOME — ~/.lark-cli (config.json) and
+# ~/.local/share/lark-cli (credentials + update state). It honours neither
+# XDG_CONFIG_HOME nor XDG_DATA_HOME, and $HOME is ephemeral, so an authorization
+# completed by hand (QR scan) would be lost on every redeploy. Point both at the
+# volume; a real directory left behind in this container is folded in first
+# (no-clobber, the volume wins) so `ln` cannot nest the link inside it.
+LARK_CLI_DATA_DIR="${LARK_CLI_DATA_DIR:-$XDG_DATA_HOME/lark-cli}"
+mkdir -p "$LARK_CLI_DATA_DIR/config" "$LARK_CLI_DATA_DIR/data" "$HOME/.local/share"
+for pair in "$HOME/.lark-cli:$LARK_CLI_DATA_DIR/config" "$HOME/.local/share/lark-cli:$LARK_CLI_DATA_DIR/data"; do
+    src="${pair%%:*}" dst="${pair#*:}"
+    if [ -e "$src" ] && [ ! -L "$src" ]; then
+        cp -an "$src/." "$dst/" 2>/dev/null || true
+        rm -rf "$src"
+    fi
+    ln -sfn "$dst" "$src"
+done
+
 # ---- Config bootstrap: copy baked config into the persistent volume ----
 # The baked config is the source of truth; files whose content differs from the
 # baked version are overwritten so image updates (e.g. env-var refs) propagate.
@@ -271,7 +289,7 @@ fi
 # resolved version cannot drift; this only deletes leftovers — an older pin, or an
 # `@latest` copy from before the pin — so a long-running container cannot keep
 # serving a stale build from disk. Keep the version in sync with opencode.jsonc.
-MC_PLUGIN_CACHE_SPEC="@cortexkit/opencode-magic-context@0.49.34"
+MC_PLUGIN_CACHE_SPEC="@cortexkit/opencode-magic-context@0.49.43"
 for d in "$HOME/.cache/opencode/npm" "${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm"; do
     for p in "$d"/@cortexkit/opencode-magic-context@*; do
         [ -e "$p" ] || continue
@@ -364,16 +382,17 @@ if [ "${BROWSER_ENABLE:-1}" != 0 ] && [ -x /scripts/start-browser.sh ]; then
     /scripts/start-browser.sh || echo "[entrypoint] warning: interactive browser failed to start (continuing)"
 fi
 
-# ---- Feishu Q&A bridge ----
-# Routes questions asked in an inspection report's topic to the session that wrote it. Started AFTER
-# OpenChamber because it talks to the embedded opencode server, and detached so a crashing bridge can
-# never take the container (or SSH) down with it. The launcher waits for opencode, holds a lock
-# (only one long connection per Feishu app may exist), installs deps when the lockfile moved, and
-# restarts the bridge with capped backoff. Log:
-#   $XDG_DATA_HOME/feishu-bridge/bridge-supervisor.log
-# Opt out with FEISHU_BRIDGE_ENABLE=0.
-if [ -x /scripts/start-feishu-bridge.sh ]; then
-    nohup /scripts/start-feishu-bridge.sh >/dev/null 2>&1 &
+# ---- Feishu work assistant (lark-work-assistant) ----
+# The assistant is the only long-connection consumer of the Feishu app: it answers every message,
+# including questions asked inside an inspection report's topic (it reads the topic ledger that
+# joops/feishu-bot's card.ts writes). The old feishu-bridge is retired — see
+# scripts/start-lark-assistant.sh for why two long connections cannot coexist.
+# Started AFTER OpenChamber because it talks to the embedded opencode server, and detached so a
+# crashing assistant can never take the container (or SSH) down with it.
+# Log: $XDG_DATA_HOME/lark-assistant/supervisor.log
+# Opt out with LWA_ENABLE=0.
+if [ -x /scripts/start-lark-assistant.sh ]; then
+    nohup /scripts/start-lark-assistant.sh >/dev/null 2>&1 &
 fi
 
 # ---- Keep the container alive ----

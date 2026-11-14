@@ -6,15 +6,23 @@
 
 .DESCRIPTION
     Idempotent: safe to re-run. Installs the globally-installed npm packages at the
-    BD-002 versions, then copies this repo's non-sensitive config into
-    %USERPROFILE%\.config. Secrets are never written: set COMMANDCODE_API_KEY and
-    EMBEDDING_API_KEY in your environment before starting opencode.
+    BD-004 versions, then copies this repo's non-sensitive config into
+    %USERPROFILE%\.config. Secrets are never written: run `opencode auth login` for
+    the opencode-go subscription and set A6API_API_KEY (image_generate) plus
+    EMBEDDING_API_KEY (magic-context) in your environment.
 
 .PARAMETER RepoRoot
     Repo checkout to copy config from. Defaults to two levels above this script.
 
+.PARAMETER WorktreeRoot
+    Where this machine's worktrees go. The shared opencode.jsonc pins the container's
+    /workspace/worktrees, so the copied file is rewritten to this path.
+
 .PARAMETER SkipGlobalPackages
     Copy config only. Use when the npm packages are already at the right versions.
+
+.PARAMETER SkipLark
+    Do not install @larksuite/cli. The lark-* skills stay on disk but cannot run.
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File platform\win10\setup.ps1
@@ -22,7 +30,9 @@
 [CmdletBinding()]
 param(
     [string]$RepoRoot,
-    [switch]$SkipGlobalPackages
+    [string]$WorktreeRoot = 'D:\gamedev\worktrees',
+    [switch]$SkipGlobalPackages,
+    [switch]$SkipLark
 )
 
 # Windows PowerShell 5.1 evaluates param defaults before $PSScriptRoot is
@@ -36,12 +46,13 @@ if (-not $RepoRoot) {
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-# --- version pins: keep in sync with versions/BD-002.md ----------------------
-$OPENCODE_VERSION    = '2.2.5'
+# --- version pins: keep in sync with versions/BD-004.md ----------------------
+$OPENCODE_VERSION    = '2.2.6'
 $CODEGRAPH_VERSION   = '1.6.2'
-$PLAYWRIGHT_VERSION  = '1.64.1'
+$PLAYWRIGHT_VERSION  = '1.65.0'
+$LARK_CLI_VERSION    = '1.0.99'
 $MIN_NODE_VERSION    = [version]'24.14.0'   # @openchamber/web engines requirement
-$OPENCHAMBER_TARBALL = (Join-Path (Join-Path $RepoRoot 'vendor') 'openchamber-web-2.6.0-fork.tgz')
+$OPENCHAMBER_TARBALL = (Join-Path (Join-Path $RepoRoot 'vendor') 'openchamber-web-2.7.0-fork.tgz')
 # ----------------------------------------------------------------------------
 
 function Step([string]$message) { Write-Host "==> $message" -ForegroundColor Cyan }
@@ -68,14 +79,19 @@ function Get-GlobalPackageVersion([string]$package) {
     return $null
 }
 
-function Install-NpmGlobal([string]$spec) {
+function Install-NpmGlobal([string]$spec, [string]$allowScriptsFor) {
     # PS 5.1 turns every native-command stderr line into an error record, and
     # under $ErrorActionPreference = 'Stop' an ordinary npm warning (the
     # install-scripts advisory fires on every install) terminates the script.
     # Run the call through cmd so both streams arrive as plain text, and judge
     # success by $LASTEXITCODE only.
+    #
+    # npm 11 blocks install scripts unless the package is named with
+    # --allow-scripts: @opencode/cli only loses its binary-resolution step,
+    # @larksuite/cli's postinstall is what fetches the CLI at all.
+    $flags  = if ($allowScriptsFor) { "--allow-scripts=$allowScriptsFor " } else { '' }
     $quoted = '"' + ($spec -replace '"', '') + '"'
-    cmd /c "npm install -g $quoted 2>&1" | ForEach-Object {
+    cmd /c "npm install -g $flags$quoted 2>&1" | ForEach-Object {
         if ("$_" -match 'ERR!|npm warn') { Write-Host "    $_" }
     }
     if ($LASTEXITCODE -ne 0) { throw "npm install -g $spec failed (exit $LASTEXITCODE)." }
@@ -111,19 +127,27 @@ if ($SkipGlobalPackages) {
 } else {
     Step '2/6 global packages'
     $packages = @(
-        "@opencode/cli@$OPENCODE_VERSION",
-        "@colbymchenry/codegraph@$CODEGRAPH_VERSION",
-        "playwright@$PLAYWRIGHT_VERSION"
+        @("@opencode/cli@$OPENCODE_VERSION", '@opencode/cli'),
+        @("@colbymchenry/codegraph@$CODEGRAPH_VERSION", $null),
+        @("playwright@$PLAYWRIGHT_VERSION", $null)
     )
     foreach ($package in $packages) {
-        Write-Host "  installing $package"
-        Install-NpmGlobal $package
-        Ok $package
+        Write-Host "  installing $($package[0])"
+        Install-NpmGlobal $package[0] $package[1]
+        Ok $package[0]
     }
 
     Write-Host '  installing @openchamber/web from the fork tarball'
     Install-NpmGlobal $OPENCHAMBER_TARBALL
     Ok 'openchamber (fork build)'
+
+    if ($SkipLark) {
+        Warn 'lark-cli skipped (-SkipLark): the lark-* skills are installed but cannot run'
+    } else {
+        Write-Host "  installing @larksuite/cli@$LARK_CLI_VERSION"
+        Install-NpmGlobal "@larksuite/cli@$LARK_CLI_VERSION" '@larksuite/cli'
+        Ok 'lark-cli (Feishu/Lark - authorise per machine with: lark-cli auth login)'
+    }
 
     # node-pty ships prebuilds/win32-x64/conpty.node, so no MSVC is needed.
     # If this ever starts failing, install Visual Studio Build Tools and retry.
@@ -141,12 +165,33 @@ Copy-Item ((Join-Path (Join-Path (Join-Path $RepoRoot 'opencode-config') 'openco
 Copy-Item ((Join-Path (Join-Path (Join-Path $RepoRoot 'opencode-config') 'cortexkit') '*'))  $cortexCfg   -Recurse -Force
 Copy-Item ((Join-Path (Join-Path $RepoRoot 'opencode-config') 'package.json')) (Join-Path $configHome 'package.json') -Force
 Copy-Item (Join-Path $PSScriptRoot 'AGENTS.win10.md')          (Join-Path $opencodeCfg 'AGENTS.md') -Force
+
+# opencode.jsonc is otherwise copied verbatim, but its worktree.directory is the
+# container's /workspace/worktrees - a path this machine does not have, which would
+# make OpenChamber's "New worktree" create a directory nobody can open. Rewrite that
+# one value (backslashes escaped for JSON) and leave every other key alone.
+$jsoncPath = Join-Path $opencodeCfg 'opencode.jsonc'
+if (Test-Path $jsoncPath) {
+    $content  = Get-Content -Raw -Path $jsoncPath
+    $jsonPath = $WorktreeRoot -replace '\\', '\\'
+    $patched  = $content -replace '"directory":\s*"/workspace/worktrees"', ('"directory": "{0}"' -f $jsonPath)
+    if ($patched -ne $content) {
+        [System.IO.File]::WriteAllText($jsoncPath, $patched)
+        Ok "worktree.directory -> $WorktreeRoot"
+    } else {
+        Warn 'worktree.directory not found in opencode.jsonc - the container pin changed; check by hand'
+    }
+}
 Ok "config copied to $configHome"
 
 # The container pins these through entrypoint.sh; on Windows they are the user's job.
-foreach ($variable in 'COMMANDCODE_API_KEY', 'EMBEDDING_API_KEY') {
+# The default model is opencode-go/*, which is a subscription rather than an env key:
+# authorise it once with `opencode auth login` (or from OpenChamber); the credential
+# stays in this machine's opencode data directory.
+foreach ($variable in 'EMBEDDING_API_KEY', 'A6API_API_KEY') {
     if (-not (Test-Path "env:$variable")) {
-        Warn "$variable is not set - opencode will start but the model provider / embeddings will fail"
+        $what = if ($variable -eq 'EMBEDDING_API_KEY') { 'magic-context memory embeddings' } else { 'image_generate and the a6api models' }
+        Warn "$variable is not set - $what will fail"
     } else {
         Ok "$variable set"
     }
@@ -166,7 +211,9 @@ Warn 'do not hand-copy the uvx command line: v4 clients must connect through god
 
 # --- 6. report --------------------------------------------------------------
 Step '6/6 versions installed'
-foreach ($package in '@opencode/cli', '@openchamber/web', '@colbymchenry/codegraph', 'playwright') {
+$reported = @('@opencode/cli', '@openchamber/web', '@colbymchenry/codegraph', 'playwright')
+if (-not $SkipLark) { $reported += '@larksuite/cli' }
+foreach ($package in $reported) {
     $version = Get-GlobalPackageVersion $package
     if ($version) { Ok "$package $version" } else { Warn "$package not found in the global prefix" }
 }

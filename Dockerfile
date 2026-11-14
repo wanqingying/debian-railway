@@ -152,25 +152,25 @@ RUN curl -Ls https://cli.doppler.com/install.sh | sh \
 #   neon         : neonctl — authenticates natively via NEON_API_KEY, no login step
 #   @railway/cli : ships a postinstall -> needs --allow-scripts under npm 11
 #   openchamber  : the web UI that manages its own embedded OpenCode server. This is
-#                  OUR FORK's build of 2.6.0, not the npm package: it is the 2.6.0
+#                  OUR FORK's build of 2.7.0, not the npm package: it is the 2.7.0
 #                  release plus the "group worktrees" sidebar toggle
 #                  (fork: github.com/wanqingying/openchamber — upstream #5669 is still
 #                  open). The tarball is committed as
-#                  `vendor/openchamber-web-2.6.0-fork.tgz`; rebuild it in the fork with
-#                  `bun run pack:web` and copy the tgz here. It stays the 2.6.0
+#                  `vendor/openchamber-web-2.7.0-fork.tgz`; rebuild it in the fork with
+#                  `bun run pack:web` and copy the tgz here. It stays the 2.7.0
 #                  release, so it keeps the npm pair with the OpenCode pin below
-#                  (2.6.0 requires opencode >= 2.2.4; we pin 2.2.5) and the two open
-#                  regressions (#6131 question form, #6084 git churn) still apply —
-#                  see versions/bd/BD-002.md.
-# Upstream is therefore never installed by name: npm's `@openchamber/web@2.6.0` has no
+#                  (2.7.0 requires opencode >= 2.2.4; we pin 2.2.6). #6131 (question form)
+#                  is fixed upstream as of 2026-11-07; #6084 (git churn) is still open —
+#                  see versions/bd/BD-003.md.
+# Upstream is therefore never installed by name: npm's `@openchamber/web@2.7.0` has no
 # fork patch, and installing it over the fork is exactly the mistake this COPY prevents.
-COPY vendor/openchamber-web-2.6.0-fork.tgz /opt/openchamber-fork/openchamber-web-2.6.0-fork.tgz
+COPY vendor/openchamber-web-2.7.0-fork.tgz /opt/openchamber-fork/openchamber-web-2.7.0-fork.tgz
 # Kept as two invocations: `neon` comes from the registry, openchamber from the tarball,
 # and one failing install must not take the other down (install-tools.sh keeps the same
 # per-tool fallback). The split is not a speed claim: adjacent Railway build wall-clocks
 # were measured to vary 28–89 s on the same layout, so they cannot compare layouts.
 RUN npm i -g neon \
-    && npm i -g /opt/openchamber-fork/openchamber-web-2.6.0-fork.tgz \
+    && npm i -g /opt/openchamber-fork/openchamber-web-2.7.0-fork.tgz \
     && npm cache clean --force
 
 # `--allow-scripts` is given per package that ships an install script. Both are known to
@@ -188,7 +188,7 @@ RUN npm i -g neon \
 #
 # opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
 # official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
-# @opencode/cli`) is what we follow, but the version is pinned at 2.2.5 on purpose:
+# @opencode/cli`) is what we follow, but the version is pinned at 2.2.6 on purpose:
 # following `latest` makes the running agent drift with every build, and one bad
 # upstream release takes the whole AI stack down. It is also paired with the
 # OpenChamber pin (see the version-pair note there).
@@ -200,7 +200,7 @@ RUN npm i -g neon \
 # version variable is the fallback knob, not the source of truth — keep the two
 # in sync when bumping.
 #
-# codegraph is PINNED at 1.6.2 (BD-002) like the other two. It used to be deliberately
+# codegraph is PINNED at 1.6.2 (BD-003) like the other two. It used to be deliberately
 # unpinned — the old `versions/BD-INDEX.md` Hold argued it was an L1 tool whose failures
 # are loud (`codegraph status` errors visibly) — but an unpinned tool that also upgrades
 # itself at every boot is two moving parts in one container, and "tracks upstream" means a
@@ -211,20 +211,29 @@ RUN npm i -g neon \
 # neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
 # @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
 # openchamber : the web UI that manages its own embedded OpenCode server. PINNED
-#               (BD-002 = 2.6.0) and paired with the OpenCode pin — OpenChamber 2.x
-#               drives OpenCode 2.x only, and 2.6.0 requires opencode >= 2.2.4. It still has
-#               two open regressions (#6131 question form, #6084 git churn); taking it is a
-#               deliberate owner decision — see versions/bd/BD-002.md.
+#               (BD-003 = 2.7.0 fork build) and paired with the OpenCode pin — OpenChamber 2.x
+#               drives OpenCode 2.x only, and 2.7.0 requires opencode >= 2.2.4. #6131
+#               (question form) is fixed upstream; #6084 (git churn) is still open and is
+#               accepted — see versions/bd/BD-003.md.
 # playwright  : CLI + library for driving the in-container KasmVNC Chromium over CDP.
 #               **No browser download** — `playwright` only fetches browsers when you run
 #               `playwright install`, which we never do: we attach to the Chromium that
 #               scripts/start-browser.sh already runs (`attach --cdp` / connectOverCDP).
 #               PINNED, and the image also gets a `playwright-cli` shim (1.x exposes the
 #               CLI only as `playwright cli`) so the upstream skill's commands work as written.
+# lark-cli    : the official Feishu/Lark CLI (larksuite/cli). The npm package is a JS
+#               launcher whose postinstall downloads the Go binary for this platform, so it
+#               needs --allow-scripts. PINNED (BD-004 = 1.0.99): a CLI that changes under
+#               the agent's feet is the same coin flip as an unpinned opencode. Its app
+#               credentials and user tokens live in `~/.lark-cli` and `~/.local/share/lark-cli`
+#               — NOT XDG — so entrypoint.sh symlinks both onto the volume; without that a
+#               hand-completed QR authorization dies at the next redeploy.
 RUN npm i -g \
         --allow-scripts=@railway/cli \
         --allow-scripts=@opencode/cli \
-        "@railway/cli" "@opencode/cli@2.2.5" "@colbymchenry/codegraph@1.6.2" "playwright@1.64.1" \
+        --allow-scripts=@larksuite/cli \
+        "@railway/cli" "@opencode/cli@2.2.6" "@colbymchenry/codegraph@1.6.2" "playwright@1.65.0" \
+        "@larksuite/cli@1.0.99" \
     && printf '#!/bin/sh\nexec playwright cli "$@"\n' > /usr/local/bin/playwright-cli \
     && chmod +x /usr/local/bin/playwright-cli \
     && npm cache clean --force
@@ -233,7 +242,7 @@ RUN npm i -g \
 #
 # opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
 # official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
-# @opencode/cli`) is what we follow, but the version is pinned at 2.2.5 on purpose:
+# @opencode/cli`) is what we follow, but the version is pinned at 2.2.6 on purpose:
 # following `latest` makes the running agent drift with every build, and one bad
 # upstream release takes the whole AI stack down. It is also paired with the
 # OpenChamber pin (see the version-pair note there).
@@ -245,7 +254,7 @@ RUN npm i -g \
 # version variable is the fallback knob, not the source of truth — keep the two
 # in sync when bumping.
 #
-# codegraph is PINNED at 1.6.2 (BD-002) like the other two. It used to be deliberately
+# codegraph is PINNED at 1.6.2 (BD-003) like the other two. It used to be deliberately
 # unpinned — the old `versions/BD-INDEX.md` Hold argued it was an L1 tool whose failures
 # are loud (`codegraph status` errors visibly) — but an unpinned tool that also upgrades
 # itself at every boot is two moving parts in one container, and "tracks upstream" means a
@@ -256,10 +265,10 @@ RUN npm i -g \
 # neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
 # @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
 # openchamber : the web UI that manages its own embedded OpenCode server. PINNED
-#               (BD-002 = 2.6.0) and paired with the OpenCode pin — OpenChamber 2.x
-#               drives OpenCode 2.x only, and 2.6.0 requires opencode >= 2.2.4. It still has
-#               two open regressions (#6131 question form, #6084 git churn); taking it is a
-#               deliberate owner decision — see versions/bd/BD-002.md.
+#               (BD-003 = 2.7.0 fork build) and paired with the OpenCode pin — OpenChamber 2.x
+#               drives OpenCode 2.x only, and 2.7.0 requires opencode >= 2.2.4. #6131
+#               (question form) is fixed upstream; #6084 (git churn) is still open and is
+#               accepted — see versions/bd/BD-003.md.
 
 # ---- book-to-skill PDF extractors ----
 # The baked book-to-skill skill runs scripts/extract.py, which needs a PDF text
@@ -285,11 +294,11 @@ RUN set -eu; \
     python3 -c 'import pypdf, pdfminer' || fail "pypdf/pdfminer missing"; \
     pnpm --version | grep -q '11\.22\.0' || fail "pnpm is not 11.22.0"; \
     node --version | grep -q '^v24\.' || fail "node is not 24.x"; \
-    opencode --version | grep -q '2\.2\.5' || fail "opencode is not 2.2.5"; \
+    opencode --version | grep -q '2\.2\.6' || fail "opencode is not 2.2.6"; \
     codegraph --version | grep -q '1\.6\.2' || fail "codegraph is not 1.6.2"; \
-    openchamber --version 2>/dev/null | grep -q '2\.6\.0' \
-      || echo "WARN: openchamber --version did not report 2.6.0 (non-fatal)"; \
-    test -f /opt/openchamber-fork/openchamber-web-2.6.0-fork.tgz \
+    openchamber --version 2>/dev/null | grep -q '2\.7\.0' \
+      || echo "WARN: openchamber --version did not report 2.7.0 (non-fatal)"; \
+    test -f /opt/openchamber-fork/openchamber-web-2.7.0-fork.tgz \
       || fail "fork tarball missing (the npm package has no fork patch)"; \
     grep -rqs 'groupRootWorktrees' "$(npm root -g)/@openchamber/web/dist/assets" \
       || fail "installed openchamber is not the fork build (groupRootWorktrees missing from dist)"; \

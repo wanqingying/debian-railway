@@ -1,0 +1,602 @@
+[
+  {
+    "claim_id": "C001",
+    "node": "N1",
+    "source_id": "S1",
+    "claim": "opencode 的官方仓库是 anomalyco/opencode，MIT 许可，2026-11-09 时 225,545 star，当天仍有 push。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C002",
+    "node": "N1",
+    "source_id": "S2",
+    "claim": "opencode v2 官方定位为终端、桌面、Web 三种界面共用同一引擎。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C003",
+    "node": "N1",
+    "source_id": "S2",
+    "claim": "v2 的 Web 入口用一次性配对链接（opencode pair）打开，而不是长期固定 URL 的公开端口。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C004",
+    "node": "N1",
+    "source_id": "S3",
+    "claim": "本机 v2.2.5 的 opencode serve 自述为『启动 v2 API 与 Web 服务器』，即 v2 的 Web UI 由本地同一个二进制提供，不依赖 app.opencode.ai 托管页。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C005",
+    "node": "N1",
+    "source_id": "S4",
+    "claim": "隔离数据目录下启动 opencode serve --port 4999，GET / 返回 200 text/html 9,571 字节的本地页面，/api/info 返回 UnauthorizedError（内置鉴权生效）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C006",
+    "node": "N1",
+    "source_id": "S5",
+    "claim": "OpenChamber 自述为覆盖 desktop / web / VS Code / mobile 的开源工作区，MIT，2026-11-09 时 12,718 star。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C007",
+    "node": "N1",
+    "source_id": "S5",
+    "claim": "OpenChamber 的差异化能力之一是 Multi-run：同一任务最多并发交给 5 个模型、各自独立会话与可选独立 worktree，再挑结果。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C008",
+    "node": "N1",
+    "source_id": "S5",
+    "claim": "OpenChamber 手机端可扫一次性二维码，经 Private Relay 连接，无需开放端口，连接端到端加密且可吊销。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C009",
+    "node": "N1",
+    "source_id": "S6",
+    "claim": "当前容器里 opencode serve RSS 约 790 MB、OpenChamber server 约 439 MB、magic-context 侧栏服务约 61 MB；cgroup 内存 7.52 GB / 14.90 GB。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C010",
+    "node": "N1",
+    "source_id": "S7",
+    "claim": "本仓库当前钉住 opencode 2.2.5 + OpenChamber 2.6.0（fork 构建）+ magic-context 0.49.34（BD-002 r2）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C011",
+    "node": "N2",
+    "source_id": "S8",
+    "claim": "DeepSeek Harness（dsh）是 DeepSeek 官方开源 harness，MIT，276,586 star，但明确处于 developer preview 且会有破坏性变更。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C012",
+    "node": "N2",
+    "source_id": "S9",
+    "claim": "dsh 自带 Web UI（默认 127.0.0.1:3080），并支持自定义 OpenAI 兼容端点；配置在设置里完成、无需重启。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C013",
+    "node": "N2",
+    "source_id": "S10",
+    "claim": "Pi 是极简可扩展 harness（MIT，120,871 star），官方包清单只提供 CLI/TUI/SDK，没有常驻 server 或 Web UI 产品。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C014",
+    "node": "N2",
+    "source_id": "S11",
+    "claim": "Codex CLI 是 Apache-2.0 的终端 agent（133,869 star），官方形态是 CLI + IDE + Codex Cloud，不含可自托管的 Web 工作区。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C015",
+    "node": "N2",
+    "source_id": "S12",
+    "claim": "Gemini CLI 是 Google 的终端 agent（Apache-2.0，108,787 star），绑定 Gemini 生态，非 provider-agnostic 的自托管 Web 服务。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C016",
+    "node": "N2",
+    "source_id": "S13",
+    "claim": "Cline 已从 IDE 扩展扩到 SDK / CLI（Apache-2.0，71,473 star），但没有独立的常驻 Web 工作区产品。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C017",
+    "node": "N2",
+    "source_id": "S14",
+    "claim": "Kilo Code 是 MIT 的 all-in-one agentic engineering platform（27,911 star）；『其 CLI 构建在 opencode 之上』只见于第三方横评，本报告未独立核实。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C018",
+    "node": "N2",
+    "source_id": "S15",
+    "claim": "OpenHands 已重定位为 Agent Canvas：自托管的 coding agent 控制中心（automations、多 backend、BYO model）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C019",
+    "node": "N2",
+    "source_id": "S16",
+    "claim": "Aider 仍有 50,027 star，但最近一次 push 是 2026-05-22，按『近 90 天活跃』门槛应排除。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C020",
+    "node": "N3",
+    "source_id": "S17",
+    "claim": "Paseo 用一个界面统管 Claude Code、Codex、Copilot、OpenCode、Pi、Antigravity、Muse Code 七种 agent，覆盖 desktop / mobile / web / CLI。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C021",
+    "node": "N3",
+    "source_id": "S18",
+    "claim": "Paseo 采用 Apache-2.0 许可（GitHub 因复合 LICENSE 文本显示为 NOASSERTION）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C022",
+    "node": "N3",
+    "source_id": "S19",
+    "claim": "Paseo 的 --host 支持 relay 配对链路，可直接驱动另一台机器上的 daemon，而不必把该机器的端口暴露到网络。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C023",
+    "node": "N3",
+    "source_id": "S20",
+    "claim": "CodeNomad 是只面向 OpenCode V2 的桌面/浏览器座舱，1.0.0 要求 OpenCode V2 ≥2.2.3、推荐 2.2.5，与本仓库钉的版本完全对齐。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C024",
+    "node": "N3",
+    "source_id": "S20",
+    "claim": "CodeNomad 有 server 模式：默认绑 127.0.0.1，加 --host 0.0.0.0 + 密码 + 自签 HTTPS 即可远程浏览器访问。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C025",
+    "node": "N3",
+    "source_id": "S21",
+    "claim": "Vibe Kanban 是 Apache-2.0 的看板式 agent 编排器（28,625 star），支持含 OpenCode 在内的 10+ CLI，但产品逻辑是任务看板而非单一会话工作区。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C026",
+    "node": "N3",
+    "source_id": "S22",
+    "claim": "Termic 自述为开源 Conductor 替代品，跑真实 claude/gemini/codex CLI（AGPL-3.0，329 star），是桌面 GUI 形态，不适合纯服务器。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C027",
+    "node": "N3",
+    "source_id": "S23",
+    "claim": "Happy（手机端遥控 Claude Code/Codex 的 E2E 加密中继）CLI 仓库最后 push 为 2026-02-14，已近 9 个月未动，排除。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C028",
+    "node": "N3",
+    "source_id": "S24",
+    "claim": "Omnara 是 Apache-2.0、可自托管的 agent 平台（3,366 star），手机端是其主要卖点，但定位更偏 hosted agent 平台而非本地工作区。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C029",
+    "node": "N3",
+    "source_id": "S25",
+    "claim": "有横评称 Vibe Kanban 的母公司 Bloop 已关停、项目转为社区维护（单来源，未独立核实）。",
+    "tier": "T3",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C030",
+    "node": "N4",
+    "source_id": "S26",
+    "claim": "本容器无 systemd、单卷 /workspace、由 entrypoint 以 daemon 方式拉起 OpenChamber，因此候选必须能以后台进程 + 密码/令牌方式常驻，而不能依赖桌面登录态。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C031",
+    "node": "N4",
+    "source_id": "S27",
+    "claim": "cgroup 配额 8 核 / 14.90 GB 内存，当前已用 7.52 GB；工作区层的额外常驻进程会直接挤占模型与 codegraph 的余量。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C032",
+    "node": "N4",
+    "source_id": "S28",
+    "claim": "模型访问走自建 providers（OpenAI 兼容 baseURL，例如 api.commandcode.ai 网关），因此任何候选都必须支持自定义 base URL 与自定义 header，不能只支持厂商账号登录。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C033",
+    "node": "N4",
+    "source_id": "S29",
+    "claim": "Paseo 提供 Docker 与 Web UI 部署文档，说明其支持无桌面环境的服务器部署。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C034",
+    "node": "N5",
+    "source_id": "S26",
+    "claim": "magic-context 是 opencode 的插件（在 opencode.jsonc 的 plugins 里钉死版本），其上下文压缩与记忆驻留在 opencode 进程内，换引擎即失去。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C035",
+    "node": "N5",
+    "source_id": "S30",
+    "claim": "Feishu 问答桥以 opencode 的 HTTP API（/api/info、session 接口）为前置依赖，换 UI 不影响，换引擎则必须重写整个桥。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C036",
+    "node": "N5",
+    "source_id": "S31",
+    "claim": "session_search 直接只读 opencode.db（node:sqlite），因此它与 UI 无关、与引擎库结构强绑定：换 UI 保留，换引擎需重写。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C037",
+    "node": "N3",
+    "source_id": "S17",
+    "claim": "Paseo 采用 daemon + 多客户端架构：CLI 暴露的能力与 daemon API 相同。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C038",
+    "node": "N3",
+    "source_id": "S15",
+    "claim": "Agent Canvas 可通过 ACP 驱动 OpenCode（以及 Claude Code、Codex、Gemini、Pi 或任意 ACP agent）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C039",
+    "node": "N3",
+    "source_id": "S15",
+    "claim": "Agent Canvas 以单容器方式自托管，镜像 ghcr.io/openhands/agent-canvas:1.37.0，映射 127.0.0.1:8000，项目目录挂载到 /projects。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C040",
+    "node": "N3",
+    "source_id": "S15",
+    "claim": "Agent Canvas 自带跨服务自动化（Slack、GitHub、Linear、Notion 等），产品逻辑是『常开工程团队』而非单人会话工作区。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C041",
+    "node": "N1",
+    "source_id": "S32",
+    "claim": "本机 opencode v2.2.5 的 CLI 提供 acp 子命令（Start an Agent Client Protocol server），即第三方 UI 可经 ACP 驱动同一引擎。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C042",
+    "node": "N1",
+    "source_id": "S33",
+    "claim": "opencode v2.2.5 引擎内置 worktree 支持：二进制里可读到 @opencode/Worktree、WorktreeStrategies 等模块与错误类型，说明 worktree 不是 OpenChamber 独有的能力。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C043",
+    "node": "N2a",
+    "source_id": "S34",
+    "claim": "Qwen Code 是 Apache-2.0 的开源 coding agent（29,110 star，2026-11-09 仍有提交），官方描述为终端 agent，并延伸到 IDE 插件、桌面、Web UI 与 SDK。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C044",
+    "node": "N2a",
+    "source_id": "S35",
+    "claim": "Qwen Code 自带 Web UI（qwen serve --open）、headless 模式、SubAgents/Agent Teams/MCP，并内置 Telegram / DingTalk / WeChat / Feishu 聊天集成。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C045",
+    "node": "N2a",
+    "source_id": "S36",
+    "claim": "qwen serve 是 HTTP + SSE 常驻守护进程：多客户端共享同一会话、自带 Web Shell（127.0.0.1:4170）、可托管 ACP 子进程、提供 transcript 与 approval-mode API；文档明确标注 Experimental。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C046",
+    "node": "N2a",
+    "source_id": "S37",
+    "claim": "Qwen Code 通过 modelProviders + providerProtocol + baseUrl 支持自定义模型端点（自定义 provider id 亦可）。",
+    "tier": "T1",
+    "access": "render",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C047",
+    "node": "N2a",
+    "source_id": "S38",
+    "claim": "CodeWhale 是 MIT、Rust 写的终端 coding agent（41,158 star），支持 40+ provider 与任意 OpenAI 兼容端点。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C048",
+    "node": "N2a",
+    "source_id": "S39",
+    "claim": "codewhale app-server --http 暴露完整 HTTP/SSE Runtime API（/v1/*）、stdio JSON-RPC 控制通道与手机页面；codewhale serve --acp 提供 ACP。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C049",
+    "node": "N2a",
+    "source_id": "S40",
+    "claim": "CodeWhale 的 /plugin install 接受 Claude Code 插件格式（skills、commands、agent profiles、MCP），但拒绝需要 hooks 或 LSP 的插件——即技能可移植、深度钩子不可移植。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C050",
+    "node": "N2a",
+    "source_id": "S41",
+    "claim": "Grok Build 是 xAI 官方开源的终端 harness（Apache-2.0，27,717 star），支持 TUI、headless（CI/脚本）与 ACP 嵌入编辑器。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C051",
+    "node": "N2a",
+    "source_id": "S42",
+    "claim": "Grok Build 支持自定义模型端点（第三方 provider、自托管模型、覆盖内置设置），因而可以不绑 xAI 托管模型。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C052",
+    "node": "N2a",
+    "source_id": "S43",
+    "claim": "Grok Build 把每次会话落盘（含 rewind 点、token 用量、子会话），可恢复、回退与压缩。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C053",
+    "node": "N2a",
+    "source_id": "S44",
+    "claim": "Reasonix（MIT，36,135 star）提供 ACP 与 Extension Protocol sidecar，且 dsh 可通过 ACP 把任务交给它作为子 agent。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C054",
+    "node": "N2a",
+    "source_id": "S45",
+    "claim": "Kimi Code CLI（MIT，8,179 star）提供 ACP 编辑器集成与带信任级别的插件市场（skills / MCP / 数据源）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C055",
+    "node": "N2a",
+    "source_id": "S46",
+    "claim": "Goose 提供桌面应用、CLI 与可嵌入的 API（Rust），支持 15+ provider（Apache-2.0，56,378 star）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C056",
+    "node": "N2a",
+    "source_id": "S47",
+    "claim": "Crush 是 Charm 的终端 agent（29,006 star），通过 MCP 与 LSP 扩展，但形态仍是 TUI（无守护进程）。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C057",
+    "node": "N2a",
+    "source_id": "S48",
+    "claim": "OpenClaw（MIT，394,213 star）把自己定位为跨设备/跨聊天工具的私人助理，模型与 agent harness（Claude、Codex、本地模型）都是插件。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C058",
+    "node": "N2a",
+    "source_id": "S49",
+    "claim": "Orca（MIT，119,407 star）是 agent 舰队编排器：Remote Orca Server、任意 SSH 主机、每个 worktree 独立云 VM、插件。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C059",
+    "node": "N2a",
+    "source_id": "S50",
+    "claim": "Agent of Empires（MIT，3,897 star）同时提供 TUI 与 Web，用来管理多个 Claude Code / OpenCode agent，适合手机访问。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": false,
+    "verdict": "supported"
+  },
+  {
+    "claim_id": "C060",
+    "node": "N2a",
+    "source_id": "S51",
+    "claim": "CLIProxyAPI（MIT，57,995 star）把 Antigravity、ChatGPT Codex、Claude Code、Grok Build、Muse Code、Devin 等订阅/账号包装成 OpenAI/Claude 兼容 API，可让任意 BYOK 客户端复用现有订阅额度。",
+    "tier": "T1",
+    "access": "public",
+    "load_bearing": true,
+    "verdict": "supported"
+  }
+]

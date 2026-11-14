@@ -153,12 +153,12 @@ fi
 # Both are installed **pinned** (not `latest`):
 #   OpenChamber: OUR FORK's build of 2.6.0 (the 2.6.0 release + the "group
 #                worktrees" sidebar toggle), baked from
-#                vendor/openchamber-web-2.6.0-fork.tgz → /opt/openchamber-fork/.
+#                vendor/openchamber-web-2.7.0-fork.tgz → /opt/openchamber-fork/.
 #                The npm package is only the fallback, because it has no fork patch.
 #                Rebuild: `bun run pack:web` in /workspace/openchamber-fork, then
-#                copy packages/web/openchamber-web-2.6.0.tgz here under the fork name.
+#                copy packages/web/openchamber-web-2.7.0.tgz here under the fork name.
 #   OpenCode v2: https://opencode.ai/v2/docs → `npm install -g @opencode/cli`
-# Defaults live here (2.6.0 / 2.2.5) and can be overridden with
+# Defaults live here (2.7.0 / 2.2.6) and can be overridden with
 # OPENCHAMBER_VERSION / OPENCODE_VERSION. Set either to `latest` only if you
 # deliberately want the old "track upstream" behaviour (for OpenChamber that also
 # means losing the fork patch until the next redeploy restores it).
@@ -186,14 +186,14 @@ fi
 # /usr/local (npm global) is wiped on redeploy.
 #
 # Version pairing: OpenChamber 2.x drives OpenCode 2.x only and declares a
-# minimum (2.6.0 → MINIMUM_OPENCODE_VERSION = 2.2.4 in
+# minimum (2.7.0 → MINIMUM_OPENCODE_VERSION = 2.2.4 in
 # server/lib/opencode/compatibility.js). The pinned pair below is verified to
 # work together; bump both together, never one alone. v1 `opencode-ai` must
 # never be installed (no-agent mode).
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
-OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.6.0}"
-OPENCHAMBER_FORK_TARBALL="${OPENCHAMBER_FORK_TARBALL:-/opt/openchamber-fork/openchamber-web-2.6.0-fork.tgz}"
+OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.7.0}"
+OPENCHAMBER_FORK_TARBALL="${OPENCHAMBER_FORK_TARBALL:-/opt/openchamber-fork/openchamber-web-2.7.0-fork.tgz}"
 log "OpenChamber ${OPENCHAMBER_VERSION} (fork build)"
 if ! command -v openchamber >/dev/null 2>&1; then
   if [ -f "$OPENCHAMBER_FORK_TARBALL" ]; then
@@ -220,7 +220,7 @@ fi
 # install; this is the fallback when the baked copy is missing. Keep the pin in
 # sync with the Dockerfile line. Installed per boot because
 # /usr/local (npm global) is wiped on redeploy.
-OPENCODE_VERSION="${OPENCODE_VERSION:-2.2.5}"
+OPENCODE_VERSION="${OPENCODE_VERSION:-2.2.6}"
 log "OpenCode CLI (v2) ${OPENCODE_VERSION}"
 if ! command -v opencode >/dev/null 2>&1; then
   npm install -g --allow-scripts=@opencode/cli "@opencode/cli@${OPENCODE_VERSION}" >/dev/null \
@@ -258,6 +258,21 @@ elif [ "$CODEGRAPH_UPGRADE" != "0" ]; then
   # Repair path: baked copy is gone and the caller opted into tracking latest.
   npm install -g "@colbymchenry/codegraph@${CODEGRAPH_VERSION}" >/dev/null 2>&1 \
     || log "warning: CodeGraph install failed (continuing)"
+fi
+
+# ── lark-cli (Feishu/Lark) ──────────────────────────────────────────────────────
+# Repair path only: the image bakes it (Dockerfile, BD-004 = 1.0.99). The npm package
+# is a launcher whose postinstall fetches the Go binary from GitHub Releases, so it needs
+# --allow-scripts; that download is also why a failed fetch must be non-fatal here.
+# Credentials live in ~/.lark-cli + ~/.local/share/lark-cli, symlinked to the volume by
+# entrypoint.sh — reinstalling the CLI never touches them.
+LARK_CLI_VERSION="${LARK_CLI_VERSION:-1.0.99}"
+if command -v lark-cli >/dev/null 2>&1; then
+  log "resolved: lark-cli $(lark-cli --version 2>/dev/null | awk '{print $NF}' || echo 'n/a') (pin ${LARK_CLI_VERSION})"
+else
+  log "lark-cli ${LARK_CLI_VERSION} (baked copy missing; reinstalling)"
+  npm install -g --allow-scripts=@larksuite/cli "@larksuite/cli@${LARK_CLI_VERSION}" >/dev/null 2>&1 \
+    || log "warning: lark-cli install failed (continuing)"
 fi
 
 # ── Interactive browser (Chromium + KasmVNC) ────────────────────────────────────

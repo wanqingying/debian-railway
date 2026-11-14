@@ -84,10 +84,11 @@ Check 'BD pins installed' {
     $raw = (cmd /c 'npm ls -g --depth=0 --json 2>nul') -join "`n"
     $tree = $raw | ConvertFrom-Json
     $want = @(
-        @('@opencode/cli', '2.2.5'),
-        @('@openchamber/web', '2.6.0'),
+        @('@opencode/cli', '2.2.6'),
+        @('@openchamber/web', '2.7.0'),
         @('@colbymchenry/codegraph', '1.6.2'),
-        @('playwright', '1.64.1')
+        @('playwright', '1.65.0'),
+        @('@larksuite/cli', '1.0.99')
     )
     $bad = @()
     foreach ($pair in $want) {
@@ -96,7 +97,7 @@ Check 'BD pins installed' {
         if (-not $have) { $bad += "$name missing" }
         elseif ($have -ne $pair[1]) { $bad += "$name $have != $($pair[1])" }
     }
-    if ($bad.Count -gt 0) { @($false, ($bad -join '; ')) } else { @($true, '4/4 match BD-002') }
+    if ($bad.Count -gt 0) { @($false, ($bad -join '; ')) } else { @($true, "$($want.Count)/$($want.Count) match BD-004") }
 }
 
 # --- config -----------------------------------------------------------------
@@ -132,7 +133,7 @@ if (Test-Path $localShareDb) {
     Note 'win32 branch needed? No - opencode uses ~/.local/share here, exactly as session-search assumes'
 } elseif (Test-Path $appDataDb) {
     Check 'session_search db path' { @($false, "%LOCALAPPDATA%\opencode\opencode.db") }
-    Note 'win32 branch needed? yes - patch resolveDbPath in opencode-config/opencode/lib/session-search.js'
+    Note 'win32 branch needed? yes - port resolveDbPath in opencode-config/opencode/lib/session-search.ts'
 } else {
     Check 'session_search db path' { @($false, 'no opencode.db yet - start opencode once, then re-run') }
     Note 'the db appears after the first session is created; this is not a failure of the install'
@@ -161,17 +162,33 @@ Check 'codegraph mcp entry' {
     @($hit, $(if ($hit) { 'present' } else { 'absent' }))
 }
 
+Check 'worktree root rewritten' {
+    $p = (Join-Path (Join-Path $configHome 'opencode') 'opencode.jsonc')
+    if (-not (Test-Path $p)) { return @($false, 'no config') }
+    $hit = Select-String -Path $p -Pattern '/workspace/worktrees' -SimpleMatch -Quiet
+    @((-not $hit), $(if ($hit) { 'still the container path - re-run setup.ps1' } else { 'no /workspace path' }))
+}
+
 # --- drift check ------------------------------------------------------------
+# Only the shared sections are comparable. The environment-specific headings are
+# deliberately different per machine, so they are excluded; a new *rule* section on
+# main therefore still trips this, which is the failure worth catching.
+$containerOnly = @(
+    '## Filesystem: only `/workspace` survives a redeploy',
+    '## 浏览器',
+    '## 飞书 / Lark'
+)
 $mainAgents = (Join-Path (Join-Path (Join-Path $RepoRoot 'opencode-config') 'opencode') 'AGENTS.md')
 $winAgents  = Join-Path $PSScriptRoot 'AGENTS.win10.md'
 if ((Test-Path $mainAgents) -and (Test-Path $winAgents)) {
-    $mainHeadings = Select-String -Path $mainAgents -Pattern '^## ' | ForEach-Object { $_.Line.Trim() }
+    $mainHeadings = Select-String -Path $mainAgents -Pattern '^## ' | ForEach-Object { $_.Line.Trim() } |
+        Where-Object { $containerOnly -notcontains $_ }
     $winHeadings  = Select-String -Path $winAgents  -Pattern '^## ' | ForEach-Object { $_.Line.Trim() }
     $missing = $mainHeadings | Where-Object { $winHeadings -notcontains $_ }
     if ($missing.Count -gt 0) {
         Warn 'AGENTS.win10.md drift' ('missing sections: ' + ($missing -join ', '))
     } else {
-        Note 'AGENTS.win10.md drift' 'in sync with main'
+        Note 'AGENTS.win10.md drift' 'shared sections in sync with main'
     }
 }
 
