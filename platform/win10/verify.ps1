@@ -124,6 +124,20 @@ Check 'plugins present' {
     @(($found.Count -ge 2), ($found -join ', '))
 }
 
+Check 'secrets .env present' {
+    $p = (Join-Path (Join-Path $configHome 'opencode') '.env')
+    @((Test-Path -LiteralPath $p), $p)
+}
+
+# A warning, not a failure: a key can legitimately live in auth.json (stored with
+# `opencode auth login`) instead of the .env file.
+$missingKeys = @('EMBEDDING_API_KEY', 'A6API_API_KEY') | Where-Object { -not (Test-Path "env:$_") }
+if ($missingKeys.Count -gt 0) {
+    Warn 'keys in this session' (($missingKeys -join ', ') + ' - fill .env and open a new shell, or store the provider key with `opencode auth login`')
+} else {
+    Note 'keys in this session' 'EMBEDDING_API_KEY, A6API_API_KEY present'
+}
+
 # --- the two decisions that matter -----------------------------------------
 $localShareDb = (Join-Path (Join-Path (Join-Path (Join-Path $env:USERPROFILE '.local') 'share') 'opencode') 'opencode.db')
 $appDataDb    = (Join-Path (Join-Path $env:LOCALAPPDATA 'opencode') 'opencode.db')

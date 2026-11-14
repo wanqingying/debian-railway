@@ -184,14 +184,75 @@ if (Test-Path $jsoncPath) {
 }
 Ok "config copied to $configHome"
 
-# The container pins these through entrypoint.sh; on Windows they are the user's job.
+# --- 3b. secrets from a file -------------------------------------------------
+# A .env in %USERPROFILE%\.config\opencode (outside the repo) plus a loader in the
+# PowerShell profile: keys then survive without setx, are editable in one place, and
+# are inherited by both `opencode` and `openchamber serve`. Never overwritten here.
+$envFile = Join-Path $opencodeCfg '.env'
+if (-not (Test-Path -LiteralPath $envFile)) {
+    $template = @'
+# Keys for the agent stack on this machine. Loaded into every new PowerShell session
+# by the block setup.ps1 writes into your PS profile; `opencode` and `openchamber serve`
+# inherit them, so no setx is needed. Machine-local: never copy this into the repo.
+
+# magic-context memory embeddings (ctx_search / memory search)
+EMBEDDING_API_KEY=
+
+# a6api: image_generate and the a6api models. Instead of a key here you can store it
+# once with `opencode auth login` -> A6API and leave this blank.
+A6API_API_KEY=
+
+# V-API (gpt.ge) resale models. Optional.
+# GPTGE_API_KEY=
+'@
+    [System.IO.File]::WriteAllText($envFile, ($template -replace "`r`n", "`n"))
+    Ok "created $envFile - fill in the keys"
+} else {
+    Ok "$envFile exists (left untouched)"
+}
+
+# One block, both profile files: Windows PowerShell 5.1 and winget's pwsh 7 read
+# different paths, and the user may launch either.
+$loader = @'
+# >>> opencode stack env (platform\win10) >>>
+# Keys live in %USERPROFILE%\.config\opencode\.env so setx is not needed. Written by
+# platform/win10/setup.ps1; delete this block (both markers) to opt out.
+$__ocEnv = Join-Path $env:USERPROFILE '.config\opencode\.env'
+if (Test-Path -LiteralPath $__ocEnv) {
+    foreach ($__line in Get-Content -LiteralPath $__ocEnv) {
+        $__line = $__line.Trim().TrimStart([char]0xFEFF)
+        if (-not $__line -or $__line.StartsWith('#')) { continue }
+        $__i = $__line.IndexOf('=')
+        if ($__i -lt 1) { continue }
+        $__name  = $__line.Substring(0, $__i).Trim()
+        $__value = $__line.Substring($__i + 1).Trim().Trim('"').Trim("'")
+        Set-Item -Path "Env:$__name" -Value $__value
+    }
+    Remove-Variable __ocEnv, __line, __i, __name, __value -ErrorAction SilentlyContinue
+}
+# <<< opencode stack env (platform\win10) <<<
+'@
+$docsDir = [Environment]::GetFolderPath('MyDocuments')
+if (-not $docsDir) { $docsDir = Join-Path $env:USERPROFILE 'Documents' }
+foreach ($profilePath in @(
+    (Join-Path $docsDir 'WindowsPowerShell\Microsoft.PowerShell_profile.ps1'),
+    (Join-Path $docsDir 'PowerShell\Microsoft.PowerShell_profile.ps1')
+)) {
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $profilePath) | Out-Null
+    $existing = if (Test-Path -LiteralPath $profilePath) { Get-Content -Raw -LiteralPath $profilePath } else { '' }
+    if ($existing -notlike '*opencode stack env (platform\win10)*') {
+        Add-Content -LiteralPath $profilePath -Value $loader
+        Ok "profile loader added: $profilePath"
+    }
+}
+
 # The default model is opencode-go/*, which is a subscription rather than an env key:
 # authorise it once with `opencode auth login` (or from OpenChamber); the credential
 # stays in this machine's opencode data directory.
 foreach ($variable in 'EMBEDDING_API_KEY', 'A6API_API_KEY') {
     if (-not (Test-Path "env:$variable")) {
         $what = if ($variable -eq 'EMBEDDING_API_KEY') { 'magic-context memory embeddings' } else { 'image_generate and the a6api models' }
-        Warn "$variable is not set - $what will fail"
+        Warn "$variable not set in this session - $what will fail until you fill $envFile and open a new shell"
     } else {
         Ok "$variable set"
     }

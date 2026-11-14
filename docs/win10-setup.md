@@ -30,13 +30,20 @@ KasmVNC/ttyd/tini. This branch (`win10-compat`) is `main` plus `platform/win10/`
 4. `powershell -ExecutionPolicy Bypass -File platform\win10\setup.ps1`
    - `-WorktreeRoot D:\gamedev\worktrees` overrides where worktrees go (default is that path).
    - `-SkipLark` skips `@larksuite/cli` and leaves the `lark-*` skills without a CLI.
-5. Authorise the model provider, then reopen the shell:
+5. Put the keys in `%USERPROFILE%\.config\opencode\.env` (created by `setup.ps1`, never
+   overwritten afterwards), then **open a new shell**:
 
-   ```powershell
-   opencode auth login            # opencode-go subscription (or sign in from OpenChamber); no env key exists for it
-   setx EMBEDDING_API_KEY "<key>" # magic-context memory embeddings
-   setx A6API_API_KEY "<key>"     # image_generate + the a6api models
    ```
+   EMBEDDING_API_KEY=...   # magic-context memory embeddings
+   A6API_API_KEY=...       # image_generate + the a6api models
+   ```
+
+   `setup.ps1` writes a loader block into both PowerShell profiles (5.1 and 7), so every
+   new terminal has the variables and `opencode` / `openchamber serve` inherit them —
+   `setx` is not needed and nothing is stored in the machine-wide environment. A provider
+   key can also be stored once with `opencode auth login` (it then lives in `auth.json`
+   and the `.env` line can stay empty). The one thing with no `.env` equivalent is the
+   **OpenCode Go** subscription: `opencode auth login` → *OpenCode Go*, once per machine.
 
 6. `powershell -ExecutionPolicy Bypass -File platform\win10\verify.ps1`
 7. `opencode` from any project directory; `openchamber serve` for the web UI.
@@ -118,7 +125,9 @@ Windows-specific setup that is easy to forget:
 | `ERR_INVALID_PACKAGE_CONFIG` under `.config\opencode` | a stray `package.json` inside `opencode\` | delete it; the valid one lives in `.config\` (parent) |
 | New worktree lands in `C:\workspace\worktrees` | the copied `opencode.jsonc` still has the container path | re-run `setup.ps1` (it rewrites `worktree.directory`); `verify.ps1` flags this |
 | `image_generate` fails with `model_not_allowed` | the a6api token only authorises `nano-banana-2.1` | pass no model override; see `docs/a6api.md` |
-| memory search silently empty | `EMBEDDING_API_KEY` unset | `setx EMBEDDING_API_KEY "<key>"`, reopen shell, restart opencode |
+| memory search silently empty | `EMBEDDING_API_KEY` unset | 填 `%USERPROFILE%\.config\opencode\.env`，**开新终端**；已在跑的 `openchamber serve` 要 `openchamber restart` 才会拿到新环境 |
+| 改了 `.env` 但 `verify.ps1` 仍报 key 缺失 | 当前会话是改之前开的 | 开新终端再验；profile 只在新会话生效 |
+| PowerShell 启动变慢或报 profile 错误 | profile 被策略拦住 | 用 `powershell -ExecutionPolicy Bypass` 跑 `setup.ps1`（它会重写 loader），或把两个标记之间的块删掉改用 `setx` |
 | Godot AI dock shows "server not running" | `uv` missing | `winget install astral-sh.uv`, then reopen the dock |
 | MCP entry exists but the agent sees no tools | client not restarted after Configure | restart opencode |
 | `pids`-like instability, editor spawning hundreds of processes | Defender scanning + asset import | add exclusions, retry |

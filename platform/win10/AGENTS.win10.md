@@ -129,6 +129,14 @@ Windows 没有会重建的根文件系统，但有更坏的失效方式：**OneD
 - 临时文件（日志、探针脚本、构建产物）可以放 `%TEMP%`——按定义就是一次性的。以后要再找到的东西放项目目录下。
 - 不要把仓库克隆到 WSL 路径（`\\wsl.localhost\...`）再让 Godot 去读：9p 文件系统会把导入和 `git status` 拖慢好几倍。
 
+## Windows：密钥与环境变量
+
+密钥放在 `%USERPROFILE%\.config\opencode\.env`（`setup.ps1` 创建，之后不再覆盖），由它写进两个 PowerShell profile 的 loader 载入，所以每个新终端都有，`opencode` 和 `openchamber serve` 直接继承——不用 `setx`，也不进机器级环境变量。
+
+- 改完 `.env` 要**开新终端**；已经在跑的 `openchamber serve` 用 `openchamber restart` 才能拿到新值。
+- 供应商 key 也可以 `opencode auth login` 存进 `auth.json`，那样 `.env` 里留空即可；`OpenCode Go` 订阅只能这样登录，没有 env 形式。
+- 这个文件是机器本地的，**不要复制进仓库**，也不要提交。
+
 ## 附：codegraph（分析代码的首选）
 
 - 分析 / 查看代码优先用 `codegraph_explore`；搜索参数和符号用**英文**（代码符号都是英文字母，别用中文搜索）。
