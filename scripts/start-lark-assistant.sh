@@ -94,6 +94,23 @@ if [ ! -d node_modules ] || [ "$current_stamp" != "$(cat "$STAMP" 2>/dev/null ||
     fi
 fi
 
+# The queue (NATS JetStream) is a first-class dependency: the assistant connects to it at startup and
+# **fails fast** when it is missing (`启动失败: CONNECTION_REFUSED`), then restarts forever without ever
+# taking the Feishu long connection — nothing is received at all. The queue is not started by the
+# image, so a container restart takes both down and only the assistant comes back. natsd.sh has its
+# own guard + flock and is idempotent, so calling `start` on every boot is safe.
+# 2026-11-14: a restart at 00:28 UTC left the assistant dead for 12.6 hours this way.
+NATS_CTL="$ROOT/scripts/natsd.sh"
+if [ -x "$NATS_CTL" ]; then
+    if bash "$NATS_CTL" start >>"$LOG" 2>&1; then
+        log "queue is up (nats://127.0.0.1:4222)"
+    else
+        log "natsd start failed; the assistant will keep exiting until the queue is up"
+    fi
+else
+    log "no $NATS_CTL; the assistant needs the queue (bash scripts/nats-init.sh --install)"
+fi
+
 # A previous supervisor that was killed (SIGTERM/SIGKILL on the bash wrapper) leaves its child
 # running: `npx tsx src/index.ts` is in its own process tree and survives. That orphan is a SECOND
 # Feishu long-connection consumer, and Feishu delivers each event to only one of them — messages
