@@ -11,7 +11,7 @@
 - **Minimal, surgical changes**; define a verifiable goal and loop until it passes; **lead the reply with the result**.
 - **Model facts** (context window, output cap, price): models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
 
-## 参考文档
+## skill、文档、工具
 
 **skill**
 
