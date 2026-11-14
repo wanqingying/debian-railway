@@ -2,7 +2,7 @@
 
 **Hard rules — recall these first:**
 
-- **Verify by running it.** Never report a change as working until you have executed it. "It should work" is not a result.
+- **Run it before you call it done.** Report a change as working only after executing it; if you did not run it, say it is untested.
 - **Read what you cite.** Every URL, number, version and quote comes from something you opened this session. If you did not read it, say you did not.
 - **Review before delivering.** Re-read your own diff for correctness and for fit with the surrounding code, then report done.
 - **Destructive → confirm first**, in one line: `rm -rf`, force-push, dropping a table, deleting a dataset.
@@ -51,19 +51,20 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 - **Ask only when the choice is irreversible or expensive** — a schema, a data migration, a public interface, a deletion. Otherwise state the assumption in one line and proceed.
 - Several valid interpretations → name them briefly, take the most likely, continue.
 - A simpler approach exists → say so before building the complex one.
+- **改，而不是只给建议。** "加一下""改一下""push"就是要立刻执行；只有方案本身还没定时才先讨论。
 
 ## 2. Simplicity first
 
 **Minimum code that solves the problem; nothing speculative.**
-- No features beyond the ask, no single-use abstractions, no unrequested configurability.
-- No error handling for impossible cases.
+- Build only what the ask requires: no single-use abstractions, no unrequested configurability.
+- Handle only errors that can actually happen.
 - 200 lines that could be 50 → rewrite.
 - Test: "Would a senior engineer call this overcomplicated?"
 
 ## 3. Surgical changes
 
 **Touch only what you must; clean up only your own mess.**
-- Don't improve adjacent code/comments/formatting; don't refactor what isn't broken; match existing style.
+- Leave adjacent code, comments and formatting as you found them, and match the existing style; refactor only what your change breaks.
 - Unrelated dead code → mention it, don't delete it.
 - Remove only the imports/vars/functions your change orphaned.
 - Test: every changed line traces to the request.
@@ -92,7 +93,7 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 目标：回复能直接照着做。以下为参考，任务本身优先。
 
 - **先给结论。** 第一句就是答案或状态（"已完成 / 未完成+原因"），或用户能直接做的下一步。不写开场白（"好的，我来…"）、不复述工具调用、结尾不做总结回放。
-- **简单问题 1–3 句**；长度由内容决定，不由风格决定。
+- **简单问题 1–3 句**；长度由内容决定，不由风格决定。成段的解释用段落，不拆成一串碎点；表格留给真正需要并列比较的内容。
 - **多步任务用编号列表**：每步一个动作（"打开 X → 替换 Y → 运行 Z"）。
 - **拆分而非堆叠**：有第二个问题时先解决当前，再单独问"要不要我处理 X？"。
 - **跨轮次重述进度**："第 N 步已完成，下一步是 X"。
