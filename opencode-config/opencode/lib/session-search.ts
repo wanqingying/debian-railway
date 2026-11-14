@@ -1,5 +1,5 @@
 /**
- * lib/session-search.js — cross-session recall over the opencode session store.
+ * lib/session-search.ts — cross-session recall over the opencode session store.
  *
  * Answers "which session dealt with X?" — the one question no OpenCode or OpenChamber API can
  * answer. Their tool surface can read a session once you know its id, and `session.list` can only
@@ -28,7 +28,10 @@
  * snippets with `***` — the exact text a "how is GITHUB_TOKEN set" search exists to read. Snippets
  * stay short (~120 chars) for legibility, not for safety.
  *
- * Also runs as a CLI: `node lib/session-search.js <keyword> [--json] [--limit N] ...`.
+ * Also runs as a CLI: `node lib/session-search.ts <keyword> [--json] [--limit N] ...`.
+ *
+ * TypeScript, run by Node's own type stripping (Node >= 24): no build step, and nothing
+ * non-erasable (`enum`, `namespace`, parameter properties) is used.
  */
 
 import { existsSync } from 'node:fs';
@@ -43,7 +46,81 @@ const BUSY_TIMEOUT_MS = 2_000;
 const DEFAULT_BUDGET_MS = 2_000;
 const DEADLINE_CHECK_EVERY = 512;
 
-export function resolveDbPath() {
+export type MatchMode = 'title' | 'content' | 'both';
+
+export interface SearchSessionsOptions {
+  /** Keyword (case-insensitive for ASCII; CJK as written). */
+  query?: string;
+  /** Default 'content'. */
+  match?: MatchMode | string;
+  /** Substring filter on the session directory. */
+  directory?: string;
+  /** Only sessions updated in the last N days (must be > 0). */
+  days?: number | string | null;
+  /** Hits returned, default 20, clamped to 100. */
+  limit?: number | string;
+  /** Wall-clock budget, default 2000 (tests shrink it). */
+  budgetMs?: number | string;
+  includeArchived?: boolean;
+  includeChildren?: boolean;
+  /** Include sessions under /tmp. */
+  includeTmp?: boolean;
+  /** Override the resolved path (tests). */
+  dbPath?: string;
+}
+
+export interface SessionHit {
+  session: string;
+  title: string;
+  directory: string;
+  project: string;
+  at: string;
+  matches: number;
+  title_match: boolean;
+  snippet: string;
+}
+
+export interface SearchSessionsSuccess {
+  status: 'ok';
+  query: string;
+  match: string;
+  candidates: number;
+  rows_read: number;
+  total: number;
+  /** The parse loop hit its budget: the answer is real but built from part of the matching rows. */
+  truncated: boolean;
+  elapsed_ms: number;
+  hits: SessionHit[];
+}
+
+export interface SearchSessionsFailure {
+  status: 'error' | 'unsupported-node' | 'no-db';
+  message: string;
+}
+
+export type SearchSessionsResult = SearchSessionsSuccess | SearchSessionsFailure;
+
+interface SessionRow {
+  id: string;
+  title: string | null;
+  directory: string;
+  time_updated: number;
+}
+
+interface MessageRow {
+  session_id: string;
+  type: string;
+  data: string;
+}
+
+interface Hit {
+  matches: number;
+  text: string;
+  first: number;
+  titleMatch: boolean;
+}
+
+export function resolveDbPath(): string {
   const dataHome = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local/share');
   return path.join(dataHome, 'opencode', 'opencode.db');
 }
@@ -56,7 +133,7 @@ export function resolveDbPath() {
 
 // A short window around the first match: enough to recognise the session, small enough not to flood
 // a context window.
-function buildSnippet(text, needle, firstOffset) {
+function buildSnippet(text: string, needle: string, firstOffset: number): string {
   const lower = text.toLowerCase();
   const at = lower.indexOf(needle);
   const pos = at >= 0 ? at : Math.min(firstOffset, text.length);
@@ -65,20 +142,7 @@ function buildSnippet(text, needle, firstOffset) {
   return text.slice(start, end).replace(/\s+/g, ' ').trim();
 }
 
-/**
- * @param {object} options
- * @param {string} options.query            keyword (case-insensitive for ASCII; CJK as written)
- * @param {'title'|'content'|'both'} [options.match]  default 'content'
- * @param {string} [options.directory]      substring filter on the session directory
- * @param {number} [options.days]           only sessions updated in the last N days (must be > 0)
- * @param {number} [options.limit]          hits returned, default 20, clamped to 100
- * @param {number} [options.budgetMs]       wall-clock budget, default 2000 (tests shrink it)
- * @param {boolean} [options.includeArchived]
- * @param {boolean} [options.includeChildren]
- * @param {boolean} [options.includeTmp]    include sessions under /tmp
- * @param {string} [options.dbPath]         override the resolved path (tests)
- */
-export async function searchSessions(options = {}) {
+export async function searchSessions(options: SearchSessionsOptions = {}): Promise<SearchSessionsResult> {
   const query = String(options.query ?? '').trim();
   if (!query) return { status: 'error', message: 'query is required' };
 
@@ -115,8 +179,8 @@ export async function searchSessions(options = {}) {
 
   try {
     // One filter clause, used by both queries so the two can never disagree.
-    const where = [];
-    const params = [];
+    const where: string[] = [];
+    const params: (string | number)[] = [];
     if (!options.includeArchived) where.push('s.time_archived is null');
     if (!options.includeChildren) where.push('s.parent_id is null');
     if (!options.includeTmp) where.push("s.directory not like '/tmp%'");
@@ -126,13 +190,13 @@ export async function searchSessions(options = {}) {
 
     const sessions = db
       .prepare(`select s.id, s.title, s.directory, s.time_updated from session_v2 s ${whereSql}`)
-      .all(...params);
+      .all(...params) as unknown as SessionRow[];
     const byId = new Map(sessions.map((s) => [s.id, s]));
 
     const needle = query.toLowerCase();
     // The full text is kept for the first hit in each session so the snippet can be cut from it
     // after sorting — but only for sessions that hit, never for every row scanned.
-    const hits = new Map(); // session id -> { matches, text, first, titleMatch }
+    const hits = new Map<string, Hit>(); // session id -> { matches, text, first, titleMatch }
     let rowsRead = 0;
     let truncated = false;
 
@@ -155,7 +219,7 @@ export async function searchSessions(options = {}) {
              join session_v2 s on s.id = m.session_id ${whereSql}`;
       const rows = db
         .prepare(`${selectRows}${whereSql ? ' and' : ' where'} m.data like ? escape '\\'`)
-        .all(...params, `%${escaped}%`);
+        .all(...params, `%${escaped}%`) as unknown as MessageRow[];
       rowsRead = rows.length;
 
       let sinceCheck = 0;
@@ -171,8 +235,8 @@ export async function searchSessions(options = {}) {
           if (row.type === 'user') text = data.text || '';
           else if (row.type === 'assistant') {
             text = (data.content || [])
-              .filter((part) => part.type === 'text')
-              .map((part) => part.text || '')
+              .filter((part: { type?: string }) => part.type === 'text')
+              .map((part: { text?: string }) => part.text || '')
               .join('\n');
           } else continue;
         } catch {
@@ -200,7 +264,7 @@ export async function searchSessions(options = {}) {
       }
     }
 
-    const results = [];
+    const results: SessionHit[] = [];
     for (const [id, hit] of hits) {
       const session = byId.get(id);
       if (!session) continue;
@@ -243,8 +307,8 @@ export async function searchSessions(options = {}) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const VALUE_OPTS = new Set(['--match', '--dir', '--days', '--limit']);
   const FLAG_OPTS = new Set(['--include-archived', '--include-children', '--include-tmp', '--json']);
-  const opts = {};
-  const positional = [];
+  const opts: Record<string, string | boolean> = {};
+  const positional: string[] = [];
   const argv = process.argv.slice(2);
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -256,10 +320,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 
   const result = await searchSessions({
     query: positional.join(' '),
-    match: opts.match,
-    directory: opts.dir,
-    days: opts.days,
-    limit: opts.limit,
+    match: opts.match as string | undefined,
+    directory: opts.dir as string | undefined,
+    days: opts.days as string | undefined,
+    limit: opts.limit as string | undefined,
     includeArchived: Boolean(opts['include-archived']),
     includeChildren: Boolean(opts['include-children']),
     includeTmp: Boolean(opts['include-tmp']),
