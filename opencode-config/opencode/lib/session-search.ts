@@ -35,7 +35,6 @@
  */
 
 import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -304,7 +303,7 @@ export async function searchSessions(options: SearchSessionsOptions = {}): Promi
 // ---- CLI ---------------------------------------------------------------------------------------
 // Same code path as the tool, so a failure here is a failure there. `node:sqlite` is imported
 // dynamically above because it does not exist below Node 22.
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   const VALUE_OPTS = new Set(['--match', '--dir', '--days', '--limit']);
   const FLAG_OPTS = new Set(['--include-archived', '--include-children', '--include-tmp', '--json']);
   const opts: Record<string, string | boolean> = {};
