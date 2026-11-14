@@ -14,7 +14,6 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const DEFAULT_BASE_URL = 'https://a6api.vip/v1';
 const DEFAULT_MODEL = 'nano-banana-2.1';
@@ -214,7 +213,7 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
 }
 
 // CLI: node lib/image-gen.ts "prompt" [out.jpg] [size]
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   const [prompt, out, size] = process.argv.slice(2);
   if (!prompt) {
     console.error('usage: node lib/image-gen.ts "prompt" [out.jpg] [1024x1024]');
