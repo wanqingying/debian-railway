@@ -743,6 +743,12 @@
         }
       }
     }
+    // Image generation is NOT configured as an OpenCode image model: the
+    // gateway returns `revised_prompt` on every item and OpenCode decodes the
+    // OpenAI images body strictly, so `type: "image"` + experimental
+    // image_generate always answers "OpenAI Images returned an invalid
+    // response" (measured 2026-11-14). The `image_generate` tool in
+    // plugins/image-gen/ calls the gateway itself instead.
   },
   "mcp": {
     "servers": {
