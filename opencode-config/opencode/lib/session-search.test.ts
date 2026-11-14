@@ -23,6 +23,7 @@ interface FixtureSession {
   title?: string;
   directory?: string;
   parentId?: string;
+  forkOf?: string;
   archived?: boolean;
   updated?: number;
   messages?: FixtureMessage[];
@@ -37,7 +38,7 @@ interface Fixture {
 const SCHEMA = `
   create table session_v2 (
     id text primary key, title text, directory text not null, parent_id text,
-    time_archived integer, time_updated integer not null
+    fork_session_id text, time_archived integer, time_updated integer not null
   );
   create table session_message (
     id text primary key, session_id text not null, type text not null, seq integer not null,
@@ -65,7 +66,7 @@ function buildFixture(sessions: FixtureSession[]): Fixture {
   db.exec(SCHEMA);
 
   const insertSession = db.prepare(
-    'insert into session_v2 (id, title, directory, parent_id, time_archived, time_updated) values (?,?,?,?,?,?)',
+    'insert into session_v2 (id, title, directory, parent_id, fork_session_id, time_archived, time_updated) values (?,?,?,?,?,?,?)',
   );
   const insertMessage = db.prepare(
     'insert into session_message (id, session_id, type, seq, time_created, time_updated, data) values (?,?,?,?,?,?,?)',
@@ -78,6 +79,7 @@ function buildFixture(sessions: FixtureSession[]): Fixture {
       s.title ?? null,
       s.directory ?? '/workspace/demo',
       s.parentId ?? null,
+      s.forkOf ?? null,
       s.archived ? NOW : null,
       s.updated ?? NOW,
     );
@@ -228,4 +230,70 @@ test('title-only hits are marked and carry no snippet', async () => {
 test('a missing database is reported, not thrown', async () => {
   const r = await searchSessions({ query: 'x', dbPath: path.join(os.tmpdir(), 'definitely-not-here', 'opencode.db') });
   assert.equal(r.status, 'no-db');
+});
+
+test('the default also searches titles, and a title-only hit is not buried by limit', async () => {
+  // Measured on the live store: a date like "巡检 2026-11-06" exists only in a title, and every
+  // title-only hit sorted last because it had zero body occurrences — so it was cut off by `limit`.
+  const fx = buildFixture([
+    { id: 'ses_body', title: 'unrelated', messages: [{ type: 'user', data: userText('巡检 once') }] },
+    { id: 'ses_title', title: '巡检 2026-11-06 20:25', updated: NOW + 1000, messages: [] },
+  ]);
+  try {
+    const r = await searchSessions({ query: '巡检', limit: 1, dbPath: fx.dbPath });
+    if (r.status !== 'ok') throw new Error(`expected ok, got ${r.status}`);
+    assert.equal(r.total, 2);
+    assert.equal(r.hits.length, 1);
+    assert.equal(r.hits[0].session, 'ses_title');
+    assert.equal(r.hits[0].title_match, true);
+    assert.equal(r.hits[0].matches, 0);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test('a fork copy is labelled with its parent, and its title suffix is not a hit', async () => {
+  // 22-33% of every live result set was a fork copy of a session that was already in it. They are
+  // kept (a fork diverges and usually holds content its parent does not) but have to be recognisable
+  // — and the " (fork #1)" suffix made a search for "fork" return unrelated sessions.
+  const fx = buildFixture([
+    { id: 'ses_parent', title: 'debian-railway 优化容器', messages: [{ type: 'user', data: userText('needle') }] },
+    { id: 'ses_fork', title: '优化容器 (fork #1)', forkOf: 'ses_parent', messages: [{ type: 'user', data: userText('needle again') }] },
+  ]);
+  try {
+    const r = await searchSessions({ query: 'needle', dbPath: fx.dbPath });
+    if (r.status !== 'ok') throw new Error(`expected ok, got ${r.status}`);
+    assert.equal(r.total, 2);
+    const fork = r.hits.find((h) => h.session === 'ses_fork');
+    const parent = r.hits.find((h) => h.session === 'ses_parent');
+    assert.equal(fork?.fork_of, 'ses_parent');
+    assert.equal(fork?.fork_of_title, 'debian-railway 优化容器');
+    assert.equal(parent?.fork_of, '');
+
+    const suffix = await searchSessions({ query: 'fork', dbPath: fx.dbPath });
+    if (suffix.status !== 'ok') throw new Error(`expected ok, got ${suffix.status}`);
+    assert.equal(suffix.total, 0);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test('project is the path below /workspace, not a colliding basename', async () => {
+  // 14 of 26 live directories shared a basename ("assistant" covered 12 sessions), so a short label
+  // could not tell two sessions apart.
+  const fx = buildFixture([
+    { id: 'ses_a', title: 'a', directory: '/workspace/lark-work-assistant/assistant', messages: [{ type: 'user', data: userText('needle') }] },
+    { id: 'ses_b', title: 'b', directory: '/workspace/worktrees/win10-compat', messages: [{ type: 'user', data: userText('needle') }] },
+    { id: 'ses_c', title: 'c', directory: '/root', messages: [{ type: 'user', data: userText('needle') }] },
+  ]);
+  try {
+    const r = await searchSessions({ query: 'needle', dbPath: fx.dbPath });
+    if (r.status !== 'ok') throw new Error(`expected ok, got ${r.status}`);
+    const project = new Map(r.hits.map((h) => [h.session, h.project]));
+    assert.equal(project.get('ses_a'), 'lark-work-assistant/assistant');
+    assert.equal(project.get('ses_b'), 'worktrees/win10-compat');
+    assert.equal(project.get('ses_c'), 'root');
+  } finally {
+    fx.cleanup();
+  }
 });
