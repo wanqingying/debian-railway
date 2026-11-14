@@ -1,37 +1,43 @@
 # Coding Guidelines
 
-**Tradeoff:** these bias toward caution over speed; for trivial tasks, use judgment.
+**Hard rules — recall these first:**
 
-**Hard rules — recall these first:** code & docs in English · model facts: models.dev · never block the session on a long script — background it (§5) · minimal, surgical changes · define a verifiable goal and loop until it passes · lead the reply with the result.
+- **Verify by running it.** Never report a change as working until you have executed it. "It should work" is not a result.
+- **Read what you cite.** Every URL, number, version and quote comes from something you opened this session. If you did not read it, say you did not.
+- **Review before delivering.** Re-read your own diff for correctness and for fit with the surrounding code, then report done.
+- **Destructive → confirm first**, in one line: `rm -rf`, force-push, dropping a table, deleting a dataset.
+- **Code, comments, docs, commit messages: English. Replies: Simplified Chinese.**
+- **A long job never blocks the session** — background it (§5).
+- **Minimal, surgical changes**; define a verifiable goal and loop until it passes; **lead the reply with the result**.
+- **Model facts** (context window, output cap, price): models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
 
-## Environment awareness
+## Routing: pick the carrier, not just the tool
 
-`sysinfo` (provided by the local `plugins/sysinfo/` plugin, not a built-in) reports the machine's facts — time/timezone, OS, container/CI, the container's own start time and uptime, the CPU/memory/pids quota it actually gets (cgroup, not the host's core count), disk, listening ports (externally reachable vs loopback) and Railway's public endpoints, installed tools. Use it when a task depends on them.
+| Task | Use |
+|---|---|
+| 调研 / 研究 / 综述 / 选型对比 | `deep-research` skill |
+| 功能或需求开发（"做个 X"） | `req-to-ship` skill |
+| 交付或合并之前 | `code-review` skill |
+| 讲清原理 / 画图 / 做成可视页 | `answer-me-with-html` skill |
+| 硬 bug、性能回退 | `diagnosing-bugs` skill |
+| 先写测试再实现 | `tdd` skill |
+| 飞书文档 · 知识库 · 授权 | `lark-doc` · `lark-wiki` · `lark-shared` |
+| 浏览器操作、页面验证 | `pw <cmd>`（见「浏览器」） |
+| 部署上线 / CI 红了 | `deploy-to-vercel` · `gh-fix-ci` |
+| OpenCode 自身的问题 | `opencode` skill |
 
-## Model facts
+This is the default when a task fits one of these shapes, not the full skill list — check the descriptions when a task fits none of them.
 
-Context window, output cap, price: models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
+## 0. Language
 
-## Environment: worktrees belong on the volume
-
-`/workspace` is the only mounted volume. **Everything else is rebuilt from the image on every redeploy** — `/tmp`, `/var/tmp`, `/root`, `/run`, `/usr`. A worktree is a session's working directory, so a worktree created on the root filesystem disappears, and the session pointing at it then dies with `Directory not found: <path>` and cannot be resumed (this has already cost a session 13 hours of work).
-
-- Create worktrees **only** with `wt new <branch> [base-ref]` → `$WORKTREE_ROOT/<branch>` (default `/workspace/worktrees`). `wt list` / `wt remove <branch>` / `wt prune` for the rest.
-- Never `git worktree add /tmp/...` (or `/root/...`, `/var/tmp/...`), and never `session_move` into such a path. `wt` refuses a root outside `/workspace` for exactly this reason.
-- Scratch files (logs, probe scripts, build output) may live in `/tmp` — they are throwaway by definition. Anything a later session must find again goes under `/workspace`.
-- Clone/copy a repository onto the volume too when the work has to outlive the deploy: a repo checked out in `/tmp` loses its own history as well.
-
-## 0. Language: English only
-
-All code comments and documentation (README, docs, commit messages, PR descriptions) are written in **English**. Keep existing content in its current language unless asked to translate.
+All code comments and documentation (README, docs, commit messages, PR descriptions) in **English**; keep existing content in its current language unless asked to translate. Replies in Simplified Chinese.
 
 ## 1. Think before coding
 
-**Don't assume, don't hide confusion; surface tradeoffs.**
-- State assumptions; if uncertain, ask.
-- Multiple interpretations → present them, don't pick silently.
-- A simpler approach exists → say so; push back when warranted.
-- Anything unclear → stop, name it, ask.
+**Surface tradeoffs; never pick silently.**
+- **Ask only when the choice is irreversible or expensive** — a schema, a data migration, a public interface, a deletion. Otherwise state the assumption in one line and proceed.
+- Several valid interpretations → name them briefly, take the most likely, continue.
+- A simpler approach exists → say so before building the complex one.
 
 ## 2. Simplicity first
 
@@ -70,25 +76,27 @@ All code comments and documentation (README, docs, commit messages, PR descripti
 
 ## 6. 输出风格（友好、可执行、精简）
 
-目标：让回复适合快速阅读和执行。以下为**参考**，规则冲突时以任务本身为准。
+目标：让回复适合快速阅读和执行。
 
-- **先给结论/下一步动作**，再给上下文。首个句子是用户能直接做的事。
-- **多步任务用编号列表**：每步一个明确动作（"打开 X → 替换 Y → 运行 Z"）；末尾给一件两分钟内能做的下一步。
+- **先给结论。** 第一句是「已完成 / 未完成+原因」或用户能直接做的下一步；细节在后。
+- **多步任务用编号列表**：每步一个明确动作（"打开 X → 替换 Y → 运行 Z"）。
 - **拆分而非堆叠**：有第二个问题时先解决当前，再单独问"要不要我处理 X？"。
-- **跨轮次重述进度**：接续任务时先报"第 N 步已完成，下一步是 X"，不假设对方记得上下文。
-- **具体时间估计**："约 15 分钟"优于"有点工作量"。
-- **让成果可见**：完成时用具体描述说明现在能做什么（"登录现在支持 magic link：`npm run dev` 打开 /login 试试"）。
-- **错误就事论事**：直接说原因与修法，不用"哎呀/好像出问题了"。
-- **请我做事时先报告结果**：先说"已完成"或"未完成+原因"，再展开细节。
+- **跨轮次重述进度**："第 N 步已完成，下一步是 X"，不假设对方记得上下文。
+- **让成果可见**：说清现在能做什么（"登录已支持 magic link：`npm run dev` 打开 /login 试试"），时间给具体估计（"约 15 分钟"，不是"有点工作量"）。
+- **错误就事论事**：直接说原因与修法。
 
-> 例外：用户明确要"解释/带我过一遍"时可完整展开；涉及破坏性操作（rm -rf、强推、删表）先确认；连续三轮失败时停止改代码，先质疑假设。
+> 例外：用户明确要"解释/带我过一遍"时可完整展开；连续三轮失败时停止改代码，先质疑假设。
+
+## Environment facts
+
+- **Only `/workspace` is a mounted volume.** `/tmp`, `/var/tmp`, `/root`, `/run`, `/usr` are rebuilt from the image on every redeploy. Create worktrees **only** with `wt new <branch> [base-ref]` → `$WORKTREE_ROOT/<branch>` (default `/workspace/worktrees`); `wt list` / `wt remove` / `wt prune` for the rest. Never `git worktree add /tmp/...` and never `session_move` into such a path: a worktree on the root filesystem disappears and its session then dies with `Directory not found` — this has already cost one session 13 hours. Scratch files (logs, probe scripts, build output) may live in `/tmp`; anything a later session must find again — including a repository checkout whose work must outlive the deploy — goes under `/workspace`, because a clone in `/tmp` loses its own history too.
+- **`sysinfo`** (a local plugin, not a built-in) reports time/timezone, OS, container start and uptime, the cgroup CPU/memory/pids quota it actually gets (not the host's 48 cores), disk, listening ports split into external vs loopback, and Railway's public endpoints. Call it when a task depends on those facts.
 
 ## 附：codegraph（分析代码的首选）
 
-- **所有代码项目都必须用 codegraph 索引代码**：分析前确认目标项目已建索引（有 `.codegraph/`）；若没有，先 `codegraph init` 初始化，再分析。
 - 分析 / 查看代码优先用 `codegraph_explore`；搜索参数和符号用**英文**（代码符号都是英文字母，别用中文搜索）。
-- 执行搜索 / 分析前，先 `codegraph sync` 同步代码变更。
-- 常用命令：`codegraph sync`（增量同步） · `index`（重建） · `status`（状态/统计） · `files`（文件结构） · `init`（初始化并建索引）。
+- 执行搜索 / 分析前先 `codegraph sync` 同步代码变更。常用：`sync`（增量） · `index`（重建） · `status` · `files`。
+- **没有 `.codegraph/` 的项目不要自己 `codegraph init`** —— 建索引是用户的决定；告知用户该目录未建索引，然后用 grep/glob 继续。
 
 ## 浏览器
 
