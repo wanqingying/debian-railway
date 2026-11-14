@@ -31,6 +31,7 @@ docs=(
     ai-model-pricing
     go-allowance
     a6api
+    gptge
     lark-cli
 )
 
