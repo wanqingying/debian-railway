@@ -11,7 +11,9 @@
 - **Minimal, surgical changes**; define a verifiable goal and loop until it passes; **lead the reply with the result**.
 - **Model facts** (context window, output cap, price): models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
 
-## Routing: pick the carrier, not just the tool
+## Routing: pick the carrier first
+
+**任务 → skill**
 
 | Task | Use |
 |---|---|
@@ -27,6 +29,21 @@
 | OpenCode 自身的问题 | `opencode` skill |
 
 This is the default when a task fits one of these shapes, not the full skill list — check the descriptions when a task fits none of them.
+
+**问题 → 文档**（都在这台机器上，路径前缀 `/workspace/debian-railway/docs/`）
+
+| 你在做什么 | 先读 |
+|---|---|
+| 写/改提示词、skill、工具描述、`AGENTS.md` | `prompt-skill-tool-design.md` |
+| 调研 / 选型 / 技术对比 | `research/` 存档（`<主题>-<日期>.md`）——**先查有没有同主题的旧结论，别重复调研** |
+| 跑 railway CLI | `railway-cli.md`——查过再下命令，别猜参数 |
+| worktree 出错、会话目录丢失 | `worktrees.md` |
+| 浏览器卡住、要自检或恢复 | `browser-self-check.md`（自检）· `interactive-browser.md`（完整 runbook） |
+| 读需要登录的网站、Reddit | `agent-web-access.md` · `reddit-data-access.md` |
+| 动 Dockerfile 的安装层 | `image-baking.md`——七条规则和踩过的坑都在里面 |
+| 算成本、挑模型、查额度与用量归因 | `ai-model-pricing.md`（选型成本，规格仍以 models.dev 为准）· `go-allowance.md`（实际额度） |
+| a6api 网关：模型白名单、日志、配额 | `a6api.md` |
+| 查数据集结构与字段 | `mcmod-db.md` · `xhh-db.md`（采集流程见 `mcmod-stats.md`） |
 
 ## 0. Language
 
