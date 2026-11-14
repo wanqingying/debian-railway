@@ -77,11 +77,19 @@ For every sentence: **would the agent get this wrong without it?** If no, cut it
 
 The ETH numbers give this test a price tag: each instruction the agent follows costs steps and reasoning tokens even when it is correct. A file of true-but-unnecessary statements is not neutral — it is a 20% tax.
 
-### 2.4 One rule, one action — and name the replacement
+### 2.4 Say what to do; one rule, one action
 
-- ❌ "Handle errors appropriately." ❌ "Never block the session on a long script."
-- ✅ "Every HTTP call gets an explicit timeout — a missing one once hung a run for 464 s."
-- ✅ "`sleep N` polling is banned; wait with `timeout 900 gh pr checks <n> --watch`, or background the job."
+A prohibition tells the model what to avoid but not what to do instead, so under pressure it takes the cheapest reading that is not literally forbidden. State the action.
+
+| Instead of | Write |
+|---|---|
+| "Never report a change as working until you have executed it" | "Run it before you call it done; if you did not run it, say it is untested" |
+| "Don't improve adjacent code/comments/formatting" | "Leave adjacent code, comments and formatting as you found them" |
+| "No features beyond the ask" | "Build only what the ask requires" |
+| "Do not use markdown" | "Your response should be composed of smoothly flowing prose paragraphs" |
+| "Handle errors appropriately" | "Every HTTP call gets an explicit timeout — a missing one once hung a run for 464 s" |
+
+The second clause matters as much as the first: the first version of the hard rule above forbade the wrong state and named no right one, so the honest fallback ("say it is untested") was simply absent.
 
 Measured here over 220 sessions and 26,976 shell calls: foreground `sleep` ≥ 60 s accounted for **600 calls and 25.7 hours of blocked wall time** (worst session: 87 calls, 229 minutes). A prose rule against blocking existed; what moved behaviour was naming the banned pattern *and* its replacement. Background-shell adoption rose 0.4% → 2.9% over the period, but that trend is inseparable from habit — the sleep figure is the honest evidence.
 
@@ -117,7 +125,9 @@ A narrow bridge needs explicit footwork; an open field needs a direction.
 - **Fragile, ordered, destructive** → exact command, do not modify: `python scripts/migrate.py --verify --backup`.
 - **Several valid approaches** → state the goal and the constraint, let the agent choose.
 
-Explaining *why* raises quality in the free case (the agent generalises) and adds nothing in the fragile case (there is one way). All-caps MUST neither generalises nor survives competition with the other MUSTs.
+Explaining *why* raises quality in the free case — the agent generalises from the reason. Anthropic's own before-and-after: `NEVER use ellipses` versus "your response will be read aloud by a text-to-speech engine, so never use ellipses, since the engine cannot pronounce them". It adds nothing in the fragile case, where there is one correct output and the words should go into the command instead. So the split is a **stop condition**: exactly one correct output → spend the words on the command; the model must judge a new case → spend them on the reason. Most style and convention rules are the second kind, which is why the reason usually pays.
+
+All-caps MUST neither generalises nor survives competition with the other MUSTs — and on models that follow instructions precisely it **overtriggers**, which is why Anthropic's own advice is to soften rather than shout: `CRITICAL: You MUST use this tool when…` becomes `Use this tool when…`.
 
 ### 2.9 Separate instruction from data, and stable from dynamic
 
@@ -125,6 +135,24 @@ Explaining *why* raises quality in the free case (the agent generalises) and add
 - **Stable rules and per-turn state in one place.** Rules stay in the stable text; anything that changes per turn (time, counters, balances) is appended as a new message. §3 explains why this is not merely tidy.
 - **One term, one meaning.** Pick "endpoint" and never also "route"/"URL"/"path"; inconsistent naming silently splits one concept into several.
 - **No time-sensitive statements.** "Before August 2025 use the old API" rots — put superseded material under an "old patterns" heading or delete it.
+
+### 2.10 State the default action
+
+A model that follows instructions precisely still answers a request phrased as a question with a *suggestion*. People do not phrase work as imperatives: "加一下", "改一下", "push", "能不能加个 X" are all decisions already made, and the failure mode is a plan instead of an edit.
+
+One line fixes it, and it is cheap because it applies to every task: default to making the change, and reserve discussion for when the approach itself is undefined. The mirror image is worth knowing too — if you want analysis rather than edits, say that, because the default is now action.
+
+The same asymmetry explains why "ask if unclear" is a harmful default. Without a threshold it licenses re-planning on every turn; with one ("ask only when the choice is irreversible or expensive — schema, migration, public interface, deletion") it licenses execution and still protects the cases that need a decision.
+
+### 2.11 Not every vendor recommendation transfers
+
+The same guides that produced §2 and §5 also recommend things that are wrong here, and saying which is part of using them honestly:
+
+- **A role sentence** ("you are a senior engineer…"). Anthropic says one sentence focuses tone. It also restates what the rules and environment facts already say, and OpenAI has moved style to context-delegation; on a coding agent it buys little and costs prefix on every turn.
+- **An explicit parallel-tool-call block.** Anthropic reports it lifts parallel calling to ~100%, but the harness already batches reads on its own. It is insurance against a problem this setup does not have.
+- **Thinking and effort guidance.** Host-controlled. Writing "think step by step" into a rule file does not reach the dial, and on models with adaptive thinking it can suppress it.
+
+The test is the same one as §1: name the failure the instruction prevents, in this setup, and drop it if there is none.
 
 ## 3. The prefix is a cache contract
 
@@ -188,13 +216,6 @@ A brevity rule without these exceptions reliably truncates the one class of mess
 - **Over-constraining suppresses structure the content needs.** Anthropic ships a long `<avoid_excessive_markdown_and_bullet_points>` block and then warns that on models which already format sparingly it "can suppress structure the content needs" and should be removed or shortened. Structure should follow the content: genuinely discrete items get a list, an argument gets paragraphs.
 - **Formatting is not enforcement.** Both vendors describe style instructions as things the model follows, not guarantees; anything that must happen every time belongs in a hook or in post-processing.
 
-### Soften as models improve; do not shout
-
-Anthropic's warning about its own models generalises: models that follow instructions more precisely **overtrigger** on prompts written to defeat undertriggering, and the fix is to soften the wording — `CRITICAL: You MUST use this tool when…` becomes `Use this tool when…`. All-caps emphasis neither generalises nor survives competition with every other all-caps line (§2.8).
-
-### Explaining why buys more than you would expect
-
-Anthropic's own before-and-after: `NEVER use ellipses` versus `your response will be read aloud by a text-to-speech engine, so never use ellipses, since the engine cannot pronounce them` — the model generalises from the reason. This sits in tension with §2.8 (fragility gets the exact command, no explanation). The resolution is the stop condition: when there is exactly one correct output, spend the words on the command; when the model must judge a new case, spend them on the reason. Most style rules are the second kind, which is why the reason usually pays.
 
 ## 6. `AGENTS.md`
 
@@ -213,7 +234,7 @@ Anthropic's own before-and-after: `NEVER use ellipses` versus `your response wil
 
 ### Wording is load-bearing
 
-Vercel measured that the *same* skill with the *same* docs behaved differently purely from the trigger instruction: "You MUST invoke the skill" made the agent read docs first and miss project context; "explore the project first, then consult the skill" made it build a model first and use docs as reference — and it caught changes the first variant missed entirely. Write the **sequence** you want; emphasis is not a substitute for ordering.
+Two measured cases. First, **the way the request is phrased decides whether work happens**: a request in question form gets a suggestion, so §2.10's default-to-action line exists. Second, Vercel measured that the *same* skill with the *same* docs behaved differently purely from the trigger instruction: "You MUST invoke the skill" made the agent read docs first and miss project context; "explore the project first, then consult the skill" made it build a model first and use docs as reference — and it caught changes the first variant missed entirely. Write the **sequence** you want; emphasis is not a substitute for ordering.
 
 ### Rule format
 
@@ -323,7 +344,8 @@ Calls per task (many redundant → bad pagination defaults), error rate per para
 
 - [ ] Can you state what the agent does wrong **without** this text? Was a baseline measured?
 - [ ] Every added line belongs to one of §1's four categories — not an overview, not a restatement of the repo.
-- [ ] Every rule names a concrete action, path, command or threshold.
+- [ ] Every rule names a concrete action, path, command or threshold, and every prohibition names what to do instead (§2.4).
+- [ ] The default action is stated: execute, or discuss (§2.10).
 - [ ] The delete test was applied sentence by sentence, with §1's 20% price in mind.
 - [ ] Rules below ~10% adoption were rewritten with a named replacement, or deleted.
 - [ ] Routing exists where the artefact must be discovered (a line in `AGENTS.md`, not a better description alone).
