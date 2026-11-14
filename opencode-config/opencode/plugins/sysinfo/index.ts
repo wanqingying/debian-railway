@@ -1,5 +1,5 @@
 import { Plugin } from '@opencode/plugin';
-import { collectSystemInfo } from '../../lib/sysinfo.js';
+import { collectSystemInfo } from '../../lib/sysinfo.ts';
 
 const DESCRIPTION =
   'Reports facts about the machine this session runs on: current time and timezone, OS/distro/kernel, shell, user, locale, container/CI flags plus the container\'s own start time and uptime, the CPU/memory/pids quota this process actually gets (cgroup limits, deliberately not the host CPU count), disk, configured and listening ports split into externally reachable and loopback-only with the Railway public TCP proxy and HTTP domain, the platform (Railway project/service/region/deployment/volume), the active Python venv, and installed developer tools with versions. Use it whenever a task depends on those facts.';
