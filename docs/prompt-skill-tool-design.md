@@ -2,7 +2,7 @@
 
 Three artefacts, one discipline. An `AGENTS.md` rule, a `SKILL.md` body and a tool's `description` are all natural-language instructions consumed by a model that cannot ask follow-up questions. What differs is *when* they load and *what they compete with*.
 
-Numbers in brackets are measured. Sources are named inline; §10 dates and grades each one, applies a recency discount, and states where they disagree instead of averaging them.
+Numbers in brackets are measured. Sources are named inline; §11 dates and grades each one, applies a recency discount, and states where they disagree instead of averaging them.
 
 ## 0. Where the text goes
 
@@ -143,13 +143,60 @@ Why this matters operationally here: this repo's global prompt plus tool definit
 
 Attention is not uniform: the start and the end are read, the middle is where content gets lost — a U-shaped curve (Liu et al., TACL 2024).
 
-**This is the document's weakest claim and it is labelled as such.** It rests on a single 2023/2024 measurement, discounted to roughly a quarter under §10's rule, with no 2026 replication here. It is kept because obeying it is free and the failure it prevents is invisible: reordering two lines costs nothing, whereas a buried constraint simply never fires. Follow it; do not cite it as a measured law.
+**This is the document's weakest claim and it is labelled as such.** It rests on a single 2023/2024 measurement, discounted to roughly a quarter under §11's rule, with no 2026 replication here. It is kept because obeying it is free and the failure it prevents is invisible: reordering two lines costs nothing, whereas a buried constraint simply never fires. Follow it; do not cite it as a measured law.
 
 - Critical constraints and the routing table go **first**.
 - Current state / next action goes **last** in the message list.
 - Never bury the one rule that matters mid-section. This is §2.3 seen from the model's side: a rule that is not read was never a rule.
 
-## 5. `AGENTS.md`
+## 5. Output style
+
+Response style is the most-specified and least-evidenced part of most system prompts. Three findings should reshape what you write.
+
+**A friendly persona costs accuracy.** Fine-tuning five models (Llama-8B and 70B, Mistral-Small, Qwen-32B, GPT-4o) to sound warmer raised error rates by 10–30 pp and made them ~40% more likely to affirm incorrect user beliefs — most strongly when the user's message expressed sadness. The part that matters for prompt authors: the same effect appeared from **system prompting**, smaller and less consistent but the same direction, at up to 14 pp and 12 pp more errors on questions carrying an incorrect user belief. The control condition is the useful one — fine-tuning on the *same* data rewritten cold (direct, concise, emotionally neutral) left accuracy unchanged or slightly better (−3 to +13 pp). So the plain style is the safe style, and "be friendly and encouraging" is not a free nicety. (Nature, 2026-04)
+
+**Vendors have stopped specifying style and started delegating it.** OpenAI's Model Spec revision of 2026-10-29 "retired most of the detailed style guidance", reasoning that style should adapt to the user and the context, while keeping sycophancy as a user-level principle that survives unless explicitly overridden. Practical consequence: no default gives you a length or format you can rely on. If you need one, it goes in your own prompt.
+
+**Current models are already terse; what you need is *which* terseness.** Anthropic reports that its latest models are less verbose and may skip summaries after tool calls unless asked, names Claude Opus 5 as the exception whose visible replies run long and says to prompt explicitly for conciseness because effort settings do not change it, and reports the opposite for Claude Fable 5.1 — it writes *fewer* progress updates during agentic work, so there you ask for progress text *and remove* any instruction telling it to be brief. A style rule copied from one model can be exactly wrong on the next, which is why the recency rule in §11 matters most here.
+
+### What the canonical concise style looks like
+
+Claude Code ships one, and its shape is the reusable part:
+
+- The **first sentence states what happened or what the answer is**.
+- It **drops the lead-in, the step-by-step narration, and the closing recap**.
+- A simple question gets **one to three sentences**.
+- The engineering work is done just as thoroughly as without the style.
+
+Business writing calls this BLUF — bottom line up front.
+
+### The carve-outs are the design, not an afterthought
+
+Every published concise style keeps exceptions, and the same ones:
+
+- Anything the user explicitly asked to have explained.
+- **Error reports, failing test output, security warnings, and confirmations before destructive actions** keep their complete content — exactly the cases where trimming causes a wrong decision.
+- The reasoning needed to approve a risky step.
+- Progress on long-running work, when silence reads as "stuck".
+
+A brevity rule without these exceptions reliably truncates the one class of message that must not be truncated. Write the exceptions together with the rule, not later.
+
+### Formatting instructions cut both ways
+
+- **Say what to do, not what not to do.** "Do not use markdown" → "your response should be composed of smoothly flowing prose paragraphs."
+- **Your own prompt's formatting leaks into the answers.** A prompt written entirely in bolded bullets produces bulleted answers; Anthropic notes that removing markdown from a prompt reduces markdown in the output. A rule file is prose with structure, which is one reason its own style bleeds into replies.
+- **Over-constraining suppresses structure the content needs.** Anthropic ships a long `<avoid_excessive_markdown_and_bullet_points>` block and then warns that on models which already format sparingly it "can suppress structure the content needs" and should be removed or shortened. Structure should follow the content: genuinely discrete items get a list, an argument gets paragraphs.
+- **Formatting is not enforcement.** Both vendors describe style instructions as things the model follows, not guarantees; anything that must happen every time belongs in a hook or in post-processing.
+
+### Soften as models improve; do not shout
+
+Anthropic's warning about its own models generalises: models that follow instructions more precisely **overtrigger** on prompts written to defeat undertriggering, and the fix is to soften the wording — `CRITICAL: You MUST use this tool when…` becomes `Use this tool when…`. All-caps emphasis neither generalises nor survives competition with every other all-caps line (§2.8).
+
+### Explaining why buys more than you would expect
+
+Anthropic's own before-and-after: `NEVER use ellipses` versus `your response will be read aloud by a text-to-speech engine, so never use ellipses, since the engine cannot pronounce them` — the model generalises from the reason. This sits in tension with §2.8 (fragility gets the exact command, no explanation). The resolution is the stop condition: when there is exactly one correct output, spend the words on the command; when the model must judge a new case, spend them on the reason. Most style rules are the second kind, which is why the reason usually pays.
+
+## 6. `AGENTS.md`
 
 ### What belongs
 
@@ -180,7 +227,7 @@ A rule stated as "never block on a long script" scored 2.9% adoption; "`sleep N`
 
 Project convention, not a measurement: keep the global prompt under ~120 lines. The real cost is §3 — every line is recomputed whenever it changes — and §1, where unnecessary-but-followed instructions cost steps and reasoning.
 
-## 6. Skills
+## 7. Skills
 
 ### Description: when, not what
 
@@ -228,7 +275,7 @@ Verified against current docs; several circulating assumptions are wrong.
 - `@skill-id` loads a skill explicitly. Permissions use the `skill` action with the ID as resource (`allow` / `ask` / `deny`); `deny` hides it entirely.
 - v2 does **not** enforce description length, name/directory agreement, or kebab-case. Portability is your responsibility.
 
-## 7. Tool descriptions
+## 8. Tool descriptions
 
 The most expensive and least maintained text in most agent systems: it lives in the cached prefix, competes with every other tool, and was usually written once by whoever wrapped the API. Anthropic's finding is that **small refinements here produce dramatic behaviour changes** — description work separated a mid-pack from a state-of-the-art SWE-bench result, and a web-search `query` description that invited appending `2025` silently biased every search.
 
@@ -272,7 +319,7 @@ Tool results are the largest context consumer, and they are text you control:
 
 Calls per task (many redundant → bad pagination defaults), error rate per parameter (high → ambiguous description or schema), tokens per task (output too verbose), and tools never called (description does not fire, or the tool is unnecessary).
 
-## 8. Review checklist
+## 9. Review checklist
 
 - [ ] Can you state what the agent does wrong **without** this text? Was a baseline measured?
 - [ ] Every added line belongs to one of §1's four categories — not an overview, not a restatement of the repo.
@@ -283,13 +330,14 @@ Calls per task (many redundant → bad pagination defaults), error rate per para
 - [ ] Trigger tests include negative controls.
 - [ ] References hang one level deep, each with *when* to read it.
 - [ ] No dynamic content in the prefix; tools stable and append-only; critical rules first, current state last.
+- [ ] Response-style rules carry their carve-outs: requested explanations, error reports and failing test output, security warnings, destructive-action confirmations, and progress on long jobs.
 - [ ] No time-sensitive statements; terminology consistent.
 - [ ] Deterministic repeated work is a script, not an instruction.
 - [ ] Tool: name says the task, params unambiguous, output bounded, errors actionable, boundaries stated.
 - [ ] Every rule's source is dated; a rule resting only on a pre-2026 source is phrased as a hypothesis, not a `MUST`.
 - [ ] Third-party skills and tools were read in full before install; no secrets; least privilege.
 
-## 9. This container's constraints
+## 10. This container's constraints
 
 - Global prompt: `opencode-config/opencode/AGENTS.md` → baked to `/opt/opencode-config`, synced to `$XDG_CONFIG_HOME/opencode/AGENTS.md` at boot, **overwriting** the volume copy. Editing the volume file alone is lost on redeploy. Never `cp AGENTS.md` from the repo root over it — that is the *project* prompt and doing so wipes the global rules.
 - That file plus the tool definitions are the **cached prefix** for every session (§3): batch edits, never interpolate runtime values.
@@ -299,7 +347,7 @@ Calls per task (many redundant → bad pagination defaults), error rate per para
 - Skill persistent data goes on `/workspace`, never inside the skill directory — that directory is replaced by the next image.
 - Vendor third-party skills with their LICENSE and put local adaptations in a preamble at the top of `SKILL.md`.
 
-## 10. Sources, dated, and how much weight each carries
+## 11. Sources, dated, and how much weight each carries
 
 **Recency rule: a reference loses half its weight for every year before 2026.** Agent behaviour, tool-call formats and model defaults change faster than the principles written about them, so a 2024 measurement is not evidence about today's model — it is a hypothesis that happened to be true once.
 
@@ -312,9 +360,13 @@ Applied below. `2025-09` sources keep roughly half their original weight; the 20
 
 | Source | Published | Contributed | Weight / caveat |
 |---|---|---|---|
+| [Nature — warm models are less accurate](https://www.nature.com/articles/s41586-026-10410-0) | 2026-04 | Warmth fine-tuning: +10–30 pp error, ~40% more sycophancy; **also from system prompting**, up to 14 pp on incorrect-belief items; cold (direct, concise) style unchanged or better | **Highest for §5** — 5 architectures, controlled cold-style ablation, and it isolates system-prompt effects from fine-tuning. Caveat: QA benchmarks and ShareGPT-derived data, not agent transcripts |
+| [OpenAI — Model Spec](https://model-spec.openai.com/2026-10-29.html) | 2026-10, rev. 2025-02 | Retired most detailed style guidance; style adapts to context; sycophancy stays a user-level principle; instructions carry explicit authority levels | High for §5's "no default length exists" and for the authority-level idea. It states intent, and OpenAI says its models do not yet fully reflect it — a spec is not a measurement |
+| [Anthropic — prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) | living doc, 2026-10 | Models are already concise; Opus 5 runs long → prompt for conciseness; Fable 5.1 needs the opposite; say what to do not what not to do; prompt formatting leaks; over-constraining suppresses needed structure; soften over-aggressive wording; explain why | **Highest for §5's actionable detail** — per-model notes are the part that goes stale fastest, so re-read after every model change |
+| [Claude Code — output styles](https://docs.claude.com/en/docs/claude-code/output-styles) | living doc | The Concise style: first sentence = the answer, no lead-in/narration/recap, simple question 1–3 sentences, **full length for requested explanations and safety-critical content**; style is instruction, not enforcement | High for §5 — it is the vendor's own shipped style, and the carve-out list is what makes it safe |
 | [ETH — Evaluating AGENTS.md (2602.11988)](https://arxiv.org/abs/2602.11988) | 2026-02, rev. 2026-09 | Context files cost ~20% with no success gain; overviews specifically useless; agents re-read files; LLM-generated worse than developer-written | **Highest for §1** — 4 agents, paired design, held-out repositories, and the only study measuring success *and* cost together. Caveat: Python, niche repos, one sample per instance |
 | [AGENTS.md efficiency (2601.20404)](https://arxiv.org/abs/2601.20404) | 2026-01 | −28.6% median runtime, −16.6% median output tokens; input tokens slightly up | High but **narrow**: efficiency only, **no correctness measurement**, PRs ≤100 LoC. Does not contradict the ETH result; measures a different thing |
-| [Anthropic — writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) | 2025-09 | Task-shaped tools; namespacing; output signal/IDs/pagination; `response_format`; actionable errors; description = onboarding | **Discounted to ~half by the recency rule**, and it is the only source for §7's specifics. Still the best-tested account of tool design (held-out sets on their own Slack/Asana MCP servers), and §7's mechanisms are corroborated by the 2026 ETH finding that tool mentions steer behaviour (2.5× vs 0.05×). Re-verify the output-size advice against current tooling before hard-coding a cap |
+| [Anthropic — writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) | 2025-09 | Task-shaped tools; namespacing; output signal/IDs/pagination; `response_format`; actionable errors; description = onboarding | **Discounted to ~half by the recency rule**, and it is the only source for §8's specifics. Still the best-tested account of tool design (held-out sets on their own Slack/Asana MCP servers), and §8's mechanisms are corroborated by the 2026 ETH finding that tool mentions steer behaviour (2.5× vs 0.05×). Re-verify the output-size advice against current tooling before hard-coding a cap |
 | [Anthropic — effective context engineering](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents) | 2025-09 | Right altitude; named sections; smallest high-signal token set; context rot; just-in-time + hybrid retrieval; bloated tool sets | **Discounted to ~half.** §2.5's altitude framing and §0's hybrid-retrieval point rest on it; both are practice claims, not measurements, and neither has a 2026 replication in this set |
 | [agentskills.io — best practices](https://agentskills.io/skill-creation/best-practices) | living spec | Extract from a hands-on task; refine from traces; delete test; coherent units; fragility; gotchas; plan-validate-execute | High — the spec's own guidance, kept current. Treated as a living document and re-read when the spec changes, not trusted by publication date |
 | [Anthropic — skill authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) | living doc | 500-line / 1024-char budgets; third person; one-level references; TOC; "old patterns"; terminology; checklists | High — vendor spec, the only detailed treatment of large-skill structure. The numeric budgets are the part most likely to age; re-check them against the current spec before enforcing |
