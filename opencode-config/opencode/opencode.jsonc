@@ -34,6 +34,16 @@
       "action": "*",
       "resource": "*",
       "effect": "allow"
+    },
+    // The joops repo ships a `verify` skill whose recipe starts its own headless Chrome-for-Testing
+    // and drives it with puppeteer-core. This container runs exactly one browser - the visible
+    // Chromium on the virtual display - and every browser action goes through `pw`; the skill's
+    // recipe contradicts that rule and was reached for by mistake. Deny it by id so agents fall
+    // back to `pw` (see the "浏览器" section of the global AGENTS.md).
+    {
+      "action": "skill",
+      "resource": "verify",
+      "effect": "deny"
     }
   ],
   // New worktrees land on the mounted volume, not in the server's data dir and
