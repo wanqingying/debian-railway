@@ -10,6 +10,7 @@
 - **A long job never blocks the session** — background it (§5).
 - **Minimal, surgical changes**; define a verifiable goal and loop until it passes; **lead the reply with the result**.
 - **Model facts** (context window, output cap, price): models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
+- **Never rename a worktree's display name.** The `openchamber` tool's `work.name` action is forbidden in this project and this container, and so is any substitute (`git branch -m`, editing `branch.<name>.description`) done to change what a worktree shows as. A worktree's task name belongs to the user: when one needs renaming, say so in the reply and let the user change it.
 
 ## 项目、skill、文档、工具（列出部分常用的-并非全部）
 
