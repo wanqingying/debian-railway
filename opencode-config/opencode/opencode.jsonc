@@ -813,6 +813,38 @@
               "read": 0.2
             }
           }
+        },
+        // Measured 2026-11-24: this id runs on a CLEAN channel, unlike the
+        // claude ids here. A one-word "hi" is billed 7 prompt tokens (chat
+        // template overhead only), a caller-supplied system prompt is obeyed
+        // verbatim, and the model never self-identifies — while
+        // `claude-opus-5-5` bills 73 prompt tokens for the same "hi" because
+        // the upstream injects ~70 tokens of its own identity prompt (it
+        // answers "I'm claude-opus-5-5, your AI development partner" and
+        // ignores the caller's system message). Billed $2/M in, $10/M out,
+        // group `default`, ratio 1 (per-request log row, not a list price).
+        "gpt-6.2-sol": {
+          "modelID": "gpt-6.2-sol",
+          "name": "GPT-6.2 Sol (gpt.ge)",
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 1050000,
+            "output": 128000
+          },
+          "cost": {
+            "input": 2,
+            "output": 10
+          }
         }
       }
     }

@@ -137,6 +137,7 @@ needed), and every one below was then confirmed against a real log row.
 | --- | --- | --- |
 | `deepseek-v4.1-flash-1017` | `deepseek` (0.5×) | `$0.5`/M input, `$2`/M output, `$0.01`/M cache read |
 | `claude-opus-5-5` | `claude_max` (1×) or `claude_kiro` (0.35×), per request | `$4`/M input, `$20`/M output, `$0.2`/M cache read, `$5`/M cache write (5 m), `$8`/M (1 h) |
+| `gpt-6.2-sol` | `default` (1×) | `$2`/M input, `$10`/M output (no cache line billed on this channel) |
 
 - **DeepSeek peak pricing** multiplies the *cache read* only, to `$0.02`/M, on
   weekdays `01:00–04:00` and `06:00–10:00` UTC (= Beijing 09–12 and 14–18). Input and
@@ -160,6 +161,23 @@ needed), and every one below was then confirmed against a real log row.
   charged at `$5`/M. That is the whole reason a long-context Opus call costs ~$0.63
   no matter how small the visible prompt is.
 
+### Built-in system prompt: measurable, and per channel
+
+A relay that injects its own system prompt can be detected without trusting what the model
+says about itself — an injected prefix is billed, so it shows up in `prompt_tokens` for a
+one-word message. Same token, same request, measured 2026-11-24:
+
+| id | `prompt_tokens` for `hi` | caller-supplied system prompt | verdict |
+| --- | --- | --- | --- |
+| `gpt-6.2-sol` | 7 (chat-template overhead only) | obeyed verbatim (`BANANA-OK`) | clean channel |
+| `claude-opus-5-5`, routed to `claude_kiro` | 73 | ignored — answers about its own identity instead | ~66 tokens of injected prompt |
+
+Every Opus row of that run landed on `claude_kiro` and answered as "I'm claude-opus-5-5,
+your AI development partner", so the "system prompt honoured: yes" row in the table below
+holds for `claude_max` only; on the reverse-engineered Kiro channel the caller's system
+message is replaced. Expect that whenever auto-routing picks the 0.35× group, and read the
+`group` field of the log row to know which one answered.
+
 ## Behaviour measured
 
 Both models were driven end to end over HTTP, not just via the `models` list.
@@ -167,7 +185,7 @@ Both models were driven end to end over HTTP, not just via the `models` list.
 | Check | `deepseek-v4.1-flash-1017` | `claude-opus-5-5` |
 | --- | --- | --- |
 | Basic completion | 200, 1.65 s | 200, 2.0 s |
-| System prompt honoured | yes | **yes** — unlike a6api's Kiro resale, which overrides it |
+| System prompt honoured | yes | **yes on `claude_max`** — replaced on `claude_kiro` (see above) |
 | Tool calling (streaming) | `get_weather{"city":"Osaka"}` | same, with `toolu_…` ids |
 | Token accounting | honest | honest (113 k prompt reported as 113 k) |
 | `/v1/messages` (Anthropic) | — | yes, with signed `thinking` blocks |
