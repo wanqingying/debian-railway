@@ -32,6 +32,14 @@ export WORKTREE_ROOT="${WORKTREE_ROOT:-/workspace/worktrees}"
 mkdir -p "$WORKTREE_ROOT"
 ln -sfn /scripts/worktree.sh /usr/local/bin/wt
 
+# `drawio` (scripts/drawio.sh) — draw.io Desktop CLI, baked at /opt/drawio-desktop.
+# The wrapper carries the flags a headless Electron export needs here (xvfb-run,
+# --no-sandbox, --disable-dev-shm-usage) and `--elk`, the layout pass that makes a
+# Mermaid-derived diagram readable. Used by the `architecture-diagrams` skill.
+if [ -f /scripts/drawio.sh ]; then
+    ln -sfn /scripts/drawio.sh /usr/local/bin/drawio
+fi
+
 # `pw` (scripts/pw) — Playwright CLI pinned onto the in-container KasmVNC browser:
 # it attaches over CDP (idempotently) instead of launching, so an agent drives the
 # SAME signed-in session a human just logged into. `playwright cli open` is avoided
