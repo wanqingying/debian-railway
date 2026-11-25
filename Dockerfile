@@ -108,6 +108,7 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
         poppler-utils \
         fontconfig fonts-liberation \
         chromium chromium-l10n fluxbox fonts-noto-cjk x11-utils scrot \
+        xvfb \
         gh \
     && arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
@@ -124,6 +125,26 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
          rm -f /tmp/kasmvnc.deb; \
        fi \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ---- draw.io Desktop CLI ----
+# Turns the committed Mermaid source into a handoff-ready `.drawio`/PNG/SVG (see the
+# `architecture-diagrams` skill). Baked rather than fetched on first use: /usr and /opt
+# are rebuilt from the image on every start, so a redeploy would otherwise leave an
+# agent holding a command whose binary is gone — measured once already, when an
+# on-demand install under /tmp vanished with a restart.
+# The AppImage is *extracted* at build time, not executed: this container has no FUSE.
+# `xvfb` (in the package list above) is the X server the Electron export needs.
+# DRAWIO_VERSION and the sha256 below move together — bump the version, re-download,
+# re-hash (uppercase hex is not accepted by `sha256sum -c`).
+ARG DRAWIO_VERSION=32.7.4
+RUN url="https://github.com/jgraph/drawio-desktop/releases/download/v${DRAWIO_VERSION}/drawio-x86_64-${DRAWIO_VERSION}.AppImage" \
+    && curl -fsSL --retry 3 -o /tmp/drawio.AppImage "$url" \
+    && echo "7d78c781d4ec33d86dc48251c3cadc9c18dcea6bc5d581322c0335ccb33b222c  /tmp/drawio.AppImage" | sha256sum -c - \
+    && chmod +x /tmp/drawio.AppImage \
+    && mkdir -p /opt/drawio-desktop \
+    && (cd /opt/drawio-desktop && /tmp/drawio.AppImage --appimage-extract >/dev/null) \
+    && rm -f /tmp/drawio.AppImage \
+    && test -x /opt/drawio-desktop/squashfs-root/drawio
 
 # ---- uv + Python 3.12 ----
 # The repo requires >=3.12; Debian's system python3 is 3.11.
