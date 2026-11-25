@@ -1,18 +1,20 @@
 # Instruction Design: Prompts, Skills, Tool Descriptions
 
-Three artefacts, one discipline. An `AGENTS.md` rule, a `SKILL.md` body and a tool's `description` are all natural-language instructions consumed by a model that cannot ask follow-up questions. What differs is *when* they load and *what they compete with*.
+An `AGENTS.md` rule, a `SKILL.md` body and a tool's `description` all guide the agent. What differs is *when* they load and *what they compete with*.
 
-Numbers in brackets are measured. Sources are named inline; §11 dates and grades each one, applies a recency discount, and states where they disagree instead of averaging them.
+**Aim for the shortest text and the smallest result that are still accurate, complete for the task, and usable.** Cut repetition, not evidence, caveats, or the next action. Let the task determine the length and how much to return at once; validate real platform or interface requirements separately rather than turning them into general writing rules.
+
+Sources are named inline. §11 distinguishes measurements, platform requirements and practical advice, and explains where each applies.
 
 ## 0. Where the text goes
 
 | Carrier | Loaded | Cost | Use it for |
 |---|---|---|---|
-| `AGENTS.md` | Every turn | In the **cached prefix**, paid forever | Rules that hold for every task; environment facts; **routing** |
-| Skill (`SKILL.md` + `references/`) | Only when triggered | Paid once, competes with the whole conversation | A class of task the agent repeatedly gets wrong, plus its traps |
-| Tool `description` + schema | Every turn | In the cached prefix, paid forever | When to call it, what it returns, how it differs from its neighbours |
-| Tool *output* | Every call | The largest context consumer in practice | High-signal result fields; bounded, truncation with instructions |
-| Hook / CI / wrapper script | Automatically | Free at inference time | Anything that must hold 100% of the time |
+| `AGENTS.md` | As applicable to the session or project | Repeated context; reuse depends on the provider and request | Rules that hold across tasks; environment facts; **routing** |
+| Skill (`SKILL.md` + `references/`) | Body on activation; references as needed | Loaded material competes with conversation history | A class of task the agent repeatedly gets wrong, plus its traps |
+| Tool `description` + schema | When supplied to the model | Repeated context for exposed tools | When to call it, what it returns, how it differs from its neighbours |
+| Tool *output* | When a tool returns data | Can dominate the conversation context | Relevant fields; a clear way to retrieve the rest |
+| Hook / CI / wrapper script | Automatically when configured | Runs outside the model; any returned output still costs context | Requirements that need deterministic enforcement |
 
 The loading difference decides design more than writing style does. In Vercel's Next.js 16 evals a skill **was never invoked in 56% of cases** and scored exactly baseline (53% → 53%, +0pp); an explicit instruction to use it lifted triggering above 95% and the pass rate to 79%; a **compressed 8 KB docs index inside `AGENTS.md` reached 100%** (40 KB compressed 5:1, no loss).
 
@@ -20,7 +22,7 @@ The loading difference decides design more than writing style does. In Vercel's 
 - **Vertical workflows** (explicitly triggered) → a skill.
 - **Bulk detail** → neither. Keep a lightweight identifier (path, query, link) in the prompt and let the agent load it just-in-time with a tool; Claude Code's `CLAUDE.md` + `glob`/`grep` is the hybrid, and Anthropic reports the hybrid as its default because runtime exploration beats a stale index.
 
-**Calibrate.** Vercel's 100% is one framework's docs on one task family. The transferable part is the mechanism — removing the "should I look this up?" decision — not the number.
+**Calibrate.** Vercel tested one framework and task family. The index made routing visible without requiring skill activation; the agent still had to retrieve the relevant docs. The result does not justify loading full documentation or assuming the same pass rate elsewhere.
 
 ## 1. What an instruction file is worth
 
@@ -33,25 +35,25 @@ An agent already has three sources of truth: its training data, the repository i
 | LLM-generated file | −0.5% / −2% (p=0.87 / 0.37) | +2.45 / +3.92 | **+20% / +23%** (p<0.001%) |
 | Developer-written file | +2.4% average (p=0.21, n.s.) | +3.34 | up to **+19%** |
 
-And the reason is not that agents ignore instructions — they follow them closely (`uv` was used 1.6× per instance when mentioned versus <0.01× when not; repository-specific tools 2.5× versus <0.05×). The cost is that **following more instructions makes the task harder**: reasoning tokens rose 22% (GPT-5.2) and 10% (GPT-5.1-mini) with LLM-written files.
+Agents did follow the instructions (`uv` was used 1.6 times per instance when mentioned versus <0.01 times when not; repository-specific tools 2.5 versus <0.05 times). On SWE-bench, reasoning tokens rose 22% (GPT-5.2) and 10% (GPT-5.1-mini) with LLM-generated files. Following extra instructions is a plausible explanation for some of the added work, not a measured cost per instruction.
 
-**What fails.** The same study isolated the popular content category that buys nothing: **repository overviews**. Across both benchmarks and all agents, an overview did not reduce the number of steps before the agent touched a relevant file; for GPT-5.1-mini it *increased* steps, because the agent spent turns searching for the context file and re-reading it even though it was already in context. 100% of Sonnet-4.5-generated files contained one. Also failing: directory listings, architecture prose, and generic best practice ("write tests", "be careful") — all of it either restates the repo or restates the model.
+**What to leave out.** In the ETH study, context files did not meaningfully help agents reach a file touched by the reference patch sooner. GPT-5.1-mini took longer and sometimes searched for and re-read the context file despite already having it. Avoid directory listings, architecture summaries and generic advice when they repeat what the agent can already discover; keep pointers that change where it looks or how it works.
 
-**The distinction that decides the borderline case.** An overview of the repository the agent is *already standing in* fails, because that repo answers it better and the agent ends up hunting for the file instead of reading it. A **map across projects is routing, not an overview**: no repository can say which sibling directories exist or which one implements what, so a session working in project A and asked to change project B has no other source. Such a map still owes only the *navigational* minimum — path, one identity clause, which subdirectory to enter, where the duplicate copies are — not each neighbour's tech stack, architecture or deployment story.
+**Routing is not an overview.** A map across projects can tell an agent which sibling checkout to use, which subdirectory to enter and which copies to avoid. Include the identity and path needed to choose correctly, not each neighbour's architecture or deployment history.
 
-**What passes.** Four categories survived the measurements:
+**What earns a place.** These are useful starting points, not categories independently proven to improve success:
 
 1. **Non-standard conventions** the agent would otherwise guess wrong — the ETH authors' own recommendation is only content "not already present in the README".
-2. **Environment facts invisible in the repo** — this container's cwd is on an ephemeral layer; the database is at a path the code does not name.
-3. **Routing that changes tool or skill selection** — Vercel's 100% came from an instruction, not an overview, which is why it does not contradict the ETH result.
+2. **Environment facts invisible in the repo** — for example, which filesystem paths survive a container redeploy.
+3. **Routing that changes tool or skill selection** — Vercel tested a version-matched index with an explicit retrieval instruction, not a generic repository overview.
 4. **Version-specific facts absent from training data** — the Next.js 16 APIs in Vercel's suite.
 
 **Two corollaries that are cheap to apply:**
 
-- **Never generate the file with an LLM.** LLM-written files were not merely useless but significantly *worse than nothing*: on CTXbench they lost to developer-written ones by a significant margin (p=0.038) and still cost 20% more. Stronger models did not write better files.
+- **Don't deploy a generic LLM-generated file unreviewed.** On CTXbench, the generated files scored significantly below developer-written ones (p=0.038); their decline versus no file was not statistically significant. An agent can draft from verified runbooks, incidents and task traces; review the draft and test what it changes.
 - **Do not duplicate it.** Agents hunt for context files by name and re-read them; a copy in a subdirectory makes them waste steps finding and reading text that is already in context.
 
-**The counter-evidence, stated honestly.** A second study (10 repositories, 124 real PRs ≤100 LoC, Codex+gpt-5.2-codex) found the opposite sign on speed: with `AGENTS.md`, median wall-clock −28.6%, median output tokens −16.6%, mean output −20.1% — while median *input* tokens rose 3.4%. It measured **only** time and tokens, never correctness. So the two are compatible and jointly tell you something sharper than either alone: an instruction file on small tasks makes the agent work *faster per step and write less*, while on longer tasks it produces *more steps and higher total cost with no success gain*. Neither study found a success gain. Treat "it made things faster" as a claim about output volume, not about outcomes.
+**The counter-evidence.** A separate study of small PRs (124 across 10 repositories) reported a 28.6% lower median wall-clock time and 16.6% fewer median output tokens with `AGENTS.md`. It does not establish better code correctness. The studies used different tasks and measures: neither isolates task size as the cause of the difference or predicts the cost of a change here.
 
 Practical rule: **add a line only if you can name which of the four categories it belongs to, and measure before/after on tasks that resemble your real ones.**
 
@@ -59,17 +61,17 @@ Practical rule: **add a line only if you can name which of the four categories i
 
 ### 2.1 Content comes from execution, not imagination
 
-Human-authored skills raise pass rates **+16.6 pp** over 87 tasks / 8 domains / 18 model–harness configurations (33.9% → 50.5%); skills an LLM writes from a general prompt show **no measurable gain**. An evaluation-guided refinement loop closes 47–67% of the gap — never by asking a model to invent a skill from nothing.
+SkillsBench reported a **+16.6 pp** pass-rate increase with curated skills across its benchmark (33.9% → 50.5%), while skills generated from a general prompt showed no measurable benefit. SkillAxe reported that evaluation-guided refinement recovered part of the gap in its own benchmark. Start from evidence of the real workflow rather than asking a model to invent it.
 
-Do the task once with the agent, note every correction you made, then extract the pattern. Or synthesise from artefacts that exist: runbooks, incident reports, review comments, patch history.
+Work through a real task with the agent, note the corrections that matter, then extract the pattern. Or synthesise from existing artefacts: runbooks, incident reports, review comments, patch history.
 
 ### 2.2 Evals before prose
 
 First establish what the agent does wrong *without* the text. Four kinds of goal: **outcome** (task completed), **process** (right tool, right order), **style** (conventions), **efficiency** (no thrashing, no token blowup).
 
-- 10–20 prompts is enough to catch regressions; each row `id, should_trigger, prompt`.
-- **Negative controls are mandatory** — a prompt that must *not* trigger is the only thing that catches over-eager matching.
-- Score the trace, not the answer: commands run, step count, tokens, and `git status --porcelain`.
+- Start with a representative set of real tasks. Add cases until it covers the intended workflows, plausible near-misses and meaningful risks. For trigger tests, record `id, should_trigger, prompt`.
+- **Include negative controls** to catch over-eager matching; keep fresh cases aside to check that edits generalise.
+- Score the outcome and inspect the trace: test results or delivered artefact, commands run, step count, tokens, and `git status --porcelain` where relevant.
 
 Changing a prompt without a baseline is indistinguishable from luck.
 
@@ -77,9 +79,9 @@ Changing a prompt without a baseline is indistinguishable from luck.
 
 For every sentence: **would the agent get this wrong without it?** If no, cut it. If unsure, test it.
 
-The ETH numbers give this test a price tag: each instruction the agent follows costs steps and reasoning tokens even when it is correct. A file of true-but-unnecessary statements is not neutral — it is a 20% tax.
+The ETH study measured added work and cost for whole context files in its benchmarks, not a fixed tax for every unnecessary line. Measure the effect of a proposed change on representative tasks.
 
-### 2.4 Say what to do; one rule, one action
+### 2.4 Say what to do
 
 A prohibition tells the model what to avoid but not what to do instead, so under pressure it takes the cheapest reading that is not literally forbidden. State the action.
 
@@ -91,13 +93,13 @@ A prohibition tells the model what to avoid but not what to do instead, so under
 | "Do not use markdown" | "Your response should be composed of smoothly flowing prose paragraphs" |
 | "Handle errors appropriately" | "Every HTTP call gets an explicit timeout — a missing one once hung a run for 464 s" |
 
-The second clause matters as much as the first: the first version of the hard rule above forbade the wrong state and named no right one, so the honest fallback ("say it is untested") was simply absent.
+Keep each rule focused on a decision, including the fallback when the preferred action is unavailable. In the first example, "say it is untested" supplies the missing fallback.
 
-Measured here over 220 sessions and 26,976 shell calls: foreground `sleep` ≥ 60 s accounted for **600 calls and 25.7 hours of blocked wall time** (worst session: 87 calls, 229 minutes). A prose rule against blocking existed; what moved behaviour was naming the banned pattern *and* its replacement. Background-shell adoption rose 0.4% → 2.9% over the period, but that trend is inseparable from habit — the sleep figure is the honest evidence.
+Measured here over 220 sessions and 26,976 shell calls: foreground `sleep` ≥ 60 s accounted for **600 calls and 25.7 hours of blocked wall time** (worst session: 87 calls, 229 minutes). The share of shell calls run in the background rose from 0.4% to 2.9% over the observed period. That is not the share of eligible calls that followed the rule, and the observation does not isolate a wording effect. A checkable replacement is to background long jobs or use a bounded wait on the actual condition instead of polling with `sleep`.
 
 ### 2.5 Altitude, sections, and the attention budget
 
-Two failure modes bracket the useful range. At one end, **brittle hardcoded logic** ("if the user says X and the file is Y, then do Z") — unmaintainable and it breaks on the first unlisted case. At the other, **vague high-level guidance** ("be careful and thorough") that assumes context the model does not have. Aim for the middle: specific enough to steer, general enough to cover cases you did not anticipate. (Practice claim from a 2025-09 source — discounted, but cheap to follow and consistent with the 2026 evidence that followed-but-unnecessary instructions raise cost.)
+Two failure modes bracket the useful range. At one end, **brittle hardcoded logic** ("if the user says X and the file is Y, then do Z") breaks on cases it did not anticipate. At the other, **vague high-level guidance** ("be careful and thorough") assumes context the model does not have. State the observable condition and what to do about it. This is practical guidance; test it against the failures you are trying to prevent.
 
 Structure helps more than prose does: name the sections (`<background_information>`, `<instructions>`, `## Tool guidance`, `## Output description`) with XML tags or markdown headers, so both you and the agent can see which part a line belongs to.
 
@@ -105,20 +107,19 @@ Context is a **finite attention budget, not free storage**. Recall degrades as c
 
 For examples: curate a **few canonical, diverse** ones. Do not stack a laundry list of edge cases; that is the brittle end of 2.5 wearing an example's clothes.
 
-### 2.6 Progressive disclosure, one level deep
+### 2.6 Progressive disclosure, with direct references
 
-- `SKILL.md` body under **500 lines** (≈5,000 tokens). Past that, split.
-- References hang **directly off `SKILL.md`**. Nested references get half-read (`head -100`) and the agent proceeds on partial information.
-- Say **when** to read a file: "if the API returns non-200, read `references/api-errors.md`" beats "see `references/`".
-- Reference files over ~100 lines need a table of contents, so a partial read still shows the shape.
-- **≤3 focused modules beat a large bundle** — measured across the SkillsBench inventory. One skill with references beats several siblings fighting for the same triggers.
+- Keep the core workflow, common traps and verification in `SKILL.md`. Move details needed only on certain paths into focused references.
+- Link the material needed to finish a path **directly from `SKILL.md`** and say when to read it: "if the API returns non-200, read `references/api-errors.md`" beats "see `references/`".
+- Add a contents list when headings alone don't make a reference easy to navigate or read in parts.
+- Group material that serves the same user intent. Split it when parts are independently useful and have distinct triggers, not when a file crosses a size or module count.
 
 ### 2.7 Defaults over menus, method over answers
 
 - ✅ "Use `pdfplumber`. For scanned PDFs, `pdf2image` + `pytesseract`."
 - ❌ "You can use pypdf, pdfplumber, PyMuPDF, or pdf2image…"
 
-Four equal options make the agent try several; a default makes it act. Likewise teach the method ("read the schema, join on `_id`, apply the user's filters") rather than one instance's answer ("join orders to customers where region='EMEA'").
+A default avoids making the agent choose among equivalent options. Give alternatives when the choice affects the outcome, and explain when to use them. Teach the method ("read the schema, join on `_id`, apply the user's filters") rather than prescribing one instance's answer ("join orders to customers where region='EMEA'").
 
 ### 2.8 Match specificity to fragility
 
@@ -142,7 +143,7 @@ All-caps MUST neither generalises nor survives competition with the other MUSTs 
 
 A model that follows instructions precisely still answers a request phrased as a question with a *suggestion*. People do not phrase work as imperatives: "加一下", "改一下", "push", "能不能加个 X" are all decisions already made, and the failure mode is a plan instead of an edit.
 
-One line fixes it, and it is cheap because it applies to every task: default to making the change, and reserve discussion for when the approach itself is undefined. The mirror image is worth knowing too — if you want analysis rather than edits, say that, because the default is now action.
+Default to making an authorised change even when the request is phrased as a question. If the user asks only for a review or recommendation, keep it read-only. When a consequential choice is unresolved, explain it before acting.
 
 The same asymmetry explains why "ask if unclear" is a harmful default. Without a threshold it licenses re-planning on every turn; with one ("ask only when the choice is irreversible or expensive — schema, migration, public interface, deletion") it licenses execution and still protects the cases that need a decision.
 
@@ -156,28 +157,24 @@ The same guides that produced §2 and §5 also recommend things that are wrong h
 
 The test is the same one as §1: name the failure the instruction prevents, in this setup, and drop it if there is none.
 
-## 3. The prefix is a cache contract
+## 3. Keep the reusable prefix stable
 
-The system prompt and tool definitions form a **static prefix**; user messages, assistant turns and tool results form a growing **trajectory**. Providers cache the prefix's key-value state, and the rule is mechanical, not advisory: *cache reuse requires the entire rendered prefix to match — if content or a relevant setting changes before a breakpoint, everything after that change cannot reuse the cache.*
+Think in terms of stable instructions and tool definitions followed by a growing conversation. What the provider actually caches depends on how the harness renders the request. In OpenAI's Responses API, for example, a cache hit requires an eligible matching prefix at an available breakpoint. A change can invalidate reuse from that point onward without invalidating an earlier matching breakpoint.
 
-Concretely, per the provider docs:
+- **Keep changing state out of the reusable portion.** Put stable material first and timestamps, counters and current task state later. Check how the target API places each message or instruction field before relying on its position.
+- **Keep exposed tool definitions stable when practical.** Names, schemas and ordering can affect matching. Where supported, changing availability separately or appending tools can preserve more of the prefix. Apply permission changes even if doing so loses reuse.
+- **Append rather than rewrite history when possible.** Editing or compacting earlier content can reduce reuse. Compact when context quality or the available window warrants it, not just to chase a cache metric.
+- **Check the actual cache policy.** Eligibility, breakpoints, retention, and read and write rates depend on the provider, model and API. Don't add filler to reach a cache threshold. If cost matters, compare cache reads and writes, latency and billed cost on representative requests over the actual route.
 
-- **Dynamic content in the prefix is the classic own-goal.** OpenAI's guide says it outright: put stable instructions and reference material first, and move "timestamps, user-specific content, or other dynamic content" to the end or into later messages. A per-request `Current time:` line in a customer-service system prompt once took time-to-first-token from 0.5 s to 3–5 s and roughly doubled the bill.
-- **Tool definitions are part of the prefix**, and the affected settings include tool **names, descriptions, schemas, ordering**, and tool-specific instructions. So: keep definitions stable, and change *availability* rather than definitions — `tool_choice: "none"` or an allow-list instead of removing tools, and append new tools rather than rewriting the list. Dynamically reordering tools by usage invalidates the cache from the first change while making tool selection no better.
-- **Don't rewrite history.** Append messages rather than editing earlier turns; summarisation and compaction change the prefix and reset reuse — they are worth it only when the window demands it.
-- **Below the minimum cacheable length there is nothing to cache** (1,024 tokens on current OpenAI models). A very short prompt is cheap either way, so this should not push you to pad; it does mean the "be minimal" and "be cacheable" goals only conflict for mid-size prompts.
-
-Why this matters operationally here: this repo's global prompt plus tool definitions are the prefix for **every** session. Every edit is recomputed by every session, and an edit that injects state invalidates the cache on every turn. Batch prompt edits; never interpolate runtime values. (Cache behaviour also differs by upstream: measured on the two enabled providers, `opencode-go`'s DeepSeek channel hits ~99.6% versus ~88% on the reseller — the same prefix discipline, different payback.)
+In this container, keep global instructions stable and pass runtime state separately. Do not infer savings on a gateway from another provider's cache behaviour or from prompt length alone.
 
 ## 4. Position
 
-Attention is not uniform: the start and the end are read, the middle is where content gets lost — a U-shaped curve (Liu et al., TACL 2024).
-
-**This is the document's weakest claim and it is labelled as such.** It rests on a single 2023/2024 measurement, discounted to roughly a quarter under §11's rule, with no 2026 replication here. It is kept because obeying it is free and the failure it prevents is invisible: reordering two lines costs nothing, whereas a buried constraint simply never fires. Follow it; do not cite it as a measured law.
+Liu et al. (TACL 2024) observed weaker retrieval from the middle in the long-context tasks and models they tested. Treat position as a useful design heuristic, not a guarantee for current models or agent sessions.
 
 - Critical constraints and the routing table go **first**.
 - Current state / next action goes **last** in the message list.
-- Never bury the one rule that matters mid-section. This is §2.3 seen from the model's side: a rule that is not read was never a rule.
+- Keep a critical rule easy to find where it is needed, rather than burying it in background prose.
 
 ## 5. Output style
 
@@ -187,15 +184,15 @@ Response style is the most-specified and least-evidenced part of most system pro
 
 **Vendors have stopped specifying style and started delegating it.** OpenAI's Model Spec revision of 2026-10-29 "retired most of the detailed style guidance", reasoning that style should adapt to the user and the context, while keeping sycophancy as a user-level principle that survives unless explicitly overridden. Practical consequence: no default gives you a length or format you can rely on. If you need one, it goes in your own prompt.
 
-**Current models are already terse; what you need is *which* terseness.** Anthropic reports that its latest models are less verbose and may skip summaries after tool calls unless asked, names Claude Opus 5 as the exception whose visible replies run long and says to prompt explicitly for conciseness because effort settings do not change it, and reports the opposite for Claude Fable 5.1 — it writes *fewer* progress updates during agentic work, so there you ask for progress text *and remove* any instruction telling it to be brief. A style rule copied from one model can be exactly wrong on the next, which is why the recency rule in §11 matters most here.
+**Match the style rule to the behaviour.** Anthropic documents different verbosity and progress-reporting defaults across models. Test whether the model gives useful progress and a complete answer before adding a general instruction to be brief; recheck after a model change.
 
 ### What the canonical concise style looks like
 
 Claude Code ships one, and its shape is the reusable part:
 
-- The **first sentence states what happened or what the answer is**.
+- **Lead with the answer or outcome.**
 - It **drops the lead-in, the step-by-step narration, and the closing recap**.
-- A simple question gets **one to three sentences**.
+- A simple question gets a brief, direct answer with the context needed to understand or act on it.
 - The engineering work is done just as thoroughly as without the style.
 
 Business writing calls this BLUF — bottom line up front.
@@ -209,7 +206,7 @@ Every published concise style keeps exceptions, and the same ones:
 - The reasoning needed to approve a risky step.
 - Progress on long-running work, when silence reads as "stuck".
 
-A brevity rule without these exceptions reliably truncates the one class of message that must not be truncated. Write the exceptions together with the rule, not later.
+State these exceptions with the brevity rule. The user should not have to ask again for evidence or context needed to act safely.
 
 ### Formatting instructions cut both ways
 
@@ -230,40 +227,37 @@ A brevity rule without these exceptions reliably truncates the one class of mess
 
 ### What does not
 
-- Repository overviews, directory listings, architecture prose — measured not to help (§1).
-- Reference material (flags, commands, pitfalls) → `docs/`, linked from one line.
+- Generic overviews, directory listings and architecture prose that do not affect the agent's choices (§1).
+- Reference material (flags, commands, pitfalls) → `docs/`, with a short pointer explaining when to read it.
 - Anything duplicated from a tool description, or the agent can read from the repo.
 
 ### Wording is load-bearing
 
-Two measured cases. First, **the way the request is phrased decides whether work happens**: a request in question form gets a suggestion, so §2.10's default-to-action line exists. Second, Vercel measured that the *same* skill with the *same* docs behaved differently purely from the trigger instruction: "You MUST invoke the skill" made the agent read docs first and miss project context; "explore the project first, then consult the skill" made it build a model first and use docs as reference — and it caught changes the first variant missed entirely. Write the **sequence** you want; emphasis is not a substitute for ordering.
+Question phrasing can make an agent offer a suggestion instead of acting on an authorised request (§2.10). In Vercel's Next.js evaluation, "You MUST invoke the skill" led the agent to read docs first and miss a configuration change in one case. Telling it to explore the project first and then consult the skill caught that change. Write the **sequence** you want when order matters.
 
 ### Rule format
 
 ```
-**Bold action.** 1–3 sentences: what to do, the concrete command, the measured consequence.
+**Action.** Say when it applies and what to do. Add a command or the reason when it prevents a likely mistake.
 ```
 
-A rule stated as "never block on a long script" scored 2.9% adoption; "`sleep N` is banned; use `--watch` or background it" is checkable in a log.
+"Background long jobs; use a bounded `--watch` when the task needs to wait for external state" describes behaviour that can be checked in a log. §2.4's background-call share was not a rule-adoption rate.
 
-### Budget
+### What stays in the prompt
 
-Project convention, not a measurement: keep the global prompt under ~120 lines. The real cost is §3 — every line is recomputed whenever it changes — and §1, where unnecessary-but-followed instructions cost steps and reasoning.
+Keep the prompt easy to scan. Keep rules, routing and non-obvious facts that must be visible before the agent acts; put examples, procedures and history behind a pointer unless they are needed to follow the rule correctly. Measure the effect of changes on tasks, not against a line count.
 
 ## 7. Skills
 
-### Description: when, not what
+### Description: lead with when, then say what
 
-The description is injected for every skill, every turn, and it is the only thing the model sees before deciding.
-
-**A summary invites the agent to act on the summary and skip the skill.** So:
+The description is part of the skill metadata the agent can use before loading the body. Give it enough to choose the skill without duplicating its workflow:
 
 - **Lead with the trigger**, in the user's own words, including Chinese colloquial forms when that is how the ask arrives.
-- One short clause of *what* — Anthropic and agentskills.io ask for "what + when"; Sam McLeod argues for when-only. Lead with when; keep what to a single clause and never actionable enough to replace loading the skill.
-- **30–55 words**, imperative, third person ("Processes…", "Use when…"), assertive enough to fire.
-- **Domain anchors only**: file extensions, artefact names, internal system names. Generic verbs ("review", "analyse", "improve") steal other skills' triggers.
-- Name the neighbour and the boundary when one exists.
-- One line, quoted, under 1024 characters. No `>-` block scalars, no XML tags.
+- Say what the skill delivers and include the signals needed to distinguish it from related skills. Keep workflow details in the body.
+- Write directly ("Use when…"); use realistic phrasing, artefact names or domain terms when they help. Avoid generic claims that match unrelated work.
+- Name the boundary with a neighbouring skill if the overlap is likely to cause a false trigger.
+- Use readable YAML and check the parsed description against the target skill spec and runtime. Platform acceptance is a compatibility check, not a writing target.
 
 If a skill must not be model-invoked, hide it in frontmatter rather than writing a weaker description.
 
@@ -277,7 +271,7 @@ Ordered by fragility, not narrative:
 4. **Templates** for output format; agents pattern-match against structure better than against prose.
 5. **References and scripts.** Bulky detail in `references/`, deterministic work in `scripts/` (`uv run scripts/x.py`). Say whether to *run* a script or *read* it as reference.
 
-**Never put "when to use this" in the body.** If the agent is already reading it, it is too late.
+Put discovery cues in the description. Use the body to clarify what is in scope, when to branch, and when to stop once the skill is loaded.
 
 ### Triggering and compliance fail independently
 
@@ -294,19 +288,19 @@ Verified against current docs; several circulating assumptions are wrong.
 - **The ID comes from the path, not frontmatter `name`.** `<source>/git-release/SKILL.md` → `git-release`; `name: Git Release` is a display label. IDs are case-sensitive kebab-case.
 - Discovery: `~/.config/opencode/skills` (global), `.opencode/skills` (project), plus `.claude/skills` / `.agents/skills`. A file must be a root-level `*.md` or a nested file named exactly `SKILL.md`; a directory containing `SKILL.md` is one skill and is not searched further.
 - **`metadata.opencode/autoinvoke: false` hides a skill from the model's list while keeping it loadable by ID.** `disable-model-invocation: true` is *not* ignored — v2 honours it, and `opencode/autoinvoke` wins when both are set. An earlier note in this repo claimed otherwise; that was wrong.
-- Loading injects the body without frontmatter, the skill's base directory, and up to ten supporting file paths — supporting contents are not auto-loaded, which is what makes progressive disclosure work.
+- Loading injects the body without frontmatter and the skill's base directory. The runtime may list supporting paths without loading their contents; link the required files explicitly rather than relying on the preview.
 - `@skill-id` loads a skill explicitly. Permissions use the `skill` action with the ID as resource (`allow` / `ask` / `deny`); `deny` hides it entirely.
 - v2 does **not** enforce description length, name/directory agreement, or kebab-case. Portability is your responsibility.
 
 ## 8. Tool descriptions
 
-The most expensive and least maintained text in most agent systems: it lives in the cached prefix, competes with every other tool, and was usually written once by whoever wrapped the API. Anthropic's finding is that **small refinements here produce dramatic behaviour changes** — description work separated a mid-pack from a state-of-the-art SWE-bench result, and a web-search `query` description that invited appending `2025` silently biased every search.
+Tool descriptions compete for attention and can contribute to repeated input. Small wording changes can steer calls: Anthropic gives the example of a web-search `query` description that invited appending `2025` and biased searches. Check the trace before assuming a description improves performance.
 
 ### Design the tool, not the wrapper
 
 - `search_contacts` beats `list_contacts`: an agent reading a full list token-by-token is doing brute-force search with the most expensive scanner in the system.
 - Consolidate chains: `schedule_event` (find availability, then schedule) instead of `list_users` + `list_events` + `create_event`; `search_logs` instead of `read_logs`; `get_customer_context` instead of three lookups.
-- **Bloated tool sets are a top failure mode.** If a human engineer cannot say which tool applies, the agent cannot either. Every tool also costs prefix tokens forever.
+- **Overlapping tools make selection harder.** If their boundaries are hard to explain, simplify the surface or make the distinction explicit. Repeatedly exposing unused tools also adds context.
 
 If two descriptions could swap without changing behaviour, one tool is wrong.
 
@@ -321,22 +315,22 @@ If two descriptions could swap without changing behaviour, one tool is wrong.
 State the implicit knowledge you would say out loud:
 
 - **When to call it and when not to** — "use for a known customer; with only a name, call `search_customer` first."
-- **Niche terminology and formats** the tool expects, with one concrete example.
+- **Niche terminology and formats** the tool expects, with an example when it removes ambiguity.
 - **Relationships between resources** — "a thread reply needs `thread_ts` from a *detailed* `get_channel` response."
 - **Boundaries with siblings** — "raw logs: `search_logs`; this returns aggregates only."
 - **What it returns**, in the vocabulary the agent will use afterwards.
 - **Side effects** — destructive, open-world, paid. MCP tool annotations exist for this.
 
-Past ~10 lines, it should be two tools or a smaller surface. (The output-size guidance below is 2025-09 and version-pinned — re-check caps against current tooling before hard-coding a number; the *direction* — bound by default — is what to keep.)
+If a description is long because the tool serves unrelated intents, split it along those boundaries. If it is long because the contract is complex, simplify the schema or keep the detail needed to call it correctly. Don't split a coherent tool to satisfy a line count.
 
 ### Output is part of the description
 
-Tool results are the largest context consumer, and they are text you control:
+Tool results can dominate the context. Return enough to answer the request or make the next decision:
 
-- **High signal only.** Drop identifiers the agent cannot act on (`uuid`, `256px_image_url`, `mime_type`); prefer `name`, `image_url`, `file_type`.
-- **Resolve identifiers to words.** Returning `Jane Doe` alongside `usr_8f3ac1` measurably cuts retrieval hallucination; keep raw IDs behind `response_format: detailed` when a follow-up call needs them. Concise vs detailed cost 72 vs 206 tokens in Anthropic's Slack example — ~3× on the dominant consumer.
-- **Bound by default**: pagination, filtering, range selection, truncation, with sensible defaults. Claude Code caps a response at 25k tokens.
-- **Truncation and errors are instructions.** No opaque codes or tracebacks: say what to do next, and for validation errors list the valid values — `Field 'signature_date' not found — available: customer_name, order_total, signature_date_signed`. That one change lets the agent self-correct instead of retrying blindly.
+- **Return relevant fields.** For a display task, prefer readable fields such as `name`, `image_url` and `file_type`. Omit metadata that serves neither the request nor a follow-up action.
+- **Use readable labels and keep actionable identifiers.** Prefer `Jane Doe` to a bare ID for display; include `usr_8f3ac1` if the next call needs it. Offer more detail on demand when it isn't necessary for the current task.
+- **Choose scope by intent, not a universal batch size.** Filter to the requested records and fields. For large results, use pagination, range selection or a downloadable artefact so the full requested result remains reachable. Distinguish a complete result from a page, preview or sample; never quietly drop matches to make an answer shorter.
+- **Make partial results and errors actionable.** Say what was returned, what remains and how to continue (for example, provide a cursor). For invalid input, explain the problem and show the valid or relevant alternatives, or how to look them up.
 
 ### Measure tool use, not just task success
 
@@ -346,62 +340,61 @@ Calls per task (many redundant → bad pagination defaults), error rate per para
 
 - [ ] Can you state what the agent does wrong **without** this text? Was a baseline measured?
 - [ ] Every added line belongs to one of §1's four categories — not an overview, not a restatement of the repo.
-- [ ] Every rule names a concrete action, path, command or threshold, and every prohibition names what to do instead (§2.4).
+- [ ] Each rule says when it applies and what to do instead of the undesired behaviour (§2.4).
 - [ ] The default action is stated: execute, or discuss (§2.10).
-- [ ] The delete test was applied sentence by sentence, with §1's 20% price in mind.
-- [ ] Rules below ~10% adoption were rewritten with a named replacement, or deleted.
-- [ ] Routing exists where the artefact must be discovered (a line in `AGENTS.md`, not a better description alone).
+- [ ] The delete test removed repetition without losing necessary evidence, caveats or next actions.
+- [ ] If a rule is often missed when it applies, the trace was checked before clarifying, replacing or removing it.
+- [ ] Routing is visible where it affects the decision, through a prompt pointer or skill metadata as appropriate.
 - [ ] Trigger tests include negative controls.
-- [ ] References hang one level deep, each with *when* to read it.
-- [ ] No dynamic content in the prefix; tools stable and append-only; critical rules first, current state last.
+- [ ] Required references are linked directly, each with *when* to read it.
+- [ ] Stable instructions and tool definitions are separated from changing state where the target API supports it; critical rules are easy to find.
 - [ ] Response-style rules carry their carve-outs: requested explanations, error reports and failing test output, security warnings, destructive-action confirmations, and progress on long jobs.
 - [ ] No time-sensitive statements; terminology consistent.
-- [ ] **The edit reached the file that is actually read.** After changing the global prompt, confirm the volume copy is the one you edited: `grep -c '^# Coding Guidelines' $XDG_CONFIG_HOME/opencode/AGENTS.md` returns 1, and it matches `opencode-config/opencode/AGENTS.md` byte for byte. **Docs the prompt routes to are mirrored, not linked** — here `scripts/sync-agent-docs.sh` copies them from `docs/` into the baked config tree, so a doc edit needs the script re-run or the prompt keeps routing to the previous text. Two files named `AGENTS.md` sit one `cp` apart; a wrong-source copy is silent and only a grep finds it.
+- [ ] **The edit reached the intended copy.** For a global prompt change, use `cmp` to check the volume copy against `opencode-config/opencode/AGENTS.md`, not the project-root `AGENTS.md`. For a mirrored doc, edit `docs/`, run `scripts/sync-agent-docs.sh` and compare the source with the packaging copy. To make the change available in the running container, update the matching volume copy and compare it too; a new image is needed for the change to survive redeploy.
 - [ ] Deterministic repeated work is a script, not an instruction.
-- [ ] Tool: name says the task, params unambiguous, output bounded, errors actionable, boundaries stated.
-- [ ] Every rule's source is dated; a rule resting only on a pre-2026 source is phrased as a hypothesis, not a `MUST`.
+- [ ] Tool: name says the task, params are unambiguous, output is scoped and complete or clearly partial with a continuation path, errors are actionable, and boundaries are stated.
+- [ ] Verified platform requirements, research findings and local observations are labelled separately; any claim that drives a decision was checked in the applicable version or setting.
 - [ ] Third-party skills and tools were read in full before install; no secrets; least privilege.
 
 ## 10. This container's constraints
 
 - Global prompt: `opencode-config/opencode/AGENTS.md` → baked to `/opt/opencode-config`, synced to `$XDG_CONFIG_HOME/opencode/AGENTS.md` at boot, **overwriting** the volume copy. Editing the volume file alone is lost on redeploy. Never `cp AGENTS.md` from the repo root over it — that is the *project* prompt and doing so wipes the global rules.
-- That file plus the tool definitions are the **cached prefix** for every session (§3): batch edits, never interpolate runtime values.
+- Keep that file stable and pass runtime values separately. Verify cache behaviour for the actual provider and API (§3).
 - Skills: `opencode-config/opencode/skills/<name>/`, synced the same way. The sync **copies, never deletes** — removing or renaming needs an explicit cleanup in `entrypoint.sh`.
 - Devcontainer copy lives at `.devcontainer/opencode/skills/` and does **not** sync with the Railway one; both must change (Railway first).
 - No same-named command: a command shadows the native `/skill` path.
 - Skill persistent data goes on `/workspace`, never inside the skill directory — that directory is replaced by the next image.
 - Vendor third-party skills with their LICENSE and put local adaptations in a preamble at the top of `SKILL.md`.
 
-## 11. Sources, dated, and how much weight each carries
+## 11. Sources and what they support
 
-**Recency rule: a reference loses half its weight for every year before 2026.** Agent behaviour, tool-call formats and model defaults change faster than the principles written about them, so a 2024 measurement is not evidence about today's model — it is a hypothesis that happened to be true once.
+**Judge evidence by what it supports, not by a fixed age discount.** Record publication or revision dates when known; for living documentation, record the version or date checked when it matters to a decision.
 
-Two operational consequences:
+- **Platform requirements:** check current official docs for the target and test the installed version. Distinguish what validation rejects from what the vendor merely recommends.
+- **Research:** check the tasks, harnesses, models, metrics and comparison. Report results within that scope and re-test before treating an inferred effect as a local rule.
+- **Practical advice and local observations:** label the setting and limits of the evidence. A trace can show what happened; a change over time alone does not establish why.
 
-- A rule supported **only** by a pre-2026 source is phrased as a hypothesis and re-verified before anyone enforces it. Where a pre-2026 claim has since been re-grounded in a 2026 source, the rule cites the 2026 one and the older paper is demoted to history.
-- A pre-2026 source is never the sole basis for a hard constraint (a `MUST`, a budget, a validator). Version-pinned specifics are treated as already-expired: a pricing table or a per-model quirk from 2025 is documentation of the past, not a rule.
-
-Applied below. `2025-09` sources keep roughly half their original weight; the 2023/2024 attention paper is retained only because no 2026 study in this set re-measured positional effects, and it is marked as such.
-
-| Source | Published | Contributed | Weight / caveat |
+| Source | Published | Contributed | Scope / caveat |
 |---|---|---|---|
 | [Nature — warm models are less accurate](https://www.nature.com/articles/s41586-026-10410-0) | 2026-04 | Warmth fine-tuning: +10–30 pp error, ~40% more sycophancy; **also from system prompting**, up to 14 pp on incorrect-belief items; cold (direct, concise) style unchanged or better | **Highest for §5** — 5 architectures, controlled cold-style ablation, and it isolates system-prompt effects from fine-tuning. Caveat: QA benchmarks and ShareGPT-derived data, not agent transcripts |
 | [OpenAI — Model Spec](https://model-spec.openai.com/2026-10-29.html) | 2026-10, rev. 2025-02 | Retired most detailed style guidance; style adapts to context; sycophancy stays a user-level principle; instructions carry explicit authority levels | High for §5's "no default length exists" and for the authority-level idea. It states intent, and OpenAI says its models do not yet fully reflect it — a spec is not a measurement |
 | [Anthropic — prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) | living doc, 2026-10 | Models are already concise; Opus 5 runs long → prompt for conciseness; Fable 5.1 needs the opposite; say what to do not what not to do; prompt formatting leaks; over-constraining suppresses needed structure; soften over-aggressive wording; explain why | **Highest for §5's actionable detail** — per-model notes are the part that goes stale fastest, so re-read after every model change |
-| [Claude Code — output styles](https://docs.claude.com/en/docs/claude-code/output-styles) | living doc | The Concise style: first sentence = the answer, no lead-in/narration/recap, simple question 1–3 sentences, **full length for requested explanations and safety-critical content**; style is instruction, not enforcement | High for §5 — it is the vendor's own shipped style, and the carve-out list is what makes it safe |
-| [ETH — Evaluating AGENTS.md (2602.11988)](https://arxiv.org/abs/2602.11988) | 2026-02, rev. 2026-09 | Context files cost ~20% with no success gain; overviews specifically useless; agents re-read files; LLM-generated worse than developer-written | **Highest for §1** — 4 agents, paired design, held-out repositories, and the only study measuring success *and* cost together. Caveat: Python, niche repos, one sample per instance |
-| [AGENTS.md efficiency (2601.20404)](https://arxiv.org/abs/2601.20404) | 2026-01 | −28.6% median runtime, −16.6% median output tokens; input tokens slightly up | High but **narrow**: efficiency only, **no correctness measurement**, PRs ≤100 LoC. Does not contradict the ETH result; measures a different thing |
-| [Anthropic — writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) | 2025-09 | Task-shaped tools; namespacing; output signal/IDs/pagination; `response_format`; actionable errors; description = onboarding | **Discounted to ~half by the recency rule**, and it is the only source for §8's specifics. Still the best-tested account of tool design (held-out sets on their own Slack/Asana MCP servers), and §8's mechanisms are corroborated by the 2026 ETH finding that tool mentions steer behaviour (2.5× vs 0.05×). Re-verify the output-size advice against current tooling before hard-coding a cap |
-| [Anthropic — effective context engineering](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents) | 2025-09 | Right altitude; named sections; smallest high-signal token set; context rot; just-in-time + hybrid retrieval; bloated tool sets | **Discounted to ~half.** §2.5's altitude framing and §0's hybrid-retrieval point rest on it; both are practice claims, not measurements, and neither has a 2026 replication in this set |
-| [agentskills.io — best practices](https://agentskills.io/skill-creation/best-practices) | living spec | Extract from a hands-on task; refine from traces; delete test; coherent units; fragility; gotchas; plan-validate-execute | High — the spec's own guidance, kept current. Treated as a living document and re-read when the spec changes, not trusted by publication date |
-| [Anthropic — skill authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) | living doc | 500-line / 1024-char budgets; third person; one-level references; TOC; "old patterns"; terminology; checklists | High — vendor spec, the only detailed treatment of large-skill structure. The numeric budgets are the part most likely to age; re-check them against the current spec before enforcing |
+| [Claude Code — output styles](https://docs.claude.com/en/docs/claude-code/output-styles) | living doc | Lead with the answer; omit narration and recap; preserve requested explanations and safety-critical content | Vendor style guidance, not guaranteed output behaviour |
+| [ETH — Evaluating AGENTS.md (2602.11988)](https://arxiv.org/abs/2602.11988) | 2026-02, rev. 2026-09 | No statistically significant success change versus no file; higher inference costs; developer files outperformed generated ones on CTXbench | Measures success and cost on Python tasks with the tested agents; not a per-line estimate or a verdict on grounded drafting |
+| [AGENTS.md efficiency (2601.20404)](https://arxiv.org/abs/2601.20404) | 2026-01, rev. 2026-03 | Lower median runtime and median output tokens with `AGENTS.md` | Efficiency study on small PRs; not evidence of code correctness or a causal comparison across task sizes |
+| [Anthropic — writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) | 2025-09 | Task-shaped tools; namespacing; field selection; pagination; actionable errors | Tool-design guidance grounded in vendor examples; test on the actual tool set before generalising |
+| [Anthropic — effective context engineering](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents) | 2025-09 | Right altitude; named sections; high-signal context; just-in-time retrieval | Practical design guidance, not a controlled comparison for this container |
+| [Agent Skills — specification](https://agentskills.io/specification.md) | living spec | Format and validation; progressive disclosure | Distinguishes portable format requirements from authoring recommendations; check the target runtime too |
+| [Agent Skills — best practices](https://agentskills.io/skill-creation/best-practices) | living guidance | Extract from real tasks and artefacts; refine from traces; organise coherent workflows | Guidance on what belongs in a skill, not a validator |
+| [Agent Skills — optimizing descriptions](https://agentskills.io/skill-creation/optimizing-descriptions.md) | living guidance | User intent; near-miss tests; fresh cases to check generalisation | Use representative tasks rather than copying the example suite size |
+| [Anthropic — skill authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) | living doc | Clear descriptions; focused references; navigation and checklists | Vendor-specific authoring guidance; check the portable spec and installed runtime separately |
 | [Vercel — `AGENTS.md` beats skills](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals) | 2026-01 | 56% never invoked, +0pp; 95%+ / 79% with routing; 8 KB index 100%; 40→8 KB; wording fragility | High for §0 but **narrow** — one framework's docs, one task family. The mechanism transfers, the 100% does not |
-| [OpenAI — prompt caching](https://platform.openai.com/docs/guides/prompt-caching) | living doc | Exact-prefix matching; `tools` including **ordering** invalidate; append-only tool updates; dynamic content at the end; minimum cacheable length | Highest for §3 — this is the mechanism, not a claim. Numbers in it (minimum length, write multipliers) are version-pinned and must be re-read, not remembered |
-| [OpenAI — testing skills with evals](https://developers.openai.com/blog/eval-skills) | undated | Four goal categories; 10–20 prompt CSV with negative controls; trace-based checks; thrashing / token / cleanliness signals | High for §2.2 — concrete and runnable. **Undated page**: treated as current tooling guidance, and it agrees with the dated 2026 papers on method, which is why it is not discounted |
-| [SkillsBench (2602.12670)](https://arxiv.org/abs/2602.12670) | 2026-02, rev. 2026-06 | +16.6 pp over 87 tasks / 18 configs; ≤3-module skills beat bundles; small model + skills ≈ large model alone | High — paired evaluation, deterministic verifiers |
+| [OpenAI — prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching) | living doc | Prefix matching, breakpoints, tool stability, model-dependent cache policy | Official for the documented API and models; verify gateway behaviour and billing separately |
+| [OpenAI — testing skills with evals](https://developers.openai.com/blog/eval-skills) | undated | Goal categories; negative controls; trace-based checks | Practical evaluation recipe; choose coverage based on the task |
+| [SkillsBench (2602.12670)](https://arxiv.org/abs/2602.12670) | 2026-02, rev. 2026-06 | +16.6 pp over 87 tasks / 18 configurations; focused skills performed better than broad bundles in the benchmark | Paired evaluation with deterministic verifiers; not a universal module-count rule |
 | [SkillAxe (2606.10546)](https://arxiv.org/abs/2606.10546) | 2026-06 | Human +16.2 pp vs LLM-authored no gain; four diagnostic dimensions; 47–67% gap closed by refinement | Medium-high — the four dimensions are the useful part; the self-refinement pipeline is their product |
-| [Lost in the Middle (TACL 2024)](https://aclanthology.org/2024.tacl-1.9/) | 2023-07 / 2024 | U-shaped positional performance; start and end are read | **Heavily discounted (≈1/4 remaining under the rule)** and now the weakest link in this document: §4 rests on it alone, no 2026 study here re-measured positional effects, and every model generation changes attention behaviour. Keep §4 as a cheap-to-follow hypothesis (putting critical rules first costs nothing), not as a measured law. Label it in any hard requirement |
-| [Sam McLeod — common pitfalls](https://smcleod.net/2026/07/writing-and-reviewing-agent-skills-common-pitfalls) | 2026-07 | Description = trigger only, 30–55 words; "when to use" in body is too late; scripts over inference; third-party review | Medium — practitioner experience, no measurements, but current and consistent with spec guidance |
+| [Lost in the Middle (TACL 2024)](https://aclanthology.org/2024.tacl-1.9/) | 2023-07 / 2024 | Weaker retrieval from the middle in tested long-context tasks | Direct evidence for those tasks and models, not for current agent sessions |
+| [Sam McLeod — common pitfalls](https://smcleod.net/2026/07/writing-and-reviewing-agent-skills-common-pitfalls) | 2026-07 | Lead with trigger wording; scripts over inference; third-party review | Practitioner advice; the portable spec also asks descriptions to say what the skill does |
 | [OpenCode — skills](https://opencode.ai/docs/skills/) | living doc | Discovery paths, path-derived IDs, `autoinvoke`, precedence, load semantics, permissions | Highest for platform facts — the runtime we use. Re-read after every OpenCode bump; the pinned version decides, not the doc |
 | 李博杰《深入理解 AI Agent》第 2 章 | 2026 (chapter undated) | Static prefix vs trajectory; dynamic injection cost; lost-in-the-middle; tool reordering | Medium — the structural model is sound and §3 now backs it with a primary source; its cache ratios and per-model `reasoning_content` rules are vendor specifics, already expiring |
 | [ai-agents-from-zero 1-2](https://github.com/didilili/ai-agents-from-zero/blob/main/1-2-%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%E5%9F%BA%E7%A1%80.md) | undated (2025–26) | Delimiters separating instruction from data; system = stable, user = current task; output format as a contract | Low-medium and undated — its six-element template is for one-shot content prompts and does not transfer to agent instructions |
