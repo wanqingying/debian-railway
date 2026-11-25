@@ -1,0 +1,1 @@
+{"model":"gpt-6.2-sol","temperature":1,"max_tokens":32000,"messages":[{"role":"user","content":"Generate an SVG of a pelican riding a bicycle"}]}

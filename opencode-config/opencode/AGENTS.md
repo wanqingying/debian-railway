@@ -57,6 +57,7 @@
 | 什么时候用 | 工具 |
 |---|---|
 | 回忆以前哪个会话做过什么、某件事之前怎么定的 | `session_search` |
+| OpenCode 会话、项目、用量的自定义只读 SQL | `opencode-db` skill |
 | 要时间/时区、容器起止与配额（cgroup，不是宿主机 48 核）、磁盘、端口内外分布、Railway 端点、已装工具版本 | `sysinfo` |
 | 生成图片、改图 | `image_generate` |
 
