@@ -740,6 +740,39 @@
               "read": 0.01
             }
           }
+        },
+        // GPT-6.2 Sol on this gateway is the same model id gpt.ge serves, on a
+        // much cheaper channel: the panel's pricing row is `quota_type: 0,
+        // model_ratio: 0.5, completion_ratio: 1, cache_ratio: 1`, the same tier
+        // as `deepseek-v4.1-flash-1017`, so the per-million numbers below mirror
+        // that entry. Measured 2026-11-25: 18 in / 12 out billed 5 quota =
+        // $0.00001, and the model answered in 11.8 s (slower than DeepSeek's
+        // 1.5 s on the same gateway). `limit` is models.dev's upstream
+        // spec for the model, which the reseller does not guarantee; only text
+        // input is declared because images were never exercised here.
+        "gpt-6.2-sol": {
+          "modelID": "gpt-6.2-sol",
+          "name": "GPT-6.2 Sol (a6api)",
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 1050000,
+            "output": 128000
+          },
+          "cost": {
+            "input": 0.009,
+            "output": 0.036,
+            "cache": {
+              "read": 0.00018
+            }
+          }
         }
       }
     },
