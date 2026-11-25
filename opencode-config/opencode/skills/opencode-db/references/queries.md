@@ -47,3 +47,7 @@ Use `session_usage` for actual per-message model attribution and read [usage.md]
 ## Keep queries bounded
 
 Select explicit columns: raw JSON and credential tables are not exposed, so `SELECT *` on a partially exposed table fails. Use an `ORDER BY` with a unique tie-breaker for sampling or paging. Prefer a time or session filter before joining large tables; an output `LIMIT` alone does not bound a sort or aggregate. Treat `truncated: true` as a partial result, not as the total.
+
+For recent sessions use `ORDER BY time_updated DESC, id LIMIT 10`; if the user supplies a session URL/ID, query only that ID rather than expanding to other sessions. For conversation text, hand the ID to OpenChamber `session.messages`, not SQL.
+
+The CLI accepts SQL on stdin or as one argument. Do not put SQL after `schema` or `path`. It uses Node's SQLite, not the system Python SQLite; `unixepoch()` is available in the tested runtime. If a query fails, read the error before retrying: missing columns require `schema`, denied private fields require the appropriate session tool, and timeouts require partitioning the original scope.
