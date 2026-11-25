@@ -1,0 +1,1 @@
+{"model":"gpt-6.2-sol","temperature":1,"max_tokens":32000,"messages":[{"role":"user","content":"创建一个HTML，内容是SVG绘制一个鹈鹕骑自行车的2D动画，你不需要任何测试，只靠你自己完成，不要使用任何skill和其他提示。"}]}
