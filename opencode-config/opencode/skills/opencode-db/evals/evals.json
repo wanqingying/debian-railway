@@ -1,0 +1,12 @@
+{
+  "skill_name": "opencode-db",
+  "evals": [
+    {"id": 1, "should_trigger": true, "prompt": "别通过 OpenChamber 接口，直接用 SQL 查本机 OpenCode 数据库里最近 7 天每个项目新开的会话数。", "expected_output": "Runs schema then a scoped read-only query and reports the time window."},
+    {"id": 2, "should_trigger": true, "prompt": "按模型统计昨天的输入 token，看看 fork 会不会算重。", "expected_output": "Reads the usage reference, queries session_usage with explicit time bounds, and accounts for copied rows or labels the totals as raw."},
+    {"id": 3, "should_trigger": true, "prompt": "从 opencode.db 查一下当前项目里哪些是 fork，分别来自哪个会话。", "expected_output": "Uses fork_session_id rather than parent_id; reports session IDs or titles from a scoped join."},
+    {"id": 4, "should_trigger": false, "prompt": "之前哪个会话讨论过 OpenCode fork 重复计费？", "expected_output": "Uses keyword session_search rather than SQL."},
+    {"id": 5, "should_trigger": false, "prompt": "OpenCode 自动 compact 的配置怎么关？", "expected_output": "Uses the OpenCode skill, not database inspection."},
+    {"id": 6, "should_trigger": false, "prompt": "用 SQL 查一下 mcmod 数据库的热门整合包。", "expected_output": "Uses the mcmod dataset docs rather than the OpenCode DB skill."},
+    {"id": 7, "should_trigger": true, "prompt": "本机 OpenCode 的 db 文件到底在哪？顺便看一下现在主要表有哪些字段。", "expected_output": "Runs path and schema, reports the resolved DB path and live exposed columns, and does not query row contents."}
+  ]
+}
