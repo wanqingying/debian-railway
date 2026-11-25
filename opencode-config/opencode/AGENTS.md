@@ -10,6 +10,7 @@
 - **A long job never blocks the session** — background it (§5).
 - **Minimal, surgical changes**; define a verifiable goal and loop until it passes; **lead the reply with the result**.
 - **Model facts** (context window, output cap, price): models.dev, not memory. A reseller row is the upstream spec, not a promise it is enforced.
+- **Never rename a worktree's display name.** The `openchamber` tool's `work.name` action is forbidden in this project and this container, and so is any substitute (`git branch -m`, editing `branch.<name>.description`) done to change what a worktree shows as. A worktree's task name belongs to the user: when one needs renaming, say so in the reply and let the user change it.
 
 ## 项目、skill、文档、工具（列出部分常用的-并非全部）
 
@@ -56,6 +57,7 @@
 | 什么时候用 | 工具 |
 |---|---|
 | 回忆以前哪个会话做过什么、某件事之前怎么定的 | `session_search` |
+| OpenCode 会话、项目、用量的自定义只读 SQL | `opencode-db` skill |
 | 要时间/时区、容器起止与配额（cgroup，不是宿主机 48 核）、磁盘、端口内外分布、Railway 端点、已装工具版本 | `sysinfo` |
 | 生成图片、改图 | `image_generate` |
 

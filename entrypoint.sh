@@ -15,12 +15,6 @@ mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 export OPENCHAMBER_DATA_DIR="${OPENCHAMBER_DATA_DIR:-$XDG_CONFIG_HOME/openchamber}"
 mkdir -p "$OPENCHAMBER_DATA_DIR"
 
-# ---- answer-me-with-html skill data: pin to the volume ----
-# The skill's bundled `am` CLI writes pages/videos/themes under AM_HOME, which
-# defaults to ~/.answer-me-with-html (ephemeral /root), so point it onto the
-# volume to keep rendered pages across redeploys.
-export AM_HOME="${AM_HOME:-$XDG_DATA_HOME/answer-me-with-html}"
-
 # ---- Worktrees: pin to the volume ----
 # A worktree is a session's working directory, so it has to outlive a redeploy.
 # The root filesystem (/tmp, /root, /var/tmp) is rebuilt from the image on every
@@ -31,6 +25,14 @@ export AM_HOME="${AM_HOME:-$XDG_DATA_HOME/answer-me-with-html}"
 export WORKTREE_ROOT="${WORKTREE_ROOT:-/workspace/worktrees}"
 mkdir -p "$WORKTREE_ROOT"
 ln -sfn /scripts/worktree.sh /usr/local/bin/wt
+
+# `drawio` (scripts/drawio.sh) — draw.io Desktop CLI, baked at /opt/drawio-desktop.
+# The wrapper carries the flags a headless Electron export needs here (xvfb-run,
+# --no-sandbox, --disable-dev-shm-usage) and `--elk`, the layout pass that makes a
+# Mermaid-derived diagram readable. Used by the `architecture-diagrams` skill.
+if [ -f /scripts/drawio.sh ]; then
+    ln -sfn /scripts/drawio.sh /usr/local/bin/drawio
+fi
 
 # `pw` (scripts/pw) — Playwright CLI pinned onto the in-container KasmVNC browser:
 # it attaches over CDP (idempotently) instead of launching, so an agent drives the
@@ -109,6 +111,23 @@ fi
 # opencode/account.json) and OpenChamber's own state, none of which are baked.
 # Each entry here can be dropped once every container has booted at least once
 # on the newer image.
+# Remove only the retired HTML skill's bundled files, not its generated pages.
+retired_skill="$XDG_CONFIG_HOME/opencode/skills/answer-me-with-html"
+if [ -d "$retired_skill" ] && [ ! -L "$retired_skill" ]; then
+    rm -f "$retired_skill/SKILL.md"
+    for dir in licenses references scripts; do
+        [ ! -L "$retired_skill/$dir" ] || continue
+        case "$dir" in
+            licenses) rm -f "$retired_skill/licenses/OFL-Bangers.txt" ;;
+            references) rm -f "$retired_skill/references/"{codebase,settings,video}.md ;;
+            scripts) rm -f "$retired_skill/scripts/am.mjs" ;;
+        esac
+        rmdir "$retired_skill/$dir" 2>/dev/null || true
+    done
+    rmdir "$retired_skill" 2>/dev/null || true
+    echo "[entrypoint] removed retired answer-me-with-html skill files"
+fi
+
 for f in code-review req-to-ship req-to-ship-en skill-creator; do
     p="$XDG_CONFIG_HOME/opencode/commands/$f.md"
     if [ -e "$p" ]; then
