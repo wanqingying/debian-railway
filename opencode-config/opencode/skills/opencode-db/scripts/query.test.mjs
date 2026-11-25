@@ -66,6 +66,33 @@ test('time functions and real-scale aggregate work', () => {
   assert.ok(performance.now()-start < 10000, '25k-row aggregation should finish within 10s');
 });
 
+test('bare table counts and part metadata work without exposing private columns', () => {
+  const db = new DatabaseSync(path);
+  db.exec("CREATE TABLE session_part(message_id TEXT, ordinal INTEGER, type TEXT, data TEXT); INSERT INTO session_part VALUES ('m1',0,'tool','not-public'),('m1',1,'text','not-public')");
+  db.close();
+  try {
+    for (const name of ['session_v2', 'SESSION_V2']) {
+      assert.deepEqual(result('query', `SELECT COUNT(*) FROM ${name}`).rows, [[5]]);
+      assert.deepEqual(result('query', `SELECT COUNT(id) FROM ${name}`).rows, [[5]]);
+      assert.deepEqual(result('query', `WITH all_sessions AS (SELECT COUNT(*) AS n FROM ${name}) SELECT n FROM all_sessions`).rows, [[5]]);
+    }
+    assert.deepEqual(result('query', 'SELECT COUNT(*) FROM session_message').rows, [[25009]]);
+    assert.deepEqual(result('query', 'SELECT COUNT(*) FROM session_part').rows, [[2]]);
+    assert.deepEqual(result('query', 'SELECT type,COUNT(*) FROM session_part GROUP BY type ORDER BY type').rows, [['text',1],['tool',1]]);
+    for (const sql of ['SELECT COUNT(*) FROM credential', 'SELECT COUNT(secret) FROM credential',
+      'SELECT COUNT(data) FROM session_part', "SELECT COUNT(*) FROM session_part WHERE data='not-public'", 'SELECT data FROM session_part',
+      'SELECT * FROM session_part', 'SELECT COUNT(metadata) FROM session_v2']) {
+      const output = cli('query', sql);
+      assert.equal(output.status, 1, sql);
+      assert.equal(output.stdout, '', sql);
+    }
+  } finally {
+    const cleanup = new DatabaseSync(path);
+    cleanup.exec('DROP TABLE session_part');
+    cleanup.close();
+  }
+});
+
 test('invalid usage remains NULL; lowercase and uppercase names work', () => {
   assert.deepEqual(result('query', "SELECT MESSAGE_ID,PROVIDER_ID,TOKENS_INPUT FROM SESSION_USAGE WHERE MESSAGE_ID IN ('invalid','broken') ORDER BY 1").rows, [['broken',null,null],['invalid',null,null]]);
 });

@@ -121,7 +121,10 @@ function run({ path, sql, operation }) {
           needsUsage = true;
           return C.SQLITE_OK;
         }
-        // SQLite may omit the database name for a table-only COUNT(*) on a view.
+        // Bare COUNT(*) emits a table-only read with no database name or column.
+        // Allow counts of exposed tables, not reads of their private columns.
+        if (!column && database == null && Object.hasOwn(TABLES, table)
+          && Object.hasOwn(columns, table)) return C.SQLITE_OK;
         if (!column && database == null && ['session_usage', 'session_usage_dedup'].includes(table)) {
           needsUsage = true;
           return C.SQLITE_OK;
