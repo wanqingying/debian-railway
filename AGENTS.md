@@ -2,6 +2,8 @@
 
 > 全局提示词（编码规范）是 `opencode-config/opencode/AGENTS.md`，启动时同步到卷上 `$XDG_CONFIG_HOME/opencode/AGENTS.md`；本文件是项目提示词。两者同名：改全局规范要动前者，**别在仓库根目录 `cp AGENTS.md /workspace/.opencode/config/opencode/AGENTS.md`** —— 那会把项目提示词覆盖进全局位置（2026-11-14 00:58 实际发生过：改动来自 `ses_e28b18cf` 那个 a6api 会话，它改的是仓库根 `AGENTS.md`，随后沿用「同步到卷上」的旧习惯把这个同名文件推进了全局位置——编码规范整段失效至 03:54，共 2 小时 56 分，期间 6 个会话 235 轮的系统提示词里装的是 60 KB 项目文档）。
 
+**Work directly on `main` by default.** This is a personal project with no other collaborators. Use a separate branch or worktree only when the user explicitly asks for one.
+
 ## Project
 
 Debian Bookworm Slim container deployed on Railway as a **remote dev container**. Access:
