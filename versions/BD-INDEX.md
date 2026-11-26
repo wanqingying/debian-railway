@@ -12,7 +12,7 @@
 
 ## 时间线
 
-| BD | 冻结日期 | opencode | OpenChamber | magic-context | codegraph | playwright | 状态 | 下游同步（downstream-devcontainer） | 备注 |
+| BD | 冻结日期 | opencode | OpenChamber | magic-context | codegraph | playwright | 状态 | 下游开发容器同步 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | [BD-001](bd/BD-001.md) | 2026-10-27 | 2.1.4 | 2.5.1 | 0.49.21 | —（当时未锁） | — | `superseded by BD-002` | ✅ 已同步 | 首次冻结：锁住容器当时实际在跑的组合 |
 | [BD-001](bd/BD-001.md)（r1） | 2026-10-29 | 2.1.4 | 2.5.1 | 0.49.21 | **1.6.2** | — | `superseded by BD-002` | ✅ 已同步 | codegraph 从"未锁、每次启动跟随上游"改为精确锁定；`CODEGRAPH_UPGRADE` 默认改为 `0` |
@@ -24,7 +24,7 @@
 | [BD-003](bd/BD-003.md)（r1） | 2026-11-09 | 2.2.6 | **2.7.0（fork 构建，第 2 个补丁）** | 0.49.43 | 1.6.2 | 1.65.0 | `superseded by BD-004` | ⏳ R2 已上传（2.7.0 / `22ec02bd…`）；下游 `init.sh` 待改 | 版本矩阵不变，只换 fork 产物：新增 `fix(ui-blocks): write root last in the guidance and its examples`（3fdff97fc），tarball sha256 `22ec02bd…` |
 | [BD-004](bd/BD-004.md) | 2026-11-09 | 2.2.6 | 2.7.0（fork 构建，第 2 个补丁） | 0.49.43 | 1.6.2 | 1.65.0 | `current` | ✅ 已同步（2026-11-10，`0ca1796`） | 只新增 L1 工具 `@larksuite/cli@1.0.99`（L0 组合沿用 BD-003 r1）；读 docx/wiki 实测通过后才冻结，凭证目录软链到卷，重部署免重登 |
 
-> 「下游同步」= 同一组锁点已落到 `downstream-devcontainer`（顺序与核对项见[手册 §9](README.md)）。没打勾说明该 BD 只在 railway 生效，两个容器行为会不一致。
+> 「下游同步」= 同一组锁点已落到下游开发容器（顺序与核对项见[手册 §9](README.md)）。没打勾说明该 BD 只在 railway 生效，两个容器行为会不一致。
 
 ## 活跃 Hold（刻意不升级）
 

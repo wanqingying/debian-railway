@@ -40,10 +40,9 @@
  * Output is NOT redacted, decided 2026-10-28 after measuring. It protected nothing here: the corpus
  * held no real credentials (0 of 6,909 messages matched a provider-token, JWT, url-credential or
  * private-key pattern), `session.messages` hands out the same text unredacted so the rule was never
- * a boundary, and both providers are internal gateways (model-gateway-a.example.com,
- * model-gateway-b.example.com) rather than a third-party API. What it did do was mask config values in
- * snippets with `***` — the exact text a "how is GITHUB_TOKEN set" search exists to read. Snippets
- * stay short (~120 chars) for legibility, not for safety.
+ * a boundary. What it did do was mask config values in snippets with `***` — the exact text a
+ * "how is GITHUB_TOKEN set" search exists to read. Snippets stay short (~120 chars) for legibility,
+ * not for safety.
  *
  * Also runs as a CLI: `node lib/session-search.ts <keyword> [--json] [--limit N] ...`.
  *
