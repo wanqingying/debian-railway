@@ -2,7 +2,7 @@
 
 **Status:** **applied to both containers on 2026-10-29.**
 
-* devcontainer (`downstream-devcontainer`): verified end-to-end — the container was rebuilt on the
+* downstream devcontainer: verified end-to-end — the container was rebuilt on the
   derived image and the browser came up automatically.
 * this repo (`debian-railway`): the toolchain moved from a boot-time installer into the Dockerfile,
   and `scripts/install-tools.sh` became a verifier/repair path. See §4 for exactly what moved, what
@@ -52,8 +52,7 @@ missing). Baking moves that failure into the build, where it is loud and blocks 
 
 ## 2. What was actually built (devcontainer)
 
-Image: `registry.example.com/example/downstream-devcontainer:v1`
-= official base pinned by digest + the items below. ~3.45 GB uncompressed, of which the browser stack
+The image uses a digest-pinned base plus the items below. ~3.45 GB uncompressed, of which the browser stack
 is ~600 MB (chromium 431 MB, CJK fonts 128 MB, KasmVNC 9 MB).
 
 ### 2.1 Inside the image
@@ -104,7 +103,7 @@ is ~600 MB (chromium 431 MB, CJK fonts 128 MB, KasmVNC 9 MB).
    sessions, caches, profile. The devcontainer's start script now installs *nothing*.
 2. **Vendor and checksum.** Measured above: the same byte-identical rpm went from "never" to
    "1.3 MB/s" depending on the mirror. A build should not depend on which mirror answers.
-3. **Pin the base by digest.** `example-base-image` — if the owner
+3. **Pin the base by digest.** If the registry owner
    re-pushes that tag, a `FROM ...:latest` would silently change what your layer *is*, and the
    browser you tested is not the browser you ship.
 4. **Assert at build time.** The install succeeding is not evidence the binary runs. One `RUN` line
@@ -317,7 +316,7 @@ tofu, zero zombies.
 
 ## 8. Files added by the devcontainer work (for reference)
 
-`downstream-devcontainer`, branch merged to `main` as `42cf365`:
+Files in the downstream devcontainer:
 
 | File | Role |
 | --- | --- |

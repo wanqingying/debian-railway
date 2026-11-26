@@ -178,7 +178,7 @@ curl -s https://opencode.ai/config.json -o /tmp/oc.schema.json
 5. **验证**：按 §6 清单在容器里过一遍。
 6. **写 BD 文档**：`versions/bd/BD-<nnn>.md`（从 `_TEMPLATE.md` 复制），更新 `versions/BD-INDEX.md`。
 7. **观察期**：部署后 3~7 天。出现回归 → 先回滚 BD，再把原因写进 BD 文档的"已知问题"，避免下个 BD 再踩。
-8. **同步下游**：观察期无回归后，把同一组锁点搬到 `downstream-devcontainer`（见 §9），并在 `BD-INDEX.md` 的「下游同步」列打勾。
+8. **同步下游**：观察期无回归后，把同一组锁点同步到下游开发容器（见 §9），并在 `BD-INDEX.md` 的「下游同步」列打勾。
 
 ### 锁点同步清单
 
@@ -254,13 +254,13 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 | 项目 | 定位 | 谁先动 |
 | --- | --- | --- |
 | `debian-railway`（本仓库） | BD 的**定义**所在：登记册 + 生产容器的镜像与启动脚本 | **先升级这个** |
-| `downstream-devcontainer` | 团队开发容器的**下游消费方**（`.devcontainer/`），同一套 opencode / OpenChamber / magic-context | 等这里的 BD 合并、观察期无回归后，再同步过去 |
+| 下游开发容器 | **下游消费方**（`.devcontainer/`），同一套 opencode / OpenChamber / magic-context | 等这里的 BD 合并、观察期无回归后，再同步过去 |
 
 **顺序不能反**：railway 是 BD 的真值所在，先在这里把版本、锁点、验证、记录全部定下来；devcontainer 只做"照抄锁点"。反过来先改 devcontainer，就会出现"开发容器跑的版本在 BD 里查不到"，下次升级没人知道基线是什么。
 
 ### 同步映射（改一处就要改另一处）
 
-| 组件 | `debian-railway` 锁点 | `downstream-devcontainer` 锁点 |
+| 组件 | `debian-railway` 锁点 | 下游开发容器锁点 |
 | --- | --- | --- |
 | opencode | `Dockerfile` 安装行 + `scripts/install-tools.sh` 的 `OPENCODE_VERSION` | `.devcontainer/init.sh` 的 `OPENCODE_VERSION` |
 | OpenChamber | `vendor/openchamber-web-2.7.0-fork.tgz` + `Dockerfile` 的安装行 | `.devcontainer/init.sh` 的 `OPENCHAMBER_VERSION` + `OPENCHAMBER_FORK_URL` / `OPENCHAMBER_FORK_SHA256`（同一份产物，下游按 URL 拉而不入 git） |

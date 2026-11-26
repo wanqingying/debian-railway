@@ -57,7 +57,7 @@ cp packages/web/openchamber-web-2.7.0.tgz /workspace/debian-railway/vendor/openc
 
 tarball 内是 `dist`/`server`/`bin`/`public`，20 MB 左右，依赖仍从 npm 解析，所以 `railway up` 时照常联网安装。
 
-**重新生成后要同步下游的 sha256**：团队开发容器（`downstream-devcontainer`）装的是同一份产物，但**不入库**——它按公开 URL 拉取并用钉死的 sha256 校验。所以换了 tarball 之后：
+**重新生成后要同步下游的 sha256**：下游开发容器装的是同一份产物，但**不入库**——它按公开 URL 拉取并用钉死的 sha256 校验。所以换了 tarball 之后：
 
 ```bash
 sha256sum vendor/openchamber-web-2.7.0-fork.tgz        # 得到新 hash
