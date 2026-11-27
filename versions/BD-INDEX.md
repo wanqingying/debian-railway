@@ -8,7 +8,7 @@
 | --- | --- |
 | BD | [BD-004](bd/BD-004.md) |
 | 冻结日期 | 2026-11-09 |
-| 状态 | `current`（观察期 3~7 天，见[手册 §4](../README.md)） |
+| 状态 | `current`（现网基线；BD-005 尚未部署） |
 
 ## 时间线
 
@@ -23,12 +23,19 @@
 | [BD-003](bd/BD-003.md) | 2026-11-09 | **2.2.6** | **2.7.0（fork 构建）** | **0.49.43** | 1.6.2 | **1.65.0** | `superseded by BD-003 (r1)` | ⏳ 待同步 | 一次跳到当时全部 latest：两个旧 Hold（#838、#6131）均解除；fork 补丁零冲突 rebase 到 v2.7.0 |
 | [BD-003](bd/BD-003.md)（r1） | 2026-11-09 | 2.2.6 | **2.7.0（fork 构建，第 2 个补丁）** | 0.49.43 | 1.6.2 | 1.65.0 | `superseded by BD-004` | ⏳ R2 已上传（2.7.0 / `22ec02bd…`）；下游 `init.sh` 待改 | 版本矩阵不变，只换 fork 产物：新增 `fix(ui-blocks): write root last in the guidance and its examples`（3fdff97fc），tarball sha256 `22ec02bd…` |
 | [BD-004](bd/BD-004.md) | 2026-11-09 | 2.2.6 | 2.7.0（fork 构建，第 2 个补丁） | 0.49.43 | 1.6.2 | 1.65.0 | `current` | ✅ 已同步（2026-11-10，`0ca1796`） | 只新增 L1 工具 `@larksuite/cli@1.0.99`（L0 组合沿用 BD-003 r1）；读 docx/wiki 实测通过后才冻结，凭证目录软链到卷，重部署免重登 |
+| [BD-005](bd/BD-005.md) | 2026-11-27 | 2.4.2 | 2.8.0（官方 npm） | 0.49.85 | 1.6.4 | 1.65.1 | `candidate` | 未同步 | 移除 OpenChamber 自维护构建；同时升级 pnpm、KasmVNC 和 Bookworm digest |
 
 > 「下游同步」= 同一组锁点已落到下游开发容器（顺序与核对项见[手册 §9](README.md)）。没打勾说明该 BD 只在 railway 生效，两个容器行为会不一致。
 
 ## 活跃 Hold（刻意不升级）
 
-当前**无活跃 Hold**。
+以下为 **BD-005 候选**的 Hold；不改变 BD-004 的现网状态。
+
+| 组件 | 暂缓 | 解除条件 |
+| --- | --- | --- |
+| OpenChamber | `2.8.1`：长时间运行后每次 `/health` 探测都可能长时间阻塞 Web 服务（[#7706](https://github.com/openchamber/openchamber/issues/7706)） | 官方稳定版包含修复，并验证长时间运行后的 `/health` |
+| lark-cli | `1.0.100`：文档创建/更新失败的报告尚未排除（[#2935](https://github.com/larksuite/cli/issues/2935)）；凭证刷新也有待核对（[#2936](https://github.com/larksuite/cli/issues/2936)） | 新版在隔离授权下通过文档读写及暂时网络失败后的续期 |
+| ttyd | `1.7.7`：可选 Web 终端存在崩溃报告（[#1546](https://github.com/tsl0922/ttyd/issues/1546)）；保留旧 pin 不等于断言旧版不受影响 | 官方稳定版修复并验证鉴权及终端连接 |
 
 上一条（magic-context 停在 `0.49.34`、不升 `0.49.35`）已解除：其阻断项 [#838](https://github.com/cortexkit/magic-context/issues/838)（host fold 给无历史子会话写空摘要，OpenCode 2.2 每轮被 `Schema validation failed` 拒绝）于 2026-11-06 关闭，BD-003 直接取 `0.49.43`，并拿回 host fold 的长会话提速（25k 消息会话实测 1.3–2.0s → 0.33–0.49s/step）。[#834](https://github.com/cortexkit/magic-context/issues/834)（每 pass 复制全量历史 2–3 次）仍 open，但已不阻断升级。
 
