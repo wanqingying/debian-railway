@@ -29,6 +29,7 @@
 - 2026-11-14 清掉了两处抢在前面的旧版本：机器 PATH 上的 `E:\Program Files\nodejs`（`node.exe` 报 23.9.0，winget 记录却是 `OpenJS.NodeJS.22` 22.13.0）已整体卸载，`%APPDATA%\npm` 里残留的 `opencode-ai@1.1.45`（v1）也删了——v1 会去开 v2 的 `opencode.db`，那正是"每轮回复都被中断"的来源。卸载前的机器/用户 PATH 备份在 `~\.config\opencode\backup\`。
 - 代价：**没有 profile 的进程**（`-NoProfile`、cmd、部分 IDE 任务）现在找不到 `node`/`npm`/`opencode`。跑 Node 一律用 `pwsh`；真要裸环境，把 fnm 的安装目录 `%APPDATA%\fnm\node-versions\v24.22.2\installation` 加进机器 PATH——它会自动成为那台 npm 的全局 prefix，装的还是 BD 那套。
 - `platform\win10\verify.ps1` 的 `node >= 24.14` / `BD pins installed` 两行只在带 profile 的窗口里有意义。
+- **`node --test opencode-config/opencode/lib/session-search.test.ts` 在本机要跑 ~160 秒**，别当成卡死。实测（2026-11-27）：15 个用例全过，其中 `a tiny budget…` 一个占 142 秒，而这 142 秒花在**建 fixture**（往临时 SQLite 插 1200 行）上，`searchSessions` 本身只用 5 ms——Defender 扫 `%TEMP%` 的写入。前台跑会被 120 秒超时掐断，用后台 shell 或加大超时。
 - BD-005 的全局包都装在 fnm 的 v24.22.2 下：`@opencode/cli` 2.4.2、`@openchamber/web` 2.8.0（官方 npm，不再有自维护 fork）、`@colbymchenry/codegraph` 1.6.4、`playwright` 1.65.1、`@larksuite/cli` 1.0.99。`npm root -g` 指向 `%LOCALAPPDATA%\fnm_multishells\<id>\node_modules`，每个 shell 的 `<id>` 都不同——别把那个路径写进脚本，用 `npm root -g` 现算。
 - `openchamber` 在 `127.0.0.1:3000`，内嵌 opencode v2.4.2。`pnpm`/`bun` 没装，本机用 npm。
 
