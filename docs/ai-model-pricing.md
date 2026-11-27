@@ -194,7 +194,7 @@ value = score / price        # score 为质量分（CC intelligence 或 Arena �
 | `modalities` | 输入/输出模态 |
 | `release_date` / `last_updated` | 时间 |
 
-`scripts/fetch-model-prices.py` 的流程：
+`scripts/fetch-model-prices.py` 的流程（两个 JSON 都是生成物，不入库，见 `.gitignore`）：
 
 1. 下载 `models.dev/api.json` → `docs/models.dev.json`
 2. 下载三个补充源，补 models.dev 缺失的缓存价：

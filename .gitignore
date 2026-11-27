@@ -14,3 +14,12 @@ data/*.db-shm
 # vendor log dumps pulled by scripts/*-logs.mjs (a6api, gptge); ~0.5 MB each and
 # regenerable, so they are scratch data, not part of the committed dataset
 /data/*-logs.json
+
+# Large binaries stay out of the repo: the fork builds moved to Cloudflare R2
+# (BD-005 installs the official npm package) and *.pdf / the price catalogues
+# are regenerated or downloadable. History before BD-005 still had them; a
+# rewrite on 2026-11-27 purged them from every branch.
+vendor/*.tgz
+*.pdf
+docs/models.dev.json
+docs/models-prices.json
