@@ -116,11 +116,11 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
          *)     kasm_sha="" ; echo "kasmvnc: no .deb for $arch — skipping the interactive browser" ;; \
        esac \
     && if [ -n "$kasm_sha" ]; then \
-         url="https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/kasmvncserver_bookworm_${KASMVNC_VERSION}_${arch}.deb"; \
-         echo "kasmvnc: $url"; \
-         curl -fsSL --retry 3 -o /tmp/kasmvnc.deb "$url"; \
-         echo "${kasm_sha}  /tmp/kasmvnc.deb" | sha256sum -c -; \
-         apt-get install -y --no-install-recommends /tmp/kasmvnc.deb; \
+         url="https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/kasmvncserver_debian_bookworm_${KASMVNC_VERSION}_${arch}.deb"; \
+         echo "kasmvnc: $url" && \
+         curl -fsSL --retry 3 -o /tmp/kasmvnc.deb "$url" && \
+         echo "${kasm_sha}  /tmp/kasmvnc.deb" | sha256sum -c - && \
+         apt-get install -y --no-install-recommends /tmp/kasmvnc.deb && \
          rm -f /tmp/kasmvnc.deb; \
        fi \
     && apt-get clean && rm -rf /var/lib/apt/lists/*

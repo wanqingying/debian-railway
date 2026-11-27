@@ -260,9 +260,11 @@ if [ "${BROWSER_ENABLE:-1}" != 0 ]; then
     if [ -z "$KASMVNC_ARCH" ]; then
       log "warning: no KasmVNC .deb published for $(uname -m) — skipping"
     else
-      KASMVNC_DEB="/tmp/kasmvncserver_bookworm_${KASMVNC_VERSION}_${KASMVNC_ARCH}.deb"
-      if curl -fsSL -o "$KASMVNC_DEB" \
-           "https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/kasmvncserver_bookworm_${KASMVNC_VERSION}_${KASMVNC_ARCH}.deb"; then
+      KASMVNC_ASSET="kasmvncserver_debian_bookworm_${KASMVNC_VERSION}_${KASMVNC_ARCH}.deb"
+      KASMVNC_DEB="/tmp/$KASMVNC_ASSET"
+      KASMVNC_RELEASE="https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}"
+      if curl -fsSL -o "$KASMVNC_DEB" "$KASMVNC_RELEASE/$KASMVNC_ASSET" ||
+         curl -fsSL -o "$KASMVNC_DEB" "$KASMVNC_RELEASE/${KASMVNC_ASSET/_debian_bookworm_/_bookworm_}"; then
         apt-get install -y "$KASMVNC_DEB" >/dev/null \
           || log "warning: KasmVNC install failed (continuing without the interactive browser)"
       else
