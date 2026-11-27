@@ -280,6 +280,8 @@ BD 登记册只在 `debian-railway`，但**同一组版本要在两个项目里�
 
 以下只供历史回溯。BD-005 不使用此发布流程；不要改写旧产物。
 
+这三个 tarball（2.6.0 一个、2.7.0 两个）已在 2026-11-27 从 git 历史清除，仓库里不再有 `vendor/`；产物只存 R2。改写前的完整历史保存在 `/workspace/.opencode/backups/debian-railway-pre-slim-20261127-093816.bundle`（`git bundle verify` 通过，21 个 ref）。
+
 devcontainer 不把 21 MB 的 tarball 提交进 git，它按 URL 拉取、用钉死的 sha256 校验。产物放在 Cloudflare R2 的 `personal` 桶，凭据在 `/workspace/.secrets/r2.env`（`R2_ACCOUNT_ID` / `R2_BUCKET` / `R2_ENDPOINT` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`），端点 `https://12fe5338781939c4d1929577bb948f4f.r2.cloudflarestorage.com`。
 
 | 键 | 作用 | 每次换产物时 |
