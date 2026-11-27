@@ -11,6 +11,11 @@ data/*.db-shm
 # image_generate default output
 /generated/
 
+# g2pW polyphone model cache: downloaded into the current directory by
+# piper-tts on first synthesis (~159 MB ONNX + char tables). Scratch, and
+# re-downloaded on demand.
+/g2pW/
+
 # vendor log dumps pulled by scripts/*-logs.mjs (a6api, gptge); ~0.5 MB each and
 # regenerable, so they are scratch data, not part of the committed dataset
 /data/*-logs.json
