@@ -24,8 +24,8 @@
 #   · smoke test + version report
 #
 # Verified tools (installed by the image): apt system packages, uv + Python 3.12,
-# pnpm (11.22.0), Doppler CLI, Neon CLI, Railway CLI, OpenChamber (2.6.0, fork build),
-# OpenCode CLI (2.2.5), CodeGraph, the interactive browser (Chromium + KasmVNC),
+# pnpm, Doppler CLI, Neon CLI, Railway CLI, OpenChamber (official npm package),
+# OpenCode CLI, CodeGraph, the interactive browser (Chromium + KasmVNC),
 # gh, and the book-to-skill PDF extractors.
 #
 # NOT HANDLED HERE (per-developer, interactive — keep out of the startup script)
@@ -34,8 +34,7 @@
 #   - Repo bootstrap:scripts/setup.sh            (env-pull + dev branch + uv sync + pnpm install + migrate)
 #   - Server start:   ./dev all                  (app :3000 / graph :2025, per-worktree ports)
 #
-# Expected runtime versions (verified on the current dev container):
-#   Node v24.19.0 · Debian 12 (bookworm) · uv 0.12.5 · Python 3.12.14 · pnpm 11.22.0 · Doppler 3.76.5
+# Expected versions: see versions/BD-INDEX.md.
 #
 # Usage:
 #   scripts/install-tools.sh          # from the repo root (needs root; the container runs as root)
@@ -107,7 +106,7 @@ if command -v pnpm >/dev/null 2>&1; then
   log "  already in image — skipped"
 else
   corepack enable pnpm
-  corepack prepare pnpm@11.22.0 --activate
+  corepack prepare pnpm@12.23.0 --activate
 fi
 
 # ── 4. Doppler CLI ──────────────────────────────────────────────────────────────
@@ -150,59 +149,16 @@ if ! command -v railway >/dev/null 2>&1; then
 fi
 
 # ── OpenChamber (web UI for OpenCode) + OpenCode v2 ───────────────────────────
-# Both are installed **pinned** (not `latest`):
-#   OpenChamber: OUR FORK's build of 2.6.0 (the 2.6.0 release + the "group
-#                worktrees" sidebar toggle), baked from
-#                vendor/openchamber-web-2.7.0-fork.tgz → /opt/openchamber-fork/.
-#                The npm package is only the fallback, because it has no fork patch.
-#                Rebuild: `bun run pack:web` in /workspace/openchamber-fork, then
-#                copy packages/web/openchamber-web-2.7.0.tgz here under the fork name.
-#   OpenCode v2: https://opencode.ai/v2/docs → `npm install -g @opencode/cli`
-# Defaults live here (2.7.0 / 2.2.6) and can be overridden with
-# OPENCHAMBER_VERSION / OPENCODE_VERSION. Set either to `latest` only if you
-# deliberately want the old "track upstream" behaviour (for OpenChamber that also
-# means losing the fork patch until the next redeploy restores it).
-# Why pinned: with `latest` every redeploy could swap either component, so a bad
-# upstream release silently takes down the whole AI stack (and the two must stay
-# matched — see the version-pair note below). Pinning also means the boot only
-# installs when the binary is *missing*, so nothing changes under you.
-# A Dockerfile opencode pin travels with this one: keep them in sync.
-#
-# Why install from the tarball rather than the curl installers: `curl -fsSL
-# https://opencode.ai/v2/install | bash` and OpenChamber's install.sh drop the
-# binary under $HOME (or pick pnpm/bun when present) and patch shell rc files —
-# wrong for a container whose $HOME is ephemeral and whose root FS is rebuilt on
-# every redeploy. A global npm install lands in /usr, which this script re-creates
-# each boot.
-#
-# npm 11 allow-scripts: @opencode/cli needs --allow-scripts (its postinstall picks
-# the native binary); @openchamber/web's own files ship no install script, and
-# node-pty's linux-x64 prebuild is inside the tarball, so a plain install is fine
-# (verified 2026-09-25: working terminal, no dep scripts needed).
-# Requires Node >=22 (image ships Node 24). OpenChamber manages its own embedded
-# OpenCode server (spawns `opencode serve` on $OPENCODE_PORT) and reads the
-# standard OPENCODE_SERVER_USERNAME/PASSWORD envs for that server's auth, so the
-# existing opencode config carries over unchanged. Installed per boot because
-# /usr/local (npm global) is wiped on redeploy.
-#
-# Version pairing: OpenChamber 2.x drives OpenCode 2.x only and declares a
-# minimum (2.7.0 → MINIMUM_OPENCODE_VERSION = 2.2.4 in
-# server/lib/opencode/compatibility.js). The pinned pair below is verified to
-# work together; bump both together, never one alone. v1 `opencode-ai` must
-# never be installed (no-agent mode).
+# Use the same official npm packages and pins as the Dockerfile. This is only a
+# repair path for missing binaries; it does not replace the baked versions.
+# OpenChamber owns the managed OpenCode server (see entrypoint.sh).
 # Install failure is non-fatal so a broken upstream release can't take down SSH;
 # the web UI is just skipped (entrypoint.sh already guards on `command -v openchamber`).
-OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.7.0}"
-OPENCHAMBER_FORK_TARBALL="${OPENCHAMBER_FORK_TARBALL:-/opt/openchamber-fork/openchamber-web-2.7.0-fork.tgz}"
-log "OpenChamber ${OPENCHAMBER_VERSION} (fork build)"
+OPENCHAMBER_VERSION="${OPENCHAMBER_VERSION:-2.8.0}"
+log "OpenChamber ${OPENCHAMBER_VERSION} (upstream npm)"
 if ! command -v openchamber >/dev/null 2>&1; then
-  if [ -f "$OPENCHAMBER_FORK_TARBALL" ]; then
-    npm install -g "$OPENCHAMBER_FORK_TARBALL" >/dev/null \
-      || log "warning: OpenChamber fork build install failed (continuing without web UI)"
-  else
-    npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
-      || log "warning: OpenChamber install failed (continuing without web UI)"
-  fi
+  npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" >/dev/null \
+    || log "warning: OpenChamber install failed (continuing without web UI)"
 fi
 
 # ── OpenCode v2 CLI ───────────────────────────────────────────────────────────
@@ -220,7 +176,7 @@ fi
 # install; this is the fallback when the baked copy is missing. Keep the pin in
 # sync with the Dockerfile line. Installed per boot because
 # /usr/local (npm global) is wiped on redeploy.
-OPENCODE_VERSION="${OPENCODE_VERSION:-2.2.6}"
+OPENCODE_VERSION="${OPENCODE_VERSION:-2.4.2}"
 log "OpenCode CLI (v2) ${OPENCODE_VERSION}"
 if ! command -v opencode >/dev/null 2>&1; then
   npm install -g --allow-scripts=@opencode/cli "@opencode/cli@${OPENCODE_VERSION}" >/dev/null \
@@ -239,7 +195,7 @@ log "resolved: openchamber $(openchamber --version 2>/dev/null || echo 'n/a') ·
 # moving parts in one container. Now the image is the source of truth; set
 # CODEGRAPH_UPGRADE=1 deliberately to track latest again (that path is kept as an escape
 # hatch, and it is non-fatal like everything else here).
-CODEGRAPH_VERSION="${CODEGRAPH_VERSION:-1.6.2}"
+CODEGRAPH_VERSION="${CODEGRAPH_VERSION:-1.6.4}"
 CODEGRAPH_UPGRADE="${CODEGRAPH_UPGRADE:-0}"
 if command -v codegraph >/dev/null 2>&1; then
   if [ "$CODEGRAPH_UPGRADE" = "0" ]; then
@@ -292,7 +248,7 @@ if [ "${BROWSER_ENABLE:-1}" != 0 ]; then
     apt-get install -y --no-install-recommends \
       chromium chromium-l10n fluxbox fonts-noto-cjk x11-utils scrot \
       >/dev/null
-    KASMVNC_VERSION="${KASMVNC_VERSION:-1.5.0}"
+    KASMVNC_VERSION="${KASMVNC_VERSION:-1.5.2}"
     # Upstream publishes both amd64 and arm64 bookworm .debs (verified 2026-10-29).
     # This repair path does NOT verify a checksum (the image build does); it is
     # best-effort and non-fatal by design.

@@ -2,7 +2,7 @@
 # silently change what this image is built FROM, and the browser/toolchain verified
 # here would not be the one that ships. Bump deliberately
 # (docs/image-baking.md §3 rule 3).
-FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
+FROM debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e
 
 # ---- Base + build toolchain + SSH server + locales ----
 RUN apt-get update -o Acquire::Languages=none && apt-get upgrade -y && \
@@ -94,7 +94,7 @@ ENV NODE_ENV=development \
 # few Perl modules) are resolved from them. Cleaning up first — which an earlier version
 # of this layer did — makes every one of those "not installable" even though bookworm has
 # them all.
-ARG KASMVNC_VERSION=1.5.0
+ARG KASMVNC_VERSION=1.5.2
 RUN mkdir -p -m 755 /etc/apt/keyrings \
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
          -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -108,12 +108,11 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
         poppler-utils \
         fontconfig fonts-liberation \
         chromium chromium-l10n fluxbox fonts-noto-cjk x11-utils scrot \
-        xvfb \
         gh \
     && arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
-         amd64) kasm_sha=770fd3df51510beecc89666879d82faf411276e68c6e11df612f736b891b5f71 ;; \
-         arm64) kasm_sha=aa83a1a6c9069d1a02239988b07a3a2a082a433042b4d4ee2b9e9f6b2df9643c ;; \
+         amd64) kasm_sha=5f4bfda43e89178782eac37ae463b1d95d16ac5e45da8b7989ec75404e764993 ;; \
+         arm64) kasm_sha=b847429cbcf95736fdd5c3be682eea38cae4d689f012eec9c2d5f221b175d1c2 ;; \
          *)     kasm_sha="" ; echo "kasmvnc: no .deb for $arch — skipping the interactive browser" ;; \
        esac \
     && if [ -n "$kasm_sha" ]; then \
@@ -125,26 +124,6 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
          rm -f /tmp/kasmvnc.deb; \
        fi \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# ---- draw.io Desktop CLI ----
-# Turns the committed Mermaid source into a handoff-ready `.drawio`/PNG/SVG (see the
-# `architecture-diagrams` skill). Baked rather than fetched on first use: /usr and /opt
-# are rebuilt from the image on every start, so a redeploy would otherwise leave an
-# agent holding a command whose binary is gone — measured once already, when an
-# on-demand install under /tmp vanished with a restart.
-# The AppImage is *extracted* at build time, not executed: this container has no FUSE.
-# `xvfb` (in the package list above) is the X server the Electron export needs.
-# DRAWIO_VERSION and the sha256 below move together — bump the version, re-download,
-# re-hash (uppercase hex is not accepted by `sha256sum -c`).
-ARG DRAWIO_VERSION=32.7.4
-RUN url="https://github.com/jgraph/drawio-desktop/releases/download/v${DRAWIO_VERSION}/drawio-x86_64-${DRAWIO_VERSION}.AppImage" \
-    && curl -fsSL --retry 3 -o /tmp/drawio.AppImage "$url" \
-    && echo "7d78c781d4ec33d86dc48251c3cadc9c18dcea6bc5d581322c0335ccb33b222c  /tmp/drawio.AppImage" | sha256sum -c - \
-    && chmod +x /tmp/drawio.AppImage \
-    && mkdir -p /opt/drawio-desktop \
-    && (cd /opt/drawio-desktop && /tmp/drawio.AppImage --appimage-extract >/dev/null) \
-    && rm -f /tmp/drawio.AppImage \
-    && test -x /opt/drawio-desktop/squashfs-root/drawio
 
 # ---- uv + Python 3.12 ----
 # The repo requires >=3.12; Debian's system python3 is 3.11.
@@ -161,7 +140,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/b
 
 # ---- pnpm (pinned, via corepack) ----
 # Keep the pin in sync with scripts/install-tools.sh (fallback path).
-RUN corepack enable pnpm && corepack prepare pnpm@11.22.0 --activate
+RUN corepack enable pnpm && corepack prepare pnpm@12.23.0 --activate
 
 # ---- Doppler CLI (secrets management; token injected at runtime via DOPPLER_TOKEN) ----
 RUN curl -Ls https://cli.doppler.com/install.sh | sh \
@@ -172,26 +151,9 @@ RUN curl -Ls https://cli.doppler.com/install.sh | sh \
 # (the boot script keeps the same per-tool fallback).
 #   neon         : neonctl — authenticates natively via NEON_API_KEY, no login step
 #   @railway/cli : ships a postinstall -> needs --allow-scripts under npm 11
-#   openchamber  : the web UI that manages its own embedded OpenCode server. This is
-#                  OUR FORK's build of 2.7.0, not the npm package: it is the 2.7.0
-#                  release plus the "group worktrees" sidebar toggle
-#                  (fork: github.com/wanqingying/openchamber — upstream #5669 is still
-#                  open). The tarball is committed as
-#                  `vendor/openchamber-web-2.7.0-fork.tgz`; rebuild it in the fork with
-#                  `bun run pack:web` and copy the tgz here. It stays the 2.7.0
-#                  release, so it keeps the npm pair with the OpenCode pin below
-#                  (2.7.0 requires opencode >= 2.2.4; we pin 2.2.6). #6131 (question form)
-#                  is fixed upstream as of 2026-11-07; #6084 (git churn) is still open —
-#                  see versions/bd/BD-003.md.
-# Upstream is therefore never installed by name: npm's `@openchamber/web@2.7.0` has no
-# fork patch, and installing it over the fork is exactly the mistake this COPY prevents.
-COPY vendor/openchamber-web-2.7.0-fork.tgz /opt/openchamber-fork/openchamber-web-2.7.0-fork.tgz
-# Kept as two invocations: `neon` comes from the registry, openchamber from the tarball,
-# and one failing install must not take the other down (install-tools.sh keeps the same
-# per-tool fallback). The split is not a speed claim: adjacent Railway build wall-clocks
-# were measured to vary 28–89 s on the same layout, so they cannot compare layouts.
+#   openchamber  : the official Web UI, pinned with the OpenCode CLI (see BD-005).
 RUN npm i -g neon \
-    && npm i -g /opt/openchamber-fork/openchamber-web-2.7.0-fork.tgz \
+    && npm i -g '@openchamber/web@2.8.0' \
     && npm cache clean --force
 
 # `--allow-scripts` is given per package that ships an install script. Both are known to
@@ -209,7 +171,7 @@ RUN npm i -g neon \
 #
 # opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
 # official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
-# @opencode/cli`) is what we follow, but the version is pinned at 2.2.6 on purpose:
+# @opencode/cli`) is what we follow, but the version is pinned on purpose:
 # following `latest` makes the running agent drift with every build, and one bad
 # upstream release takes the whole AI stack down. It is also paired with the
 # OpenChamber pin (see the version-pair note there).
@@ -221,7 +183,7 @@ RUN npm i -g neon \
 # version variable is the fallback knob, not the source of truth — keep the two
 # in sync when bumping.
 #
-# codegraph is PINNED at 1.6.2 (BD-003) like the other two. It used to be deliberately
+# codegraph is PINNED like the other two. It used to be deliberately
 # unpinned — the old `versions/BD-INDEX.md` Hold argued it was an L1 tool whose failures
 # are loud (`codegraph status` errors visibly) — but an unpinned tool that also upgrades
 # itself at every boot is two moving parts in one container, and "tracks upstream" means a
@@ -232,10 +194,7 @@ RUN npm i -g neon \
 # neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
 # @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
 # openchamber : the web UI that manages its own embedded OpenCode server. PINNED
-#               (BD-003 = 2.7.0 fork build) and paired with the OpenCode pin — OpenChamber 2.x
-#               drives OpenCode 2.x only, and 2.7.0 requires opencode >= 2.2.4. #6131
-#               (question form) is fixed upstream; #6084 (git churn) is still open and is
-#               accepted — see versions/bd/BD-003.md.
+#               to the upstream npm release and paired with the OpenCode pin.
 # playwright  : CLI + library for driving the in-container KasmVNC Chromium over CDP.
 #               **No browser download** — `playwright` only fetches browsers when you run
 #               `playwright install`, which we never do: we attach to the Chromium that
@@ -253,43 +212,11 @@ RUN npm i -g \
         --allow-scripts=@railway/cli \
         --allow-scripts=@opencode/cli \
         --allow-scripts=@larksuite/cli \
-        "@railway/cli" "@opencode/cli@2.2.6" "@colbymchenry/codegraph@1.6.2" "playwright@1.65.0" \
+        "@railway/cli" "@opencode/cli@2.4.2" "@colbymchenry/codegraph@1.6.4" "playwright@1.65.1" \
         "@larksuite/cli@1.0.99" \
     && printf '#!/bin/sh\nexec playwright cli "$@"\n' > /usr/local/bin/playwright-cli \
     && chmod +x /usr/local/bin/playwright-cli \
     && npm cache clean --force
-
-# Version notes for the two pinned packages in the line above.
-#
-# opencode MUST be v2 (@opencode/cli), installed **pinned** — not `@latest`. The
-# official guide's npm method (https://opencode.ai/v2/docs → `npm install -g
-# @opencode/cli`) is what we follow, but the version is pinned at 2.2.6 on purpose:
-# following `latest` makes the running agent drift with every build, and one bad
-# upstream release takes the whole AI stack down. It is also paired with the
-# OpenChamber pin (see the version-pair note there).
-# The old v1 package `opencode-ai` is incompatible — OpenChamber reports
-# "Configured OpenCode binary not found" and degrades to a no-agent mode. The
-# `opencode` binary this package installs is what OpenChamber discovers on PATH.
-# This install is normally the one that determines the running version:
-# scripts/install-tools.sh only installs opencode when it is missing, so its
-# version variable is the fallback knob, not the source of truth — keep the two
-# in sync when bumping.
-#
-# codegraph is PINNED at 1.6.2 (BD-003) like the other two. It used to be deliberately
-# unpinned — the old `versions/BD-INDEX.md` Hold argued it was an L1 tool whose failures
-# are loud (`codegraph status` errors visibly) — but an unpinned tool that also upgrades
-# itself at every boot is two moving parts in one container, and "tracks upstream" means a
-# redeploy can silently change how the agent indexes code. Decision reversed 2026-10-29:
-# pinned here, and `CODEGRAPH_UPGRADE` now defaults to 0 so the boot keeps the baked
-# version. Bump it through the BD process like everything else.
-#
-# neon        : neonctl — authenticates natively via NEON_API_KEY, no login step
-# @railway/cli: ships a postinstall → needs --allow-scripts under npm 11
-# openchamber : the web UI that manages its own embedded OpenCode server. PINNED
-#               (BD-003 = 2.7.0 fork build) and paired with the OpenCode pin — OpenChamber 2.x
-#               drives OpenCode 2.x only, and 2.7.0 requires opencode >= 2.2.4. #6131
-#               (question form) is fixed upstream; #6084 (git churn) is still open and is
-#               accepted — see versions/bd/BD-003.md.
 
 # ---- book-to-skill PDF extractors ----
 # The baked book-to-skill skill runs scripts/extract.py, which needs a PDF text
@@ -313,16 +240,12 @@ RUN set -eu; \
     python3.12 -c 'import sys; assert sys.version_info[:2] == (3, 12), sys.version' \
       || fail "python3.12 is not 3.12"; \
     python3 -c 'import pypdf, pdfminer' || fail "pypdf/pdfminer missing"; \
-    pnpm --version | grep -q '11\.22\.0' || fail "pnpm is not 11.22.0"; \
+    test "$(pnpm --version)" = '12.23.0' || fail "pnpm is not 12.23.0"; \
     node --version | grep -q '^v24\.' || fail "node is not 24.x"; \
-    opencode --version | grep -q '2\.2\.6' || fail "opencode is not 2.2.6"; \
-    codegraph --version | grep -q '1\.6\.2' || fail "codegraph is not 1.6.2"; \
-    openchamber --version 2>/dev/null | grep -q '2\.7\.0' \
-      || echo "WARN: openchamber --version did not report 2.7.0 (non-fatal)"; \
-    test -f /opt/openchamber-fork/openchamber-web-2.7.0-fork.tgz \
-      || fail "fork tarball missing (the npm package has no fork patch)"; \
-    grep -rqs 'groupRootWorktrees' "$(npm root -g)/@openchamber/web/dist/assets" \
-      || fail "installed openchamber is not the fork build (groupRootWorktrees missing from dist)"; \
+    test "$(opencode --version)" = 'opencode v2.4.2' || fail "opencode is not 2.4.2"; \
+    test "$(codegraph --version)" = '1.6.4' || fail "codegraph is not 1.6.4"; \
+    test "$(openchamber --version)" = '2.8.0' || fail "openchamber is not 2.8.0"; \
+    test -f "$(npm root -g)/@openchamber/web/dist/index.html" || fail "OpenChamber Web UI missing"; \
     if [ -f /usr/bin/kasmvncserver ] || command -v kasmvncserver >/dev/null 2>&1; then \
       echo "kasmvnc: present ($(dpkg-query -W -f='${Version}' kasmvncserver 2>/dev/null))"; \
     else \

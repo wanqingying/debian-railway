@@ -26,14 +26,6 @@ export WORKTREE_ROOT="${WORKTREE_ROOT:-/workspace/worktrees}"
 mkdir -p "$WORKTREE_ROOT"
 ln -sfn /scripts/worktree.sh /usr/local/bin/wt
 
-# `drawio` (scripts/drawio.sh) — draw.io Desktop CLI, baked at /opt/drawio-desktop.
-# The wrapper carries the flags a headless Electron export needs here (xvfb-run,
-# --no-sandbox, --disable-dev-shm-usage) and `--elk`, the layout pass that makes a
-# Mermaid-derived diagram readable. Used by the `architecture-diagrams` skill.
-if [ -f /scripts/drawio.sh ]; then
-    ln -sfn /scripts/drawio.sh /usr/local/bin/drawio
-fi
-
 # `pw` (scripts/pw) — Playwright CLI pinned onto the in-container KasmVNC browser:
 # it attaches over CDP (idempotently) instead of launching, so an agent drives the
 # SAME signed-in session a human just logged into. `playwright cli open` is avoided
@@ -126,6 +118,15 @@ if [ -d "$retired_skill" ] && [ ! -L "$retired_skill" ]; then
     done
     rmdir "$retired_skill" 2>/dev/null || true
     echo "[entrypoint] removed retired answer-me-with-html skill files"
+fi
+
+# Remove the old baked diagram skill, but keep user-edited files and diagrams.
+retired_skill="$XDG_CONFIG_HOME/opencode/skills/architecture-diagrams"
+if [ ! -L "$retired_skill" ] && [ ! -L "$retired_skill/SKILL.md" ] && [ -f "$retired_skill/SKILL.md" ] &&
+    printf '%s  %s\n' '6f7833afff214469ebc9c60cb86b7383e5ec61aa2b820758355d5ca1c0ecc0b2' "$retired_skill/SKILL.md" | sha256sum -c --status; then
+    rm -f "$retired_skill/SKILL.md"
+    rmdir "$retired_skill" 2>/dev/null || true
+    echo "[entrypoint] removed retired architecture-diagrams skill"
 fi
 
 for f in code-review req-to-ship req-to-ship-en skill-creator; do
@@ -308,7 +309,7 @@ fi
 # resolved version cannot drift; this only deletes leftovers — an older pin, or an
 # `@latest` copy from before the pin — so a long-running container cannot keep
 # serving a stale build from disk. Keep the version in sync with opencode.jsonc.
-MC_PLUGIN_CACHE_SPEC="@cortexkit/opencode-magic-context@0.49.43"
+MC_PLUGIN_CACHE_SPEC="@cortexkit/opencode-magic-context@0.49.85"
 for d in "$HOME/.cache/opencode/npm" "${XDG_CACHE_HOME:-$HOME/.cache}/opencode/npm"; do
     for p in "$d"/@cortexkit/opencode-magic-context@*; do
         [ -e "$p" ] || continue
@@ -379,6 +380,11 @@ if command -v openchamber >/dev/null 2>&1; then
     # server listens; without it the port is allocated dynamically, so pin it
     # here to keep the documented default (4096) stable across restarts.
     export OPENCODE_PORT="${OPENCODE_PORT:-4096}"
+    # OpenChamber can rebuild PATH from a login shell. Prefer the binary this
+    # image installed, unless the operator explicitly selects a different one.
+    if [ -z "${OPENCODE_BINARY:-}" ] && command -v opencode >/dev/null 2>&1; then
+        export OPENCODE_BINARY="$(command -v opencode)"
+    fi
     OC_UI_PASSWORD="${OPENCHAMBER_UI_PASSWORD:-${OPENCODE_SERVER_PASSWORD:-}}"
     OC_ARGS=(serve --port "$OPENCHAMBER_PORT" --host 0.0.0.0)
     [ -n "$OC_UI_PASSWORD" ] && OC_ARGS+=(--ui-password "$OC_UI_PASSWORD")
