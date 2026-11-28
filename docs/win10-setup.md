@@ -116,6 +116,27 @@ Windows-specific setup that is easy to forget:
 | Which `opencode.db` exists: `%USERPROFILE%\.local\share\...` or `%LOCALAPPDATA%\...` | `session_search` resolves `XDG_DATA_HOME` → `~/.local/share` → `%LOCALAPPDATA%` (this branch). If the first one exists, the win32 branch is inert. |
 | `cortexkit\magic-context\context.db` present | memory layer is persisting. If it is missing after a session, storage resolved somewhere else — find it with `Get-ChildItem -Recurse $env:USERPROFILE,$env:LOCALAPPDATA -Filter context.db` |
 
+## After a reboot
+
+Nothing starts by itself: `setup.ps1` installs packages and the profile loader, not a
+login task. Two ways back:
+
+```powershell
+# everything in one command (keys, OpenChamber, debug Chrome, readiness)
+powershell -ExecutionPolicy Bypass -File platform\win10\start.ps1
+
+# or let OpenChamber own it, and it then starts with the session
+openchamber startup enable --port 3000
+```
+
+`start.ps1` is idempotent and loads `%USERPROFILE%\.config\opencode\.env` itself, so it
+also works when started by a parent that already forgot the profile. The manual
+equivalents are `openchamber serve` (default port 3000; it spawns the embedded opencode),
+then `& "…\chrome.exe" --remote-debugging-port=9222 --user-data-dir="%LOCALAPPDATA%\chrome-debug"`
+only when browser takeover is needed. After changing `.env`, a running server needs
+`openchamber restart`; `openchamber startup` snapshots the environment, so re-run
+`startup disable` + `startup enable` instead.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |

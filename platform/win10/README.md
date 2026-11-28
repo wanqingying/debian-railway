@@ -52,6 +52,7 @@ down. Only genuinely Windows-only work goes on this branch.
 | File | Purpose |
 |---|---|
 | `setup.ps1` | Idempotent bootstrap: version checks, global npm installs at the BD pins, config copy + the two rewrites |
+| `start.ps1` | One-shot start after a reboot: keys from `.env`, OpenChamber on 3000, debug Chrome on 9222, waits for `/health` |
 | `verify.ps1` | Read-only health check: prints PASS/FAIL per signal and exits non-zero on failure |
 | `AGENTS.win10.md` | Global agent instructions for Windows (installed as `~/.config/opencode/AGENTS.md`) |
 | `../../docs/win10-setup.md` | Human runbook: what to install, in what order, and why |
